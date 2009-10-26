@@ -28,6 +28,7 @@ bin_sfx = ""
 bld_dir = ".build"
 out_dir = "."
 obj_dir = ""
+mscver  = None
 
 def SetupMSVCDebug(env):
   env.Append(CPPFLAGS = " /MDd /Od")
@@ -57,7 +58,7 @@ def NoConsole(env):
     env.Append(LINKFLAGS = " /subsystem:windows /entry:mainCRTStartup")
 
 def MakeBaseEnv():
-  global bld_dir, out_dir, bin_sfx, obj_dir
+  global bld_dir, out_dir, bin_sfx, obj_dir, mscver
   
   SetupRelease = None
   SetupDebug   = None
@@ -117,7 +118,7 @@ def MakeBaseEnv():
   return env
 
 def DeclareTargets(env, prjs):
-  global bld_dir, out_dir, bin_sfx, obj_dir
+  global bld_dir, out_dir, bin_sfx, obj_dir, mscver
   
   all_projs = {}
   
