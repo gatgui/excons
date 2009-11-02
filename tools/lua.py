@@ -18,11 +18,32 @@
 # USA.
 
 from SCons.Script import *
+import os
+import platform
 
 def Require(env):
+  linc = None
+  llib = None
+  ldir = ARGUMENTS.get("with-lua", None)
+  if ldir != None:
+    linc = os.path.join(ldir, "include")
+    if str(Platform()) == "win32":
+      if platform.architecture()[0] == "32bit":
+        llib = os.path.join(ldir, "lib", "x86")
+      else:
+        llib = os.path.join(ldir, "lib", "x64")
+    else:
+      llib = os.path.join(ldir, "lib")
+  else:
+    linc = ARGUMENTS.get("with-lua-inc", None)
+    llib = ARGUMENTS.get("with-lua-lib", None)
+  if linc != None:
+    env.Append(CPPPATH=[linc])
+  if llib != None:
+    env.Append(LIBPATH=[llib])
   if str(Platform()) == "win32":
     env.Append(CPPDEFINES = ["LUA_BUILD_AS_DLL"])
-    env.Append(LIBS = ["lua5.1"])
+    env.Append(LIBS = ["lua51"])
   else:
     env.Append(LIBS = ["lua"])
   #elif str(Platform()) == "darwin":
@@ -33,4 +54,6 @@ def Require(env):
   #  # Do not link lua static lib [would duplicate core]
   #  # Only do it for final executable [using LinkLUA]
   #  pass
-    
+
+def ModuleExtension():
+  return ".so"

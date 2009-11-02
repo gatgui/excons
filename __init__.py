@@ -17,7 +17,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
-
 import os
 import glob
 import platform
@@ -30,29 +29,6 @@ out_dir = "."
 obj_dir = ""
 mscver  = None
 
-def SetupMSVCDebug(env):
-  env.Append(CPPFLAGS = " /MDd /Od")
-  env.Append(CPPDEFINES = ["_DEBUG"])
-  env.Append(LINKFLAGS = " /debug /opt:noref /opt:noicf")
-
-def SetupMSVCRelease(env):
-  env.Append(CPPFLAGS = " /Gy /MD /O2")
-  env.Append(CPPDEFINES = ["NDEBUG"])
-  env.Append(LINKFLAGS = " /release /opt:ref /opt:noicf")
-
-def SetupGCCDebug(env):
-  env.Append(CPPFLAGS = " -O0 -g -ggdb")
-  env.Append(CPPDEFINES = ["_DEBUG"])
-
-def SetupGCCRelease(env):
-  env.Append(CPPFLAGS = " -O2")
-  env.Append(CPPDEFINES = ["NDEBUG"])
-  if int(ARGUMENTS.get("strip", 0)) == 1:
-    if str(Platform()) == "darwin":
-      env.Append(LINKFLAGS = " -Wl,-dead_strip")
-    else:
-      env.Append(LINKFLAGS = " -s")
-
 def NoConsole(env):
   if str(Platform()) == "win32":
     env.Append(LINKFLAGS = " /subsystem:windows /entry:mainCRTStartup")
@@ -60,8 +36,34 @@ def NoConsole(env):
 def MakeBaseEnv():
   global bld_dir, out_dir, bin_sfx, obj_dir, mscver
   
+  def SetupMSVCDebug(env):
+    env.Append(CPPFLAGS = " /MDd /Od")
+    env.Append(CPPDEFINES = ["_DEBUG"])
+    env.Append(LINKFLAGS = " /debug /opt:noref /opt:noicf /incremental:yes")
+  
+  def SetupMSVCRelease(env):
+    env.Append(CPPFLAGS = " /Gy /MD /O2")
+    env.Append(CPPDEFINES = ["NDEBUG"])
+    env.Append(LINKFLAGS = " /release /opt:ref /opt:icf /incremental:no")
+  
+  def SetupGCCDebug(env):
+    env.Append(CPPFLAGS = " -O0 -g -ggdb")
+    env.Append(CPPDEFINES = ["_DEBUG"])
+  
+  def SetupGCCRelease(env):
+    env.Append(CPPFLAGS = " -O2")
+    env.Append(CPPDEFINES = ["NDEBUG"])
+    if int(ARGUMENTS.get("strip", 0)) == 1:
+      if str(Platform()) == "darwin":
+        env.Append(LINKFLAGS = " -Wl,-dead_strip")
+      else:
+        env.Append(LINKFLAGS = " -s")
+  
+  
   SetupRelease = None
   SetupDebug   = None
+  
+  arch = "x86" if platform.architecture()[0] == '32bit' else "x64"
   
   if str(Platform()) == "win32":
     mscver = ARGUMENTS.get("mscver", "8.0")
@@ -73,40 +75,29 @@ def MakeBaseEnv():
     if m:
       winnt = "_WIN32_WINNT=0x0%s00" % m.group(1)
     env.Append(CPPDEFINES = [winnt, "_USE_MATH_DEFINES", "_WIN32", "WIN32", "_WINDOWS"])
-    env.Append(CPPFLAGS = " /W4 /Wp64 /GR /EHsc")
-    #env.Append(CPPPATH = ["etc/win32/include"])
-    #env.Append(LIBPATH = ["etc/win32/lib"])
+    env.Append(CPPFLAGS = " /W4 /GR /EHsc")
+    if "INCLUDE" in os.environ:
+      env.Append(CPPPATH=os.environ["INCLUDE"].split(";"))
+    if "LIB" in os.environ:
+      env.Append(LIBPATH=os.environ["LIB"].split(";"))
+    mt = os.popen("which mt").read().strip()
+    m = re.match(r"^/cygdrive/([a-zA-Z])/", mt)
+    if m:
+      mt = mt.replace(m.group(0), m.group(1)+":/")
     if float(mscver) > 7.1:
       env.Append(CPPDEFINES = ["_CRT_SECURE_NO_DEPRECATE"])
-      env['LINKCOM'] = [env['LINKCOM'], 'mt.exe -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;1']
-      env['SHLINKCOM'] = [env['SHLINKCOM'], 'mt.exe -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;2']
+      env['LINKCOM'] = [env['LINKCOM'], '%s -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;1' % mt]
+      env['SHLINKCOM'] = [env['SHLINKCOM'], '%s -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;2' % mt]
     SetupRelease = SetupMSVCRelease
     SetupDebug = SetupMSVCDebug
   else:
     env = Environment()
-    # Base GCC setup
     env.Append(CPPFLAGS = " -pipe -W -Wall")
     SetupRelease = SetupGCCRelease
     SetupDebug = SetupGCCDebug
-    #if str(Platform()) == "darwin":
-    #  env.Append(CPPPATH = ["/opt/local/include"])
-    #  env.Append(LIBPATH = ["/opt/local/lib"])
-  
-  env.Append(CPPPATH = ["include"])
-  env.Append(LIBPATH = ["lib"])
-  
-  ext = ARGUMENTS.get("extra-dir", None)
-  if ext:
-    env.Append(CPPPATH = [os.path.join(ext, "include")])
-    env.Append(LIBPATH = [os.path.join(ext, "lib")])
-  
-  ext = ARGUMENTS.get("extra-include-dir", None)
-  if ext:
-    env.Append(CPPPATH = [ext])
-  
-  ext = ARGUMENTS.get("extra-lib-dir", None)
-  if ext:
-    env.Append(LIBPATH = [ext])
+    if str(Platform()) == "darwin":
+      env.Append(CPPPATH = ["/opt/local/include"])
+      env.Append(LIBPATH = ["/opt/local/lib"])
   
   if int(ARGUMENTS.get("debug", 0)):
     obj_dir = "debug"
@@ -253,7 +244,7 @@ def DeclareTargets(env, prjs):
         if "ext" in settings:
           penv["SHLIBSUFFIX"] = settings["ext"]
         # set import lib in build folder
-        impbn = os.path.join(odir, prj)
+        impbn = os.path.join(odir, os.path.basename(prj)) #prj)
         penv['no_import_lib'] = 1
         penv.Append(SHLINKFLAGS = " /implib:%s.lib" % impbn)
         pout = penv.SharedLibrary(outbn, objs)
@@ -279,8 +270,12 @@ def DeclareTargets(env, prjs):
       pout = None
     
     if pout:
-      Alias(prj, pout)
+      if "alias" in settings:
+        Alias(settings["alias"], pout)
+        all_projs[settings["alias"]] = pout
+      else:
+        Alias(prj, pout)
+        all_projs[prj] = pout
     
-    all_projs[prj] = pout
 
 
