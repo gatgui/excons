@@ -21,6 +21,7 @@ from SCons.Script import *
 
 def Require(e):
   from distutils import sysconfig
+  e.Append(CCFLAGS=" -DLWC_PYVER=%s" % sysconfig.get_python_version())
   e.Append(CPPPATH=[sysconfig.get_python_inc()])
   if sysconfig.get_config_var("PYTHONFRAMEWORK"):
     a = ' -F' + sysconfig.get_config_var("PYTHONFRAMEWORKPREFIX")
