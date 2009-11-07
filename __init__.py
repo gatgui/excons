@@ -183,6 +183,10 @@ def DeclareTargets(env, prjs):
       if str(Platform()) == "win32":
         outbn = os.path.join(out_dir, prj)
         impbn = os.path.join(out_dir, "lib", prj)
+        try:
+          os.makedirs(os.path.dirname(impbn))
+        except:
+          pass
         penv['no_import_lib'] = 1
         penv.Append(SHLINKFLAGS = " /implib:%s.lib" % impbn)
         pout = penv.SharedLibrary(outbn, objs)
