@@ -27,6 +27,9 @@ def Require(e):
   e.Append(LIBPATH=[os.popen(rb_conf.substitute(flag='libdir')).read()])
   e.Append(LIBS=[os.popen(rb_conf.substitute(flag='RUBY_SO_NAME')).read()])
 
+def ModulePrefix():
+  return "lib/ruby/"
+
 def ModuleExtension():
   rb_conf = Template("ruby -e \"require 'rbconfig'; print Config::CONFIG['$flag']\"")
   return ('.' + os.popen(rb_conf.substitute(flag='DLEXT')).read())

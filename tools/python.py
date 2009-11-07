@@ -35,6 +35,9 @@ def Require(e):
       e.Append(LINKFLAGS=" %s" % sysconfig.get_config_var("LINKFORSHARED"))
       e.Append(LIBS=["python%s" % sysconfig.get_python_version()])
 
+def ModulePrefix():
+  return "lib/python/"
+
 def ModuleExtension():
   from distutils import sysconfig
   return sysconfig.get_config_var("SO")

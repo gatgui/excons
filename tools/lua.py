@@ -55,5 +55,8 @@ def Require(env):
   #  # Only do it for final executable [using LinkLUA]
   #  pass
 
+def ModulePrefix():
+  return "lib/lua/"
+
 def ModuleExtension():
   return ".so"

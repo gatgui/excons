@@ -23,18 +23,18 @@ import platform
 import re
 from SCons.Script import *
 
-bin_sfx = ""
-bld_dir = ".build"
-out_dir = "."
-obj_dir = ""
-mscver  = None
+bld_dir  = os.path.abspath("./.build")
+out_dir  = os.path.abspath(".")
+mode_dir = None
+arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
+mscver   = None
 
 def NoConsole(env):
   if str(Platform()) == "win32":
     env.Append(LINKFLAGS = " /subsystem:windows /entry:mainCRTStartup")
 
 def MakeBaseEnv():
-  global bld_dir, out_dir, bin_sfx, obj_dir, mscver
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver
   
   def SetupMSVCDebug(env):
     env.Append(CPPFLAGS = " /MDd /Od")
@@ -62,8 +62,6 @@ def MakeBaseEnv():
   
   SetupRelease = None
   SetupDebug   = None
-  
-  arch = "x86" if platform.architecture()[0] == '32bit' else "x64"
   
   if str(Platform()) == "win32":
     mscver = ARGUMENTS.get("mscver", "8.0")
@@ -100,16 +98,19 @@ def MakeBaseEnv():
       env.Append(LIBPATH = ["/opt/local/lib"])
   
   if int(ARGUMENTS.get("debug", 0)):
-    obj_dir = "debug"
+    mode_dir = "debug"
     SetupDebug(env)
   else:
-    obj_dir = "release"
+    mode_dir = "release"
     SetupRelease(env)
+  
+  env.Append(CPPPATH = [os.path.join(out_dir, mode_dir, arch_dir, "include")])
+  env.Append(LIBPATH = [os.path.join(out_dir, mode_dir, arch_dir, "lib")])
   
   return env
 
 def DeclareTargets(env, prjs):
-  global bld_dir, out_dir, bin_sfx, obj_dir, mscver
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver
   
   all_projs = {}
   
@@ -163,7 +164,7 @@ def DeclareTargets(env, prjs):
       for customcall in settings["custom"]:
         customcall(penv)
     
-    odir = os.path.join(bld_dir, obj_dir, prj)
+    odir = os.path.join(bld_dir, mode_dir, arch_dir, prj)
     
     shared = True
     if settings["type"] == "program" or\
@@ -181,8 +182,8 @@ def DeclareTargets(env, prjs):
     
     if settings["type"] == "sharedlib":
       if str(Platform()) == "win32":
-        outbn = os.path.join(out_dir, prj)
-        impbn = os.path.join(out_dir, "lib", prj)
+        outbn = os.path.join(out_dir, mode_dir, arch_dir, "bin", prj)
+        impbn = os.path.join(out_dir, mode_dir, arch_dir, "lib", prj)
         try:
           os.makedirs(os.path.dirname(impbn))
         except:
@@ -199,11 +200,11 @@ def DeclareTargets(env, prjs):
           penv.Clean(pout, outbn+".ilk")
           penv.Clean(pout, outbn+".pdb")
       else:
-        pout = penv.SharedLibrary(os.path.join(out_dir, "lib", prj), objs)
+        pout = penv.SharedLibrary(os.path.join(out_dir, mode_dir, arch_dir, "lib", prj), objs)
       add_deps(pout)
     
     elif settings["type"] == "program":
-      outbn = os.path.join(out_dir, prj)
+      outbn = os.path.join(out_dir, mode_dir, arch_dir, "bin", prj)
       if int(ARGUMENTS.get("no-console", 0)):
         NoConsole(penv)
       pout = penv.Program(outbn, objs)
@@ -217,7 +218,7 @@ def DeclareTargets(env, prjs):
           penv.Clean(pout, outbn+".pdb")
     
     elif settings["type"] == "staticlib":
-      pout = penv.StaticLibrary(os.path.join(out_dir, "lib", prj), objs)
+      pout = penv.StaticLibrary(os.path.join(out_dir, mode_dir, arch_dir, "lib", prj), objs)
       add_deps(pout)
     
     elif settings["type"] == "testprograms":
@@ -226,7 +227,7 @@ def DeclareTargets(env, prjs):
         NoConsole(penv)
       for obj in objs:
         name = os.path.splitext(os.path.basename(str(obj)))[0]
-        outbn = os.path.join(out_dir, name)
+        outbn = os.path.join(out_dir, mode_dir, arch_dir, "bin", name)
         prg = penv.Program(outbn, obj)
         add_deps(prg)
         pout.append(prg)
@@ -239,7 +240,7 @@ def DeclareTargets(env, prjs):
             penv.Clean(prg, outbn+".pdb")
     
     elif settings["type"] == "dynamicmodule":
-      prefix = out_dir
+      prefix = os.path.join(out_dir, mode_dir, arch_dir)
       if "prefix" in settings:
         prefix = os.path.join(prefix, settings["prefix"])
       if str(Platform()) == "win32":
@@ -274,6 +275,11 @@ def DeclareTargets(env, prjs):
       pout = None
     
     if pout:
+      if "install" in settings:
+        for prefix, files in settings["install"].iteritems():
+          inst = penv.Install(os.path.join(out_dir, mode_dir, arch_dir, prefix), files)
+          penv.Depends(pout, inst)
+      
       if "alias" in settings:
         Alias(settings["alias"], pout)
         all_projs[settings["alias"]] = pout
