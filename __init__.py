@@ -94,8 +94,9 @@ def MakeBaseEnv():
     SetupRelease = SetupGCCRelease
     SetupDebug = SetupGCCDebug
     if str(Platform()) == "darwin":
-      env.Append(CPPPATH = ["/opt/local/include"])
-      env.Append(LIBPATH = ["/opt/local/lib"])
+      if os.path.exists("/opt/local"):
+        env.Append(CPPPATH = ["/opt/local/include"])
+        env.Append(LIBPATH = ["/opt/local/lib"])
   
   if int(ARGUMENTS.get("debug", 0)):
     mode_dir = "debug"
