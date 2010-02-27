@@ -276,6 +276,9 @@ def DeclareTargets(env, prjs):
       pout = None
     
     if pout:
+      if "post" in settings:
+        penv.AddPostAction(pout, settings["post"])
+      
       if "install" in settings:
         for prefix, files in settings["install"].iteritems():
           inst = penv.Install(os.path.join(out_dir, mode_dir, arch_dir, prefix), files)
