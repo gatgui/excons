@@ -29,6 +29,13 @@ mode_dir = None
 arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
 mscver   = None
 
+arch_over = ARGUMENTS.get("x64", None)
+if arch_over != None:
+  if int(arch_over) == 1:
+    arch_dir = "x64"
+  else:
+    arch_dir = "x86"
+
 def NoConsole(env):
   if str(Platform()) == "win32":
     env.Append(LINKFLAGS = " /subsystem:windows /entry:mainCRTStartup")
@@ -47,10 +54,22 @@ def MakeBaseEnv():
     env.Append(LINKFLAGS = " /release /opt:ref /opt:icf /incremental:no")
   
   def SetupGCCDebug(env):
+    if arch_dir == "x64":
+      env.Append(CCFLAGS="-arch x86_64")
+      env.Append(LINKFLAGS="-arch x86_64")
+    else:
+      env.Append(CCFLAGS="-arch i386")
+      env.Append(LINKFLAGS="-arch i386")
     env.Append(CPPFLAGS = " -O0 -g -ggdb")
     env.Append(CPPDEFINES = ["_DEBUG"])
   
   def SetupGCCRelease(env):
+    if arch_dir == "x64":
+      env.Append(CCFLAGS="-arch x86_64")
+      env.Append(LINKFLAGS="-arch x86_64")
+    else:
+      env.Append(CCFLAGS="-arch i386")
+      env.Append(LINKFLAGS="-arch i386")
     env.Append(CPPFLAGS = " -O2")
     env.Append(CPPDEFINES = ["NDEBUG"])
     if int(ARGUMENTS.get("strip", 0)) == 1:
