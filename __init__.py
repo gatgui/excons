@@ -35,6 +35,13 @@ if arch_over != None:
     arch_dir = "x64"
   else:
     arch_dir = "x86"
+else:
+  arch_over = ARGUMENTS.get("x86", None)
+  if arch_over != None:
+    if int(arch_over) == 1:
+      arch_dir = "x86"
+    else:
+      arch_dir = "x64"
 
 def NoConsole(env):
   if str(Platform()) == "win32":
@@ -84,7 +91,8 @@ def MakeBaseEnv():
   
   if str(Platform()) == "win32":
     mscver = ARGUMENTS.get("mscver", "8.0")
-    env = Environment(MSVS_VERSION=mscver)
+    msvsarch = "amd64" if arch_dir == "x64" else "x86"
+    env = Environment(MSVC_VERSION=mscver, MSVS_VERSION=mscver, MSVS_ARCH=msvsarch, TARGET_ARCH=msvsarch)
     # XP:    _WIN32_WINNT=0x0500
     # Vista: _WIN32_WINNT=0x0600
     winnt = "_WIN32_WINNT=0x0400"
@@ -93,10 +101,10 @@ def MakeBaseEnv():
       winnt = "_WIN32_WINNT=0x0%s00" % m.group(1)
     env.Append(CPPDEFINES = [winnt, "_USE_MATH_DEFINES", "_WIN32", "WIN32", "_WINDOWS"])
     env.Append(CPPFLAGS = " /W4 /GR /EHsc")
-    if "INCLUDE" in os.environ:
-      env.Append(CPPPATH=os.environ["INCLUDE"].split(";"))
-    if "LIB" in os.environ:
-      env.Append(LIBPATH=os.environ["LIB"].split(";"))
+    #if "INCLUDE" in os.environ:
+    #  env.Append(CPPPATH=os.environ["INCLUDE"].split(";"))
+    #if "LIB" in os.environ:
+    #  env.Append(LIBPATH=os.environ["LIB"].split(";"))
     mt = os.popen("which mt").read().strip()
     m = re.match(r"^/cygdrive/([a-zA-Z])/", mt)
     if m:
