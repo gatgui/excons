@@ -21,8 +21,21 @@ from SCons.Script import *
 
 def Require(e):
   from distutils import sysconfig
-  e.Append(CCFLAGS=" -DLWC_PYVER=%s" % sysconfig.get_python_version())
+  
+  e.Append(CCFLAGS=" -DPY_VER=%s" % sysconfig.get_python_version())
+  
+  if str(Platform()) == "darwin":
+    fmp = ARGUMENTS.get("PythonFrameworkPath", None)
+    if fmp != None:
+      a = ' -F%s' % fmp
+      fm = ARGUMENTS.get("PythonFramework", "Python")
+      b = ' -framework %s' % fm
+      e.Append(CPPPATH=["%s/%s.framework/Headers" % (fmp, fm)])
+      e.Append(LINKFLAGS=a+b)
+      return
+  
   e.Append(CPPPATH=[sysconfig.get_python_inc()])
+  
   if sysconfig.get_config_var("PYTHONFRAMEWORK"):
     a = ' -F' + sysconfig.get_config_var("PYTHONFRAMEWORKPREFIX")
     b = ' -framework ' + sysconfig.get_config_var("PYTHONFRAMEWORK")
