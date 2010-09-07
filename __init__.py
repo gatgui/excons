@@ -142,6 +142,9 @@ def MakeBaseEnv():
   env.Append(CPPPATH = [os.path.join(out_dir, mode_dir, arch_dir, "include")])
   env.Append(LIBPATH = [os.path.join(out_dir, mode_dir, arch_dir, "lib")])
   
+  env["TARGET_ARCH"] = arch_dir
+  env["TARGET_MODE"] = mode_dir
+  
   return env
 
 def DeclareTargets(env, prjs):

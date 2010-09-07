@@ -19,7 +19,7 @@
 
 from SCons.Script import *
 import excons.tools.gl as gl
-import platform
+#import platform
 
 def Require(env):
   gl.Require(env)
@@ -29,7 +29,8 @@ def Require(env):
   if glutdir != None:
     glutinc = os.path.join(glutdir, "include")
     if str(Platform()) == "win32":
-      if platform.architecture()[0] == "32bit":
+      #if platform.architecture()[0] == "32bit":
+      if env["TARGET_ARCH"] == "x86":
         glutlib = os.path.join(glutdir, "lib", "x86")
       else:
         glutlib = os.path.join(glutdir, "lib", "x64")
@@ -44,7 +45,8 @@ def Require(env):
     env.Append(LIBPATH=[glutlib])
   if str(Platform()) == "win32":
     env.Append(CPPDEFINES=["GLUT_NO_LIB_PRAGMA"])
-    if platform.architecture()[0] == "32bit":
+    #if platform.architecture()[0] == "32bit":
+    if env["TARGET_ARCH"] == "x86":
       env.Append(LIBS = ["glut32"])
     else:
       env.Append(LIBS = ["glut64"])

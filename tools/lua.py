@@ -19,7 +19,7 @@
 
 from SCons.Script import *
 import os
-import platform
+#import platform
 
 def Require(env):
   linc = None
@@ -28,7 +28,8 @@ def Require(env):
   if ldir != None:
     linc = os.path.join(ldir, "include")
     if str(Platform()) == "win32":
-      if platform.architecture()[0] == "32bit":
+      #if platform.architecture()[0] == "32bit":
+      if env["TARGET_ARCH"] == "x86":
         llib = os.path.join(ldir, "lib", "x86")
       else:
         llib = os.path.join(ldir, "lib", "x64")
