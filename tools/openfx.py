@@ -22,7 +22,7 @@ from SCons.Script import *
 import os
 import sys
 import shutil
-import platform as pyplat
+#import platform as pyplat
 
 def MakeBundle(target=None, source=None, env=None):
   binaryPath = str(target[0])
@@ -60,14 +60,19 @@ def MakeBundle(target=None, source=None, env=None):
     f = open(plistPath, "w")
     f.write(plist)
     f.close()
-    BinaryDir = os.path.join(ContentsDir, "MacOS")
+    if env["TARGET_ARCH"] == "x64" and "OFX_NEW_PACKAGE" in env and env["OFX_NEW_PACKAGE"]:
+      BinaryDir = os.path.join(ContentsDir, "MacOS-x86-64")
+    else:
+      BinaryDir = os.path.join(ContentsDir, "MacOS")
   elif sys.platform in ["win32", "cygwin"]:
-    if pyplat.architecture()[0] == '64bit':
+    #if pyplat.architecture()[0] == '64bit':
+    if env["TARGET_ARCH"] == "x64":
       BinaryDir = os.path.join(ContentsDir, "Win64")
     else:
       BinaryDir = os.path.join(ContentsDir, "Win32")
   else:
-    if pyplat.architecture()[0] == '64bit':
+    #if pyplat.architecture()[0] == '64bit':
+    if env["TARGET_ARCH"] == "x64":
       BinaryDir = os.path.join(ContentsDir, "Linux-x86-64")
     else:
       BinaryDir = os.path.join(ContentsDir, "Linux-x86")

@@ -51,7 +51,7 @@ def MakeBaseEnv():
   global bld_dir, out_dir, mode_dir, arch_dir, mscver
   
   def SetupMSVCDebug(env):
-    env.Append(CPPFLAGS = " /MDd /Od")
+    env.Append(CPPFLAGS = " /MDd /Od /Zi")
     env.Append(CPPDEFINES = ["_DEBUG"])
     env.Append(LINKFLAGS = " /debug /opt:noref /opt:noicf /incremental:yes")
   
@@ -59,6 +59,11 @@ def MakeBaseEnv():
     env.Append(CPPFLAGS = " /Gy /MD /O2")
     env.Append(CPPDEFINES = ["NDEBUG"])
     env.Append(LINKFLAGS = " /release /opt:ref /opt:icf /incremental:no")
+  
+  def SetupMSVCReleaseWithDebug(env):
+    env.Append(CPPFLAGS = " /MD /Od /Zi")
+    env.Append(CPPDEFINES = ["NDEBUG"])
+    env.Append(LINKFLAGS = " /debug /opt:noref /opt:noicf /incremental:yes")
   
   def SetupGCCDebug(env):
     if arch_dir == "x64":
@@ -115,6 +120,8 @@ def MakeBaseEnv():
       env['SHLINKCOM'] = [env['SHLINKCOM'], '%s -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;2' % mt]
     SetupRelease = SetupMSVCRelease
     SetupDebug = SetupMSVCDebug
+    if int(ARGUMENTS.get("debugInfo", "0")) == 1:
+      SetupRelease = SetupMSVCReleaseWithDebug
   else:
     env = Environment()
     env.Append(CPPFLAGS = " -pipe -W -Wall")
@@ -134,6 +141,9 @@ def MakeBaseEnv():
   
   env.Append(CPPPATH = [os.path.join(out_dir, mode_dir, arch_dir, "include")])
   env.Append(LIBPATH = [os.path.join(out_dir, mode_dir, arch_dir, "lib")])
+  
+  env["TARGET_ARCH"] = arch_dir
+  env["TARGET_MODE"] = mode_dir
   
   return env
 
