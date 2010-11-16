@@ -40,8 +40,8 @@ def Require(env):
       ndkinc = os.path.join(ndkdir, "include")
       ndklib = ndkdir
     else:
+      ndklib = ndkdir
       ndkinc = os.path.join(ndkdir, "include")
-      ndklib = os.path.join(ndkdir, "lib")
   else:
     ndkinc = ARGUMENTS.get("with-nuke-inc", None)
     ndklib = ARGUMENTS.get("with-nuke-lib", None)
@@ -59,5 +59,7 @@ def Require(env):
     pass
   
   env.Append(DEFINES = ["USE_GLEW"])
-  env.Append(LIBS = ["DDImage", "GLEW"])
-
+  if str(Platform()) != "win32":
+    env.Append(LIBS = ["DDImage", "GLEW"])
+  else:
+    env.Append(LIBS = ["DDImage", "glew32"])

@@ -47,3 +47,7 @@ def Require(env):
   
   env.Append(LIBS = ["freeimage"])
 
+
+def RequireStatic(env):
+  Require(env)
+  env.Append(CPPDEFINES=["FREEIMAGE_LIB"])
