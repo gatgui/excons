@@ -1,4 +1,4 @@
-# Copyright (C) 2009  Gaetan Guidet
+# Copyright (C) 2009, 2010  Gaetan Guidet
 # 
 # This file is part of excons.
 # 
@@ -18,22 +18,60 @@
 # USA.
 
 from SCons.Script import *
+import os
+import re
+import subprocess
+from distutils import sysconfig
+
+def _GetPythonVersionOSX(frameworkPath):
+  p = subprocess.Popen("ls -l %s/Versions | grep Current" % frameworkPath, shell=True, stdout=subprocess.PIPE)
+  out, err = p.communicate()
+  m = re.search(r"Current\s+->\s+([0-9\.]+)", out)
+  if m != None:
+    return m.group(1)
+  return None
+
+def _GetPythonVersionWIN(pythonPath):
+  fl = glob.glob(os.path.join(pythonPath, "python*.dll"))
+  if len(fl) == 1:
+    m = re.match(r"python(\d)(\d)\.dll", fl[0], re.IGNORECASE)
+    if m != None:
+      return "%s.%s" % (m.group(1), m.group(2))
+  return None
+
 
 def Require(e):
-  from distutils import sysconfig
+  po = ARGUMENTS.get("with-python", None)
+  if po != None:
+    if str(Platform()) == "darwin":
+      v = _GetPythonVersionOSX(po)
+      if v != None:
+        a = ' -F%s' % os.path.dirname(po)
+        b = ' -framework %s' % os.path.splitext(os.path.basename(po))[0]
+        e.Append(CCFLAGS=" -DPY_VER=%s" % v)
+        e.Append(CPPPATH=["%s/Headers" % po])
+        e.Append(LINKFLAGS=a+b)
+        return
+      else:
+        print("python specified by with-python is not useable, use default settings")
+    
+    elif str(Platform()) == "win32":
+      v = _GetPythonVersionWIN(po)
+      if v != None:
+        e.Append(CCFLAGS=" -DPY_VER=%s" % v)
+        e.Append(CPPPATH=[po+'\\include'])
+        e.Append(LIBPATH=[po+'\\libs'])
+        e.Append(LIBS=["python%s" % v.replace(".", "")])
+        return
+      else:
+        print("python specified by with-python is not useable, use default settings")
+    
+    else:
+      print("with-python not yet supported on this platform, use default settings")
+  
+  # default settings: use the python that this script
   
   e.Append(CCFLAGS=" -DPY_VER=%s" % sysconfig.get_python_version())
-  
-  if str(Platform()) == "darwin":
-    fmp = ARGUMENTS.get("PythonFrameworkPath", None)
-    if fmp != None:
-      a = ' -F%s' % fmp
-      fm = ARGUMENTS.get("PythonFramework", "Python")
-      b = ' -framework %s' % fm
-      e.Append(CPPPATH=["%s/%s.framework/Headers" % (fmp, fm)])
-      e.Append(LINKFLAGS=a+b)
-      return
-  
   e.Append(CPPPATH=[sysconfig.get_python_inc()])
   
   if sysconfig.get_config_var("PYTHONFRAMEWORK"):
@@ -52,5 +90,4 @@ def ModulePrefix():
   return "lib/python/"
 
 def ModuleExtension():
-  from distutils import sysconfig
   return sysconfig.get_config_var("SO")
