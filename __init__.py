@@ -21,6 +21,7 @@ import os
 import glob
 import platform
 import re
+import sys
 from SCons.Script import *
 
 bld_dir  = os.path.abspath("./.build")
@@ -42,6 +43,32 @@ else:
       arch_dir = "x86"
     else:
       arch_dir = "x64"
+
+def Which(target):
+  pathsplit = None
+  texp = None
+
+  if sys.platform == "win32":
+    pathsplit = ";"
+    if re.search(r"\.(exe|bat)$", target, re.IGNORECASE) is None:
+      texp = re.compile(r"%s\.(exe|bat)" % target, re.IGNORECASE)
+    else:
+      texp = re.compile(target, re.IGNORECASE)
+  else:
+    pathsplit = ":"
+    texp = re.compile(target)
+
+  if "PATH" in os.environ:
+    paths = filter(lambda x: len(x)>0, map(lambda x: x.strip(), os.environ["PATH"].split(pathsplit)))
+    for path in paths:
+      for item in glob.glob(os.path.join(path, "*")):
+        if os.path.isdir(item):
+          continue
+        bn = os.path.basename(item)
+        if texp.match(bn) != None:
+          return item.replace("\\", "/")
+
+  return None
 
 def NoConsole(env):
   if str(Platform()) == "win32":
@@ -110,10 +137,9 @@ def MakeBaseEnv():
     #  env.Append(CPPPATH=os.environ["INCLUDE"].split(";"))
     #if "LIB" in os.environ:
     #  env.Append(LIBPATH=os.environ["LIB"].split(";"))
-    mt = os.popen("which mt").read().strip()
-    m = re.match(r"^/cygdrive/([a-zA-Z])/", mt)
-    if m:
-      mt = mt.replace(m.group(0), m.group(1)+":/")
+    mt = Which("mt")
+    if mt is None:
+      mt = "mt.exe"
     if float(mscver) > 7.1:
       env.Append(CPPDEFINES = ["_CRT_SECURE_NO_DEPRECATE"])
       env['LINKCOM'] = [env['LINKCOM'], '%s -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;1' % mt]
