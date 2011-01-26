@@ -94,21 +94,37 @@ def MakeBaseEnv():
   
   def SetupGCCDebug(env):
     if arch_dir == "x64":
-      env.Append(CCFLAGS="-arch x86_64")
-      env.Append(LINKFLAGS="-arch x86_64")
+      if str(Platform()) == "darwin":
+        env.Append(CCFLAGS="-arch x86_64")
+        env.Append(LINKFLAGS="-arch x86_64")
+      else:
+        env.Append(CCFLAGS="-m64")
+        env.Append(LINKFLAGS="-m64")
     else:
-      env.Append(CCFLAGS="-arch i386")
-      env.Append(LINKFLAGS="-arch i386")
+      if str(Platform()) == "darwin":
+        env.Append(CCFLAGS="-arch i386")
+        env.Append(LINKFLAGS="-arch i386")
+      else:
+        env.Append(CCFLAGS="-m32")
+        env.Append(LINKFLAGS="-m32")
     env.Append(CPPFLAGS = " -O0 -g -ggdb")
     env.Append(CPPDEFINES = ["_DEBUG"])
   
   def SetupGCCRelease(env):
     if arch_dir == "x64":
-      env.Append(CCFLAGS="-arch x86_64")
-      env.Append(LINKFLAGS="-arch x86_64")
+      if str(Platform()) == "darwin":
+        env.Append(CCFLAGS="-arch x86_64")
+        env.Append(LINKFLAGS="-arch x86_64")
+      else:
+        env.Append(CCFLAGS="-m64")
+        env.Append(LINKFLAGS="-m64")
     else:
-      env.Append(CCFLAGS="-arch i386")
-      env.Append(LINKFLAGS="-arch i386")
+      if str(Platform()) == "darwin":
+        env.Append(CCFLAGS="-arch i386")
+        env.Append(LINKFLAGS="-arch i386")
+      else:
+        env.Append(CCFLAGS="-m32")
+        env.Append(LINKFLAGS="-m32")
     env.Append(CPPFLAGS = " -O2")
     env.Append(CPPDEFINES = ["NDEBUG"])
     if int(ARGUMENTS.get("strip", 0)) == 1:
@@ -157,6 +173,8 @@ def MakeBaseEnv():
       if os.path.exists("/opt/local"):
         env.Append(CPPPATH = ["/opt/local/include"])
         env.Append(LIBPATH = ["/opt/local/lib"])
+    else:
+      env.Append(CCFLAGS = " -fPIC")
   
   if int(ARGUMENTS.get("debug", 0)):
     mode_dir = "debug"

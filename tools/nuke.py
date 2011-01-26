@@ -60,6 +60,7 @@ def Require(env):
   
   env.Append(DEFINES = ["USE_GLEW"])
   if str(Platform()) != "win32":
+    env.Append(CCFLAGS = " -Wno-unused-variable -Wno-unused-parameter")
     env.Append(LIBS = ["DDImage", "GLEW"])
   else:
     env.Append(LIBS = ["DDImage", "glew32"])

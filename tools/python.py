@@ -83,6 +83,7 @@ def Require(e):
       e.Append(LIBPATH=[sysconfig.PREFIX+'\\libs'])
       e.Append(LIBS=["python%s" % sysconfig.get_python_version().replace(".", "")])
     else:
+      e.Append(CCFLAGS=" %s" % sysconfig.get_config_var("CFLAGS"))
       e.Append(LINKFLAGS=" %s" % sysconfig.get_config_var("LINKFORSHARED"))
       e.Append(LIBS=["python%s" % sysconfig.get_python_version()])
 
