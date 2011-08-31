@@ -158,8 +158,8 @@ def MakeBaseEnv():
       mt = "mt.exe"
     if float(mscver) > 7.1:
       env.Append(CPPDEFINES = ["_CRT_SECURE_NO_DEPRECATE"])
-      env['LINKCOM'] = [env['LINKCOM'], '%s -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;1' % mt]
-      env['SHLINKCOM'] = [env['SHLINKCOM'], '%s -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;2' % mt]
+      env['LINKCOM'] = [env['LINKCOM'], '\"%s\" -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;1' % mt]
+      env['SHLINKCOM'] = [env['SHLINKCOM'], '\"%s\" -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;2' % mt]
     SetupRelease = SetupMSVCRelease
     SetupDebug = SetupMSVCDebug
     if int(ARGUMENTS.get("debugInfo", "0")) == 1:
