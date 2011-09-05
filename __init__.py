@@ -362,7 +362,8 @@ def DeclareTargets(env, prjs):
       
       if "install" in settings:
         for prefix, files in settings["install"].iteritems():
-          inst = penv.Install(os.path.join(out_dir, mode_dir, arch_dir, prefix), files)
+          dst = os.path.join(out_dir, mode_dir, arch_dir, prefix)
+          inst = penv.Install(dst, files)
           penv.Depends(pout, inst)
       
       if "alias" in settings:
