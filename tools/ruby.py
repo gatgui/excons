@@ -33,3 +33,5 @@ def ModulePrefix():
 def ModuleExtension():
   rb_conf = Template("ruby -e \"require 'rbconfig'; print Config::CONFIG['$flag']\"")
   return ('.' + os.popen(rb_conf.substitute(flag='DLEXT')).read())
+
+

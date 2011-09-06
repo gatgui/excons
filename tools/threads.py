@@ -24,3 +24,5 @@ def Require(env):
     env.Append(LINKFLAGS = " -framework CoreServices")
   elif str(Platform()) != "win32":
     env.Append(LIBS = ["pthread"])
+
+
