@@ -26,7 +26,7 @@ from distutils import sysconfig
 def _GetPythonVersionOSX(frameworkPath):
   p = subprocess.Popen("ls -l %s/Versions | grep Current" % frameworkPath, shell=True, stdout=subprocess.PIPE)
   out, err = p.communicate()
-  m = re.search(r"Current\s+->\s+([0-9\.]+)", out)
+  m = re.search(r"Current\s+->\s+%s/Versions/([0-9\.]+)" % frameworkPath, out)
   if m != None:
     return m.group(1)
   return None
@@ -39,6 +39,19 @@ def _GetPythonVersionWIN(pythonPath):
       return "%s.%s" % (m.group(1), m.group(2))
   return None
 
+
+def Version():
+  po = ARGUMENTS.get("with-python", None)
+  if po != None:
+    if str(Platform()) == "darwin":
+      v = _GetPythonVersionOSX(po)
+      if v != None:
+        return v
+    elif str(Platform()) == "win32":
+      v = _GetPythonVersionWIN(po)
+      if v != None:
+        return v
+  return str(sysconfig.get_python_version())
 
 def Require(e):
   po = ARGUMENTS.get("with-python", None)
