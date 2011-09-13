@@ -308,7 +308,7 @@ def DeclareTargets(env, prjs):
         outbn = os.path.join(out_dir, mode_dir, "bin", prj)
       else:
         outbn = os.path.join(out_dir, mode_dir, arch_dir, "bin", prj)
-      if int(ARGUMENTS.get("no-console", 0)):
+      if int(ARGUMENTS.get("no-console", 0)) or ("console" in settings and settings["console"] is False):
         NoConsole(penv)
       pout = penv.Program(outbn, objs)
       add_deps(pout)
@@ -329,7 +329,7 @@ def DeclareTargets(env, prjs):
     
     elif settings["type"] == "testprograms":
       pout = []
-      if int(ARGUMENTS.get("no-console", 0)):
+      if int(ARGUMENTS.get("no-console", 0)) or ("console" in settings and settings["console"] is False):
         NoConsole(penv)
       for obj in objs:
         name = os.path.splitext(os.path.basename(str(obj)))[0]
