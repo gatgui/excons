@@ -254,16 +254,18 @@ def DeclareTargets(env, prjs):
       for customcall in settings["custom"]:
         customcall(penv)
     
-    if no_arch:
-      odir = os.path.join(bld_dir, mode_dir, prj)
+    if "alias" in settings:
+      odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, settings["alias"])
     else:
-      odir = os.path.join(bld_dir, mode_dir, arch_dir, prj)
+      odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, prj)
+    if "bldprefix" in settings:
+      odir = os.path.join(odir, settings["bldprefix"])
     
     shared = True
     if settings["type"] == "program" or\
        settings["type"] == "testprograms" or\
        settings["type"] == "staticlib":
-     shared = False
+      shared = False
     
     objs = []
     for src in settings["srcs"]:
