@@ -262,10 +262,11 @@ def DeclareTargets(env, prjs):
       odir = os.path.join(odir, settings["bldprefix"])
     
     shared = True
-    if settings["type"] == "program" or\
-       settings["type"] == "testprograms" or\
-       settings["type"] == "staticlib":
+    if settings["type"] in ["program", "testprograms", "staticlib"]:
       shared = False
+    
+    if str(Platform()) != "win32" and settings["type"] != "sharedlib":
+      env.Append(CCFLAGS = ["-fvisibility=hidden"])
     
     objs = []
     for src in settings["srcs"]:
