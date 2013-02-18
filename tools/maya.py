@@ -46,7 +46,7 @@ def Require(env):
     else:
       mayadir = "/usr/autodesk/maya%s" % ver
       if excons.arch_dir == "x64":
-        maya += "-x64"
+        mayadir += "-x64"
   
   if sys.platform == "darwin":
     env.Append(CPPDEFINES = ["CC_GNU_", "OSMac_", "OSMacOSX_", "REQUIRE_IOSTREAM", "OSMac_MachO_", "_LANGUAGE_C_PLUS_PLUS"])
@@ -58,11 +58,9 @@ def Require(env):
     env.Append(CPPPATH = ["%s/include" % mayadir])
     env.Append(LIBPATH = ["%s/lib" % mayadir])
     if sys.platform == "win32":
-      # TODO
-      pass
+      env.Append(CPPDEFINES = ["NT_PLUGIN", "AW_NEW_IOSTREAMS", "TRUE_AND_FALSE_DEFINED", "_BOOL"])
     else:
-      # TODO
-      pass
+      env.Append(CPPDEFINES = ["Bits64_", "UNIX", "_BOOL", "LINUX", "FUNCPROTO", "_GNU_SOURCE", "LINUX_64", "REQUIRE_IOSTREAM"])
   env.Append(LIBS = ["Foundation", "OpenMaya", "OpenMayaRender", "OpenMayaFX", "OpenMayaAnim", "OpenMayaUI"])
 
 
