@@ -30,6 +30,11 @@ mode_dir = None
 arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
 mscver   = None
 no_arch  = (int(ARGUMENTS.get("no-arch", "0")) == 1)
+warnl = ARGUMENTS.get("warnings", "all")
+if not warnl in ["none", "std", "all"]:
+  print("=== Invalid warn level \"%s\". Should be one of: none, std, all. Defaulting to \"all\"" % warn)
+  warnl = "all"
+warne = (int(ARGUMENTS.get("warnings-as-errors", 0)) != 0)
 
 arch_over = ARGUMENTS.get("x64", None)
 if arch_over != None:
@@ -170,7 +175,16 @@ def MakeBaseEnv(noarch=None):
       SetupRelease = SetupMSVCReleaseWithDebug
   else:
     env = Environment()
-    env.Append(CPPFLAGS = " -pipe -W -Wall")
+    cppflags = " -pipe"
+    if warnl == "none":
+      cppflags += " -w"
+    elif warnl == "std":
+      cppflags += " -W"
+    else:
+      cppflags += " -W -Wall"
+    if warne:
+      cppflags += " -Werror"
+    env.Append(CPPFLAGS = cppflags)
     SetupRelease = SetupGCCRelease
     SetupDebug = SetupGCCDebug
     if str(Platform()) == "darwin":
