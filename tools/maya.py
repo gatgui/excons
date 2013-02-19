@@ -29,13 +29,17 @@ def PluginExt():
   else:
     return ".so"
 
+def Plugin(env):
+  if not sys.platform in ["win32", "darwin"]:
+    env.Append(LINKFLAGS = " -Wl,-Bsymbolic")
+
 def Require(env):
   mayadir = ARGUMENTS.get("with-maya", None)
   
   if not mayadir:
     ver = ARGUMENTS.get("maya-ver", None)
     if not ver:
-      raise Exception("Please set maya version using maya-ver=")
+      raise Exception("Please set Maya version using maya-ver=")
     if sys.platform == "win32":
       if excons.arch_dir == "x64":
         mayadir = "C:/Program Files/Autodesk/Maya%s" % ver
@@ -48,10 +52,13 @@ def Require(env):
       if excons.arch_dir == "x64":
         mayadir += "-x64"
   
+  if not os.path.isdir(mayadir):
+    raise Exception("Invalid Maya directory: %s" % mayadir)
+  
   if sys.platform == "darwin":
     env.Append(CPPDEFINES = ["CC_GNU_", "OSMac_", "OSMacOSX_", "REQUIRE_IOSTREAM", "OSMac_MachO_", "_LANGUAGE_C_PLUS_PLUS"])
     env.Append(CPPPATH = ["%s/devkit/include" % mayadir])
-    env.Append(CCFLAGS = " -O3 -include \"%s/devkit/include/maya/OpenMayaMac.h\" -fno-gnu-keywords" % mayadir)
+    env.Append(CCFLAGS = " -include \"%s/devkit/include/maya/OpenMayaMac.h\" -fno-gnu-keywords" % mayadir)
     env.Append(LIBPATH = ["%s/Maya.app/Contents/MacOS" % mayadir])
     env.Append(LINKFLAGS = " -framework System -framework SystemConfiguration -framework CoreServices -framework Carbon -framework Cocoa -framework ApplicationServices -framework IOKit -framework OpenGL -framework AGL")
   else:
@@ -59,8 +66,17 @@ def Require(env):
     env.Append(LIBPATH = ["%s/lib" % mayadir])
     if sys.platform == "win32":
       env.Append(CPPDEFINES = ["NT_PLUGIN", "AW_NEW_IOSTREAMS", "TRUE_AND_FALSE_DEFINED", "_BOOL"])
+      env.Append(LIBS = ["opengl32", "glu32"])
     else:
-      env.Append(CPPDEFINES = ["Bits64_", "UNIX", "_BOOL", "LINUX", "FUNCPROTO", "_GNU_SOURCE", "LINUX_64", "REQUIRE_IOSTREAM"])
+      env.Append(CPPDEFINES = ["UNIX", "_BOOL", "LINUX", "FUNCPROTO", "_GNU_SOURCE", "REQUIRE_IOSTREAM"])
+      if "x64" in mayadir:
+        env.Append(CPPDEFINES = ["Bits64_", "LINUX_64"])
+      else:
+        # ? who uses 32 bits application anyway...
+        pass
+      env.Append(CCFLAGS = " -fno-strict-aliasing -Wno-comment -Wno-sign-compare -funsigned-char -Wno-reorder -fno-gnu-keywords -ftemplate-depth-25 -pthread")
+      env.Append(LIBS = ["GL", "GLU"])
+  
   env.Append(LIBS = ["Foundation", "OpenMaya", "OpenMayaRender", "OpenMayaFX", "OpenMayaAnim", "OpenMayaUI"])
 
 
