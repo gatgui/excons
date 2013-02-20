@@ -88,7 +88,7 @@ def Build64():
   global arch_dir
   return (arch_dir == "x64")
 
-def GetDirs(name, defprefix=None, definc=None, deflib=None, noexc=False):
+def GetDirs(name, defprefix=None, definc=None, deflib=None, nostd=False, noexc=False):
   
   prefixflag = "with-%s" % name
   incflag = "%s-inc" % prefixflag
@@ -107,14 +107,22 @@ def GetDirs(name, defprefix=None, definc=None, deflib=None, noexc=False):
   if not inc or not lib:
     prefix = ARGUMENTS.get(prefixflag, None)
     
-    if not prefix and defprefix:
-      prefix = defprefix
+    if not prefix:
+      if defprefix:
+        prefix = defprefix
+      elif not nostd:
+        if sys.platform == "darwin":
+          prefix = "/opt/local"
+        elif sys.platform != "win32":
+          prefix = "/usr"
+        if prefix:
+          print("Using standard prefix %s for %s, override using %s= or %s=/%s=" % (prefix, name, prefixflag, incflag, libflag))
     
     if not prefix:
       if noexc:
         return (None, None)
       else:
-        raise Exception("Please provide %s prefix using %s or include and library paths using %s and %s respectively" % (name, prefixflag, incflag, libflag))
+        raise Exception("Please provide %s prefix using %s= or include and library paths using %s= and %s= respectively" % (name, prefixflag, incflag, libflag))
     
     if not inc:
       inc = "%s/include" % prefix
