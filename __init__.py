@@ -80,6 +80,62 @@ def NoConsole(env):
   if str(Platform()) == "win32":
     env.Append(LINKFLAGS = " /subsystem:windows /entry:mainCRTStartup")
 
+def Build32():
+  global arch_dir
+  return (arch_dir != "x64")
+
+def Build64():
+  global arch_dir
+  return (arch_dir == "x64")
+
+def GetDirs(name, defprefix=None, definc=None, deflib=None, noexc=False):
+  
+  prefixflag = "with-%s" % name
+  incflag = "%s-inc" % prefixflag
+  libflag = "%s-lib" % prefixflag
+  
+  inc = ARGUMENTS.get(incflag, None)
+  if not inc and definc:
+    inc = definc
+  
+  lib = ARGUMENTS.get(libflag, None)
+  if not lib and deflib:
+    lib = deflib
+  
+  prefix = None
+  
+  if not inc or not lib:
+    prefix = ARGUMENTS.get(prefixflag, None)
+    
+    if not prefix and defprefix:
+      prefix = defprefix
+    
+    if not prefix:
+      if noexc:
+        return (None, None)
+      else:
+        raise Exception("Please provide %s prefix using %s or include and library paths using %s and %s respectively" % (name, prefixflag, incflag, libflag))
+    
+    if not inc:
+      inc = "%s/include" % prefix
+    
+    if not lib:
+      if sys.platform in ["win32", "darwin"] or Build32():
+        lib = "%s/lib" % prefix
+      else:
+        lib = "%s/lib64" % prefix
+  
+  if prefix:
+    ARGUMENTS[prefixflag] = os.path.abspath(os.path.expanduser(prefix))
+  
+  inc = os.path.abspath(os.path.expanduser(inc))
+  ARGUMENTS[incflag] = inc
+  
+  lib = os.path.abspath(os.path.expanduser(lib))
+  ARGUMENTS[libflag] = lib
+  
+  return (inc, lib)
+
 def MakeBaseEnv(noarch=None):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch
   

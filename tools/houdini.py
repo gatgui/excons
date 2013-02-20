@@ -73,7 +73,8 @@ def Require(env):
     env.Append(CPPDEFINES = ['DLLEXPORT="__declspec(dllexport)"', 'I386', 'SESI_LITTLE_ENDIAN', 'SWAP_BITFIELDS'])
     if majver >= 11: # == 11?
       env.Append(CPPDEFINES = ["NEED_SPECIALIZATION_STORAGE"])
-    env.Append(CPPPATH = [hfs+"/toolkit/include"])
+    #env.Append(CPPPATH = [hfs+"/toolkit/include"])
+    env.Append(CPPPATH = [hfs+"/toolkit/include", hfs+"/toolkit/include/OpenEXR"])
     
     libpath = hfs+"/custom/houdini/dsolib"
     env.Append(LIBS = ['libGB', 'libGEO', 'libGU', 'libUT', 'libCH', 'libOP', 'libSOP', 'libSOPz', 'libPRM'])
@@ -85,7 +86,8 @@ def Require(env):
       env.Append(CPPDEFINES = ["AMD64", "SIZEOF_VOID_P=8", "_FILE_OFFSET_BITS=64"])
     if majver >= 11: # == 11?
       env.Append(CPPDEFINES = ["NEED_SPECIALIZATION_STORAGE"])
-    env.Append(CPPPATH = [hfs+"/Resources/toolkit/include"])
+    #env.Append(CPPPATH = [hfs+"/Resources/toolkit/include"])
+    env.Append(CPPPATH = [hfs+"/Resources/toolkit/include", hfs+"/Resources/toolkit/include/OpenEXR"])
     env.Append(CCFLAGS = ['-Wno-deprecated'])
     
     env.Append(LIBPATH = [hfs+"/Libraries"])
@@ -98,7 +100,8 @@ def Require(env):
       env.Append(CPPDEFINES = ["AMD64", "SIZEOF_VOID_P=8", "_FILE_OFFSET_BITS=64"])
     else:
       env.Append(CPPDEFINES = ["SIZEOF_VOID_P=4", "_FILE_OFFSET_BITS=32"])
-    env.Append(CPPPATH = [hfs+"/toolkit/include"])
+    #env.Append(CPPPATH = [hfs+"/toolkit/include"])
+    env.Append(CPPPATH = [hfs+"/toolkit/include", hfs+"/toolkit/include/OpenEXR"])
     env.Append(CCFLAGS = ['-Wno-deprecated'])
     
     env.Append(LIBPATH = [hfs+"/dsolib"])
