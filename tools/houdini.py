@@ -21,6 +21,7 @@ from SCons.Script import *
 import excons
 import sys
 import re
+import os
 
 def PluginExt():
   if str(Platform()) == "darwin":
@@ -33,16 +34,22 @@ def PluginExt():
 def Plugin(env):
   env.Append(CPPDEFINES = ["MAKING_DSO"])
 
-def Require(env):
+def GetVersionAndDirectory(noexc=False):
   verexp = re.compile(r"\d+\.\d+\.\d+(\.\d+)?")
   hfs = ARGUMENTS.get("with-houdini", None)
   
   if not hfs:
     ver = ARGUMENTS.get("houdini-ver", None)
     if not ver:
-      raise Exception("Please set Houdini version using houdini-ver=")
+      if not noexc:
+        raise Exception("Please set Houdini version using houdini-ver=")
+      else:
+        return (None, None)
     if not verexp.match(ver):
-      raise Exception("Invalid version format: \"%s\"" % ver)
+      if not noexc:
+        raise Exception("Invalid version format: \"%s\"" % ver)
+      else:
+        return (None, None)
     if sys.platform == "win32":
       if excons.arch_dir == "x64":
         hfs = "C:/Program Files/Side Effects Software/Houdini %s" % ver
@@ -58,12 +65,23 @@ def Require(env):
     if not m:
       ver = ARGUMENTS.get("houdini-ver", None)
       if not ver:
-        raise Exception("Could not figure out houdini version from path \"%s\". Please provide it using houdini-ver=" % hfs)
+        if not noexc:
+          raise Exception("Could not figure out houdini version from path \"%s\". Please provide it using houdini-ver=" % hfs)
+        else:
+          return (None, None)
     else:
       ver = m.group(0)
   
   if not os.path.isdir(hfs):
-    raise Exception("Invalid Houdini directory: %s" % hfs)
+    if not noexc:
+      raise Exception("Invalid Houdini directory: %s" % hfs)
+    else:
+      return (None, None)
+  
+  return (ver, hfs)
+
+def Require(env):
+  ver, hfs = GetVersionAndDirectory()
   
   majver = int(ver.split(".")[0])
   
