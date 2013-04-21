@@ -80,6 +80,30 @@ def NoConsole(env):
   if str(Platform()) == "win32":
     env.Append(LINKFLAGS = " /subsystem:windows /entry:mainCRTStartup")
 
+def ParseStackSize(s):
+  if not s:
+    return None
+  m = re.match(r"(\d+)([mk])?", s)
+  if m:
+    sz = int(m.group(1))
+    if m.group(2):
+      if m.group(2) == "k":
+        sz *= 1024
+      else:
+        sz *= 1024 * 1024
+    return sz
+  else:
+    return None
+
+def SetStackSize(env, size):
+  if size:
+    if sys.platform == "win32":
+      env.Append(LINKFLAGS = " /stack:0x%x" % sz)
+    elif sys.platform == "darwin":
+      env.Append(LINKFLAGS = " -Wl,-stack_size,0x%x" % sz)
+    else:
+      env.Append(LINKFLAGS = " -Wl,--stack,0x%x" % sz)
+
 def Build32():
   global arch_dir
   return (arch_dir != "x64")
@@ -391,6 +415,7 @@ def DeclareTargets(env, prjs):
         outbn = os.path.join(out_dir, mode_dir, arch_dir, "bin", prj)
       if int(ARGUMENTS.get("no-console", 0)) or ("console" in settings and settings["console"] is False):
         NoConsole(penv)
+      SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(ARGUMENTS.get("stack-size", None))))
       pout = penv.Program(outbn, objs)
       add_deps(pout)
       # Cleanup
@@ -412,6 +437,7 @@ def DeclareTargets(env, prjs):
       pout = []
       if int(ARGUMENTS.get("no-console", 0)) or ("console" in settings and settings["console"] is False):
         NoConsole(penv)
+      SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(ARGUMENTS.get("stack-size", None))))
       for obj in objs:
         name = os.path.splitext(os.path.basename(str(obj)))[0]
         if no_arch:
