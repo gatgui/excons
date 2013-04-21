@@ -98,11 +98,11 @@ def ParseStackSize(s):
 def SetStackSize(env, size):
   if size:
     if sys.platform == "win32":
-      env.Append(LINKFLAGS = " /stack:0x%x" % sz)
+      env.Append(LINKFLAGS = " /stack:0x%x" % size)
     elif sys.platform == "darwin":
-      env.Append(LINKFLAGS = " -Wl,-stack_size,0x%x" % sz)
+      env.Append(LINKFLAGS = " -Wl,-stack_size,0x%x" % size)
     else:
-      env.Append(LINKFLAGS = " -Wl,--stack,0x%x" % sz)
+      env.Append(LINKFLAGS = " -Wl,--stack,0x%x" % size)
 
 def Build32():
   global arch_dir
