@@ -29,26 +29,8 @@ out_dir  = os.path.abspath(".")
 mode_dir = None
 arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
 mscver   = None
-no_arch  = (int(ARGUMENTS.get("no-arch", "0")) == 1)
-warnl = ARGUMENTS.get("warnings", "all")
-if not warnl in ["none", "std", "all"]:
-  print("=== Invalid warn level \"%s\". Should be one of: none, std, all. Defaulting to \"all\"" % warn)
-  warnl = "all"
-warne = (int(ARGUMENTS.get("warnings-as-errors", 0)) != 0)
-
-arch_over = ARGUMENTS.get("x64", None)
-if arch_over != None:
-  if int(arch_over) == 1:
-    arch_dir = "x64"
-  else:
-    arch_dir = "x86"
-else:
-  arch_over = ARGUMENTS.get("x86", None)
-  if arch_over != None:
-    if int(arch_over) == 1:
-      arch_dir = "x86"
-    else:
-      arch_dir = "x64"
+no_arch  = False  # Whether or not to create architecture directory
+warnl    = "all"  # Warning level
 
 def Which(target):
   pathsplit = None
@@ -171,6 +153,28 @@ def GetDirs(name, defprefix=None, definc=None, deflib=None, nostd=False, noexc=F
 def MakeBaseEnv(noarch=None):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch
   
+  no_arch  = (int(ARGUMENTS.get("no-arch", "0")) == 1)
+
+  warnl = ARGUMENTS.get("warnings", "all")
+  if not warnl in ["none", "std", "all"]:
+    print("=== Invalid warn level \"%s\". Should be one of: none, std, all. Defaulting to \"all\"" % warn)
+    warnl = "all"
+  warne = (int(ARGUMENTS.get("warnings-as-errors", 0)) != 0)
+
+  arch_over = ARGUMENTS.get("x64", None)
+  if arch_over != None:
+    if int(arch_over) == 1:
+      arch_dir = "x64"
+    else:
+      arch_dir = "x86"
+  else:
+    arch_over = ARGUMENTS.get("x86", None)
+    if arch_over != None:
+      if int(arch_over) == 1:
+        arch_dir = "x86"
+      else:
+        arch_dir = "x64"
+
   if noarch != None:
     no_arch = noarch
   
@@ -245,7 +249,14 @@ def MakeBaseEnv(noarch=None):
     if m:
       winnt = "_WIN32_WINNT=0x0%s00" % m.group(1)
     env.Append(CPPDEFINES = [winnt, "_USE_MATH_DEFINES", "_WIN32", "WIN32", "_WINDOWS"])
-    env.Append(CPPFLAGS = " /W4 /GR /EHsc")
+    env.Append(CPPFLAGS = " /GR /EHsc")
+    if warnl == "none":
+      env.Append(CPPFLAGS = " /w")
+    elif warnl == "std":
+      env.Append(CPPFLAGS = " /W3")
+    elif warnl == "all":
+      env.Append(CPPFLAGS = " /Wall")
+
     #if "INCLUDE" in os.environ:
     #  env.Append(CPPPATH=os.environ["INCLUDE"].split(";"))
     #if "LIB" in os.environ:
@@ -253,7 +264,7 @@ def MakeBaseEnv(noarch=None):
     mt = Which("mt")
     if mt is None:
       mt = "mt.exe"
-    if float(mscver) > 7.1:
+    if float(mscver) > 7.1 and float(mscver) < 10.0:
       env.Append(CPPDEFINES = ["_CRT_SECURE_NO_DEPRECATE"])
       env['LINKCOM'] = [env['LINKCOM'], '\"%s\" -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;1' % mt]
       env['SHLINKCOM'] = [env['SHLINKCOM'], '\"%s\" -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;2' % mt]
@@ -396,7 +407,7 @@ def DeclareTargets(env, prjs):
         # Cleanup
         penv.Clean(pout, impbn+".lib")
         penv.Clean(pout, impbn+".exp")
-        if float(mscver) > 7.1:
+        if float(mscver) > 7.1 and float(mscver) < 10.0:
           penv.Clean(pout, outbn+".dll.manifest")
         if int(ARGUMENTS.get("debug", 0)):
           penv.Clean(pout, outbn+".ilk")
@@ -420,7 +431,7 @@ def DeclareTargets(env, prjs):
       add_deps(pout)
       # Cleanup
       if str(Platform()) == "win32":
-        if float(mscver) > 7.1:
+        if float(mscver) > 7.1 and float(mscver) < 10.0:
           penv.Clean(pout, outbn+".exe.manifest")
         if int(ARGUMENTS.get("debug", 0)):
           penv.Clean(pout, outbn+".ilk")
@@ -449,7 +460,7 @@ def DeclareTargets(env, prjs):
         pout.append(prg)
         # Cleanup
         if str(Platform()) == "win32":
-          if float(mscver) > 7.1:
+          if float(mscver) > 7.1 and float(mscver) < 10.0:
             penv.Clean(prg, outbn+".exe.manifest")
           if int(ARGUMENTS.get("debug", 0)):
             penv.Clean(prg, outbn+".ilk")
@@ -475,7 +486,7 @@ def DeclareTargets(env, prjs):
         # Cleanup
         penv.Clean(pout, impbn+".lib")
         penv.Clean(pout, impbn+".exp")
-        if float(mscver) > 7.1:
+        if float(mscver) > 7.1 and float(mscver) < 10.0:
           penv.Clean(pout, outbn+penv["SHLIBSUFFIX"]+".manifest")
         if int(ARGUMENTS.get("debug", 0)):
           penv.Clean(pout, outbn+".ilk")
