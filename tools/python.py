@@ -26,9 +26,9 @@ from distutils import sysconfig
 def _GetPythonVersionOSX(frameworkPath):
   p = subprocess.Popen("ls -l %s/Versions | grep Current" % frameworkPath, shell=True, stdout=subprocess.PIPE)
   out, err = p.communicate()
-  m = re.search(r"Current\s+->\s+%s/Versions/([0-9\.]+)" % frameworkPath, out)
+  m = re.search(r"Current\s+->\s+(%s/Versions/)?([0-9\.]+)" % frameworkPath, out)
   if m != None:
-    return m.group(1)
+    return m.group(2)
   return None
 
 def _GetPythonVersionWIN(pythonPath):
@@ -62,7 +62,7 @@ def Require(e):
         a = ' -F%s' % os.path.dirname(po)
         b = ' -framework %s' % os.path.splitext(os.path.basename(po))[0]
         e.Append(CCFLAGS=" -DPY_VER=%s" % v)
-        e.Append(CPPPATH=["%s/Headers" % po])
+        e.Append(CPPPATH=["%s/Versions/%s/Headers" % (po, v)])
         e.Append(LINKFLAGS=a+b)
         return
       else:
