@@ -22,6 +22,7 @@ import excons
 import sys
 import re
 import os
+import subprocess
 
 def PluginExt():
   if str(Platform()) == "darwin":
@@ -85,43 +86,36 @@ def Require(env):
   
   majver = int(ver.split(".")[0])
   
-  env.Append(CPPDEFINES = ["VERSION=\"%s\"" % ver])
+  # Call hcustom -c, hcustom -m to setup compile and link flags
   
+  hcustomenv = os.environ.copy()
+  hcustomenv["HFS"] = hfs
   if sys.platform == "win32":
-    env.Append(CPPDEFINES = ['DLLEXPORT="__declspec(dllexport)"', 'I386', 'SESI_LITTLE_ENDIAN', 'SWAP_BITFIELDS'])
-    if majver >= 11: # == 11?
-      env.Append(CPPDEFINES = ["NEED_SPECIALIZATION_STORAGE"])
-    #env.Append(CPPPATH = [hfs+"/toolkit/include"])
-    env.Append(CPPPATH = [hfs+"/toolkit/include", hfs+"/toolkit/include/OpenEXR"])
-    
-    libpath = hfs+"/custom/houdini/dsolib"
-    env.Append(LIBS = ['libGB', 'libGEO', 'libGU', 'libUT', 'libCH', 'libOP', 'libSOP', 'libSOPz', 'libPRM'])
-    env.Append(LINKFLAGS = [libpath+"/*.a", libpath+"/*.lib"])
-    
-  elif sys.platform == "darwin":
-    env.Append(CPPDEFINES = ['DLLEXPORT=', '_GNU_SOURCE', 'MBSD', 'MBSD_COCOA', 'MBSD_INTEL', 'SESI_LITTLE_ENDIAN', 'ENABLE_THREADS', 'USE_PTHREADS', '_REENTRANT', 'GCC4', 'GCC3'])
-    if excons.arch_dir == "x64":
-      env.Append(CPPDEFINES = ["AMD64", "SIZEOF_VOID_P=8", "_FILE_OFFSET_BITS=64"])
-    if majver >= 11: # == 11?
-      env.Append(CPPDEFINES = ["NEED_SPECIALIZATION_STORAGE"])
-    #env.Append(CPPPATH = [hfs+"/Resources/toolkit/include"])
-    env.Append(CPPPATH = [hfs+"/Resources/toolkit/include", hfs+"/Resources/toolkit/include/OpenEXR"])
-    env.Append(CCFLAGS = ['-Wno-deprecated'])
-    
-    env.Append(LIBPATH = [hfs+"/Libraries"])
-    env.Append(LIBS = ['HoudiniUI', 'HoudiniOPZ', 'HoudiniOP3', 'HoudiniOP2', 'HoudiniOP1', 'HoudiniSIM', 'HoudiniGEO', 'HoudiniPRM', 'HoudiniUT'])
-    env.Append(LINKFLAGS = " -Wl,-rpath,%s/Libraries" % hfs)
+    # Oldver version of hcustom on windows require MSVCDir to be set
+    cmntools = "VS%sCOMNTOOLS" % str(env.compiler_ver()).replace(".", "")
+    if cmntools in hcustomenv:
+      cmntools = hcustomenv[cmntools]
+      if cmntools.endswith("\\") or cmntools.endswith("/"):
+        cmntools = cmntools[:-1]
+      cmntools = os.path.join(os.path.split(os.path.split(cmntools)[0])[0], "VC")
+      hcustomenv["MSVCDir"] = cmntools
   
-  else:
-    env.Append(CPPDEFINES = ['DLLEXPORT=', '_GNU_SOURCE', 'LINUX', 'SESI_LITTLE_ENDIAN', 'ENABLE_THREADS', 'USE_PTHREADS', '_REENTRANT', 'GCC4', 'GCC3'])
-    if excons.arch_dir == "x64":
-      env.Append(CPPDEFINES = ["AMD64", "SIZEOF_VOID_P=8", "_FILE_OFFSET_BITS=64"])
+  cmd = "\"%s/bin/hcustom\" -c" % hfs
+  p = subprocess.Popen(cmd, shell=True, env=hcustomenv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  out, err = p.communicate()
+  ccflags = out.strip()
+  if not "DLLEXPORT" in ccflags:
+    if env.platform() == "windows":
+      ccflags += ' /DDLLEXPORT="__declspec(dllexport)"'
     else:
-      env.Append(CPPDEFINES = ["SIZEOF_VOID_P=4", "_FILE_OFFSET_BITS=32"])
-    #env.Append(CPPPATH = [hfs+"/toolkit/include"])
-    env.Append(CPPPATH = [hfs+"/toolkit/include", hfs+"/toolkit/include/OpenEXR"])
-    env.Append(CCFLAGS = ['-Wno-deprecated'])
-    
-    env.Append(LIBPATH = [hfs+"/dsolib"])
-    env.Append(LIBS = ['HoudiniUI', 'HoudiniOPZ', 'HoudiniOP3', 'HoudiniOP2', 'HoudiniOP1', 'HoudiniSIM', 'HoudiniGEO', 'HoudiniPRM', 'HoudiniUT'])
+      ccflags += ' -DDLLEXPORT='
   
+  cmd = "\"%s/bin/hcustom\" -m" % hfs
+  p = subprocess.Popen(cmd, shell=True, env=hcustomenv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  out, err = p.communicate()
+  linkflags = out.strip()
+  if env.platform() == "windows":
+    linkflags = re.sub(r"-link\s+", "", linkflags)
+  
+  env.Append(CCFLAGS=" %s" % ccflags)
+  env.Append(LINKFLAGS=" %s" % linkflags)
