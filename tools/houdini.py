@@ -98,7 +98,12 @@ def Require(env):
       cmntools = os.path.join(os.path.split(os.path.split(cmntools)[0])[0], "VC")
       hcustomenv["MSVCDir"] = cmntools
   
-  cmd = "\"%s/bin/hcustom\" -c" % hfs
+  if sys.platform != "darwin":
+    hcustom = "%s/bin/hcustom" % hfs
+  else:
+    hcustom = "%s/Resources/bin/hcustom" % hfs
+  
+  cmd = "\"%s\" -c" % hcustom
   p = subprocess.Popen(cmd, shell=True, env=hcustomenv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   out, err = p.communicate()
   ccflags = out.strip()
@@ -108,7 +113,7 @@ def Require(env):
     else:
       ccflags += ' -DDLLEXPORT='
   
-  cmd = "\"%s/bin/hcustom\" -m" % hfs
+  cmd = "\"%s\" -m" % hcustom
   p = subprocess.Popen(cmd, shell=True, env=hcustomenv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   out, err = p.communicate()
   linkflags = out.strip()
