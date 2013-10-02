@@ -84,15 +84,13 @@ def GetVersionAndDirectory(noexc=False):
 def Require(env):
   ver, hfs = GetVersionAndDirectory()
   
-  majver = int(ver.split(".")[0])
-  
   # Call hcustom -c, hcustom -m to setup compile and link flags
   
   hcustomenv = os.environ.copy()
   hcustomenv["HFS"] = hfs
   if sys.platform == "win32":
     # Oldver version of hcustom on windows require MSVCDir to be set
-    cmntools = "VS%sCOMNTOOLS" % str(env.compiler_ver()).replace(".", "")
+    cmntools = "VS%sCOMNTOOLS" % env["MSVC_VERSION"].replace(".", "")
     if cmntools in hcustomenv:
       cmntools = hcustomenv[cmntools]
       if cmntools.endswith("\\") or cmntools.endswith("/"):
@@ -105,7 +103,7 @@ def Require(env):
   out, err = p.communicate()
   ccflags = out.strip()
   if not "DLLEXPORT" in ccflags:
-    if env.platform() == "windows":
+    if sys.platform == "win32":
       ccflags += ' /DDLLEXPORT="__declspec(dllexport)"'
     else:
       ccflags += ' -DDLLEXPORT='
@@ -114,8 +112,11 @@ def Require(env):
   p = subprocess.Popen(cmd, shell=True, env=hcustomenv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   out, err = p.communicate()
   linkflags = out.strip()
-  if env.platform() == "windows":
+  if sys.platform == "win32":
     linkflags = re.sub(r"-link\s+", "", linkflags)
+  elif sys.platform != "darwin":
+    # On linux, $HFS/dsolib doesn't seem appear in linkflags
+    linkflags += " -L %s/dsolib" % hfs
   
   env.Append(CCFLAGS=" %s" % ccflags)
   env.Append(LINKFLAGS=" %s" % linkflags)

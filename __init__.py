@@ -139,14 +139,21 @@ def GetDirs(name, defprefix=None, definc=None, deflib=None, nostd=False, noexc=F
       else:
         lib = "%s/lib64" % prefix
   
-  if prefix:
+  if prefix and os.path.isdir(prefix):
     ARGUMENTS[prefixflag] = os.path.abspath(os.path.expanduser(prefix))
   
   inc = os.path.abspath(os.path.expanduser(inc))
-  ARGUMENTS[incflag] = inc
-  
   lib = os.path.abspath(os.path.expanduser(lib))
-  ARGUMENTS[libflag] = lib
+
+  if not os.path.isdir(inc):
+    inc = None
+  else:
+    ARGUMENTS[incflag] = inc
+
+  if not os.path.isdir(lib):
+    lib = None
+  else:
+    ARGUMENTS[libflag] = lib
   
   return (inc, lib)
 
