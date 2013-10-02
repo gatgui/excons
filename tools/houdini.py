@@ -122,6 +122,11 @@ def Require(env):
   elif sys.platform != "darwin":
     # On linux, $HFS/dsolib doesn't seem appear in linkflags
     linkflags += " -L %s/dsolib" % hfs
+  else:
+    # On OSX, linkflags does not provide frameworks or libraries to link
+    libs = ["HoudiniUI", "HoudiniOPZ", "HoudiniOP3", "HoudiniOP2", "HoudiniOP1",
+            "HoudiniSIM", "HoudiniGEO", "HoudiniPRM", "HoudiniUT"]
+    linkflags += " -l%s" % " -l".join(libs)
   
   env.Append(CCFLAGS=" %s" % ccflags)
   env.Append(LINKFLAGS=" %s" % linkflags)
