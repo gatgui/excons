@@ -38,12 +38,15 @@ def Require(env):
     if arnoldinc is None:
       arnoldinc = "%s/include" % arnolddir
     if arnoldlib is None:
-      arnoldlib = "%s/lib" % arnolddir
+      if sys.platform == "win32":
+        arnoldlib = "%s/lib" % arnolddir
+      else:
+        arnoldlib = "%s/bin" % arnolddir
   
-  if not os.path.isdir(arnoldinc):
+  if not arnoldinc or not os.path.isdir(arnoldinc):
     raise Exception("Invalid Arnold directory: %s" % arnoldinc)
   
-  if not os.path.isdir(arnoldlib):
+  if not arnoldlib or not os.path.isdir(arnoldlib):
     raise Exception("Invalid Arnold directory: %s" % arnoldlib)
   
   env.Append(CPPPATH = [arnoldinc])
