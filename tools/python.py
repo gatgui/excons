@@ -53,20 +53,21 @@ def Version():
         return v
   return str(sysconfig.get_python_version())
 
-def Require(e):
+def Require(e, ignoreLinkFlags=False):
   po = ARGUMENTS.get("with-python", None)
   if po != None:
     if str(Platform()) == "darwin":
       # Can either be the .framework path or the path to the framework version
       m = re.search(r"/([^/]+)\.framework/Versions/([^/]+)/?$", po)
       if m:
-        fw = "%s%s" % (po, m.group(1))
+        fw = "%s/%s" % (po, m.group(1))
         hd = "%s/Headers" % po
         if os.path.isfile(fw) and os.path.isdir(hd):
           v = m.group(2)
           e.Append(CCFLAGS=" -DPY_VER=%s" % v)
           e.Append(CPPPATH=[hd])
-          e.Append(LINKFLAGS=" %s" % fw)
+          if not ignoreLinkFlags:
+            e.Append(LINKFLAGS=" %s" % fw)
           return
         else:
           print("python specified by with-python is not useable, use default settings")
@@ -78,7 +79,8 @@ def Require(e):
           b = " -framework %s" % os.path.splitext(os.path.basename(po))[0]
           e.Append(CCFLAGS=" -DPY_VER=%s" % v)
           e.Append(CPPPATH=["%s/Versions/%s/Headers" % (po, v)])
-          e.Append(LINKFLAGS=a+b)
+          if not ignoreLinkFlags:
+            e.Append(LINKFLAGS=a+b)
           return
         else:
           print("python specified by with-python is not useable, use default settings")
@@ -88,8 +90,9 @@ def Require(e):
       if v != None:
         e.Append(CCFLAGS=" -DPY_VER=%s" % v)
         e.Append(CPPPATH=[po+'\\include'])
-        e.Append(LIBPATH=[po+'\\libs'])
-        e.Append(LIBS=["python%s" % v.replace(".", "")])
+        if not ignoreLinkFlags:
+          e.Append(LIBPATH=[po+'\\libs'])
+          e.Append(LIBS=["python%s" % v.replace(".", "")])
         return
       else:
         print("python specified by with-python is not useable, use default settings")
@@ -104,24 +107,27 @@ def Require(e):
   e.Append(CPPPATH=[sysconfig.get_python_inc()])
   
   if sysconfig.get_config_var("PYTHONFRAMEWORK"):
-    fwdir = sysconfig.get_config_var("PYTHONFRAMEWORKPREFIX")
-    fwname = sysconfig.get_config_var("PYTHONFRAMEWORK")
-    if _GetPythonVersionOSX("%s/%s.framework") != pyver:
-      e.Append(LINKFLAGS=" %s/%s.framework/Versions/%s" % (fwdir, fwname, pyver, fwname))
-    else:
-      e.Append(LINKFLAGS=" -F%s -framework %s" % (fwdir, fwname))
+    if not ignoreLinkFlags:
+      fwdir = sysconfig.get_config_var("PYTHONFRAMEWORKPREFIX")
+      fwname = sysconfig.get_config_var("PYTHONFRAMEWORK")
+      if _GetPythonVersionOSX("%s/%s.framework") != pyver:
+        e.Append(LINKFLAGS=" %s/%s.framework/Versions/%s" % (fwdir, fwname, pyver, fwname))
+      else:
+        e.Append(LINKFLAGS=" -F%s -framework %s" % (fwdir, fwname))
   else:
     if str(Platform()) == "win32":
       e.Append(LIBPATH=[sysconfig.PREFIX+'\\libs'])
       e.Append(LIBS=["python%s" % pyver.replace(".", "")])
     else:
       e.Append(CCFLAGS=" %s" % sysconfig.get_config_var("CFLAGS"))
-      e.Append(LINKFLAGS=" %s" % sysconfig.get_config_var("LINKFORSHARED"))
-      e.Append(LIBS=["python%s" % pyver])
+      if not ignoreLinkFlags:
+        e.Append(LINKFLAGS=" %s" % sysconfig.get_config_var("LINKFORSHARED"))
+        e.Append(LIBS=["python%s" % pyver])
 
 def BuildModule(e):
   if str(Platform()) == "darwin":
     e.Append(LINKFLAGS=" -undefined dynamic_lookup")
+    Require(e, ignoreLinkFlags=True)
   else:
     Require(e)
 
