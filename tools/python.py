@@ -240,7 +240,7 @@ def Require(e, ignoreLinkFlags=False):
         e.Append(LINKFLAGS=" %s" % sysconfig.get_config_var("LINKFORSHARED"))
         e.Append(LIBS=["python%s" % pyver])
 
-def BuildModule(e):
+def SoftRequire(e):
   if str(Platform()) == "darwin":
     e.Append(LINKFLAGS=" -undefined dynamic_lookup")
     Require(e, ignoreLinkFlags=True)
