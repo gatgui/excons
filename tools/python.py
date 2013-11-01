@@ -124,13 +124,15 @@ def _GetPythonSpec(specString):
           ver = m.group(2)
           fwd = re.sub(r"/Versions/.*$", "", specString)
           if ver == _GetPythonVersionOSX(fwd):
-            spec = (ver, fwd)
+            spec = (ver, fwh, fwd, fwn)
           else:
-            spec = (ver, fw)
+            spec = (ver, fwh, None, fw)
       else:
         ver = _GetPythonVersionOSX(specString)
         if ver != None:
-          spec = (ver, specString)
+          d = os.path.dirname(specString)
+          n = os.path.splitext(os.path.basename(specString))[0]
+          spec = (ver, "%s/Versions/%s/Headers" % (specString, ver), d, n)
     
     elif plat == "win32":
       ver = _GetPythonVersionWIN(specString)
