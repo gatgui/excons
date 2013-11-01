@@ -126,7 +126,7 @@ def _GetPythonSpec(specString):
           ver = m.group(2)
           fwd = re.sub(r"/Versions/.*$", "", specString)
           if ver == _GetPythonVersionOSX(fwd):
-            spec = (ver, fwh, fwd, fwn)
+            spec = (ver, fwh, os.path.dirname(fwd), fwn)
           else:
             spec = (ver, fwh, None, fw)
       else:
