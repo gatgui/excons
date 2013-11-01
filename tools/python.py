@@ -74,7 +74,7 @@ def _GetPythonSpec(specString):
 
     if plat == "darwin":
       searchPaths = ["/System/Library/Frameworks", "/Library/Frameworks"]
-      for searchPath in searchPath:
+      for searchPath in searchPaths:
         pythonPath = os.path.join(searchPath, "Python.framework", "Versions", ver)
         if os.path.isdir(pythonPath):
           if ver == _GetPythonVersionOSX(os.path.join(searchPath, "Python.framework")):
