@@ -116,6 +116,8 @@ def _GetPythonSpec(specString):
     if plat == "darwin":
       m = re.search(r"/([^/]+)\.framework/Versions/([^/]+)/?$", specString)
       if m:
+        if specString[-1] == "/":
+          specString = specString[:-1]
         fwn = m.group(1)
         fw = "%s/%s" % (specString, fwn)
         fwh = "%s/Headers" % specString
