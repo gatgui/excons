@@ -31,7 +31,7 @@ def _GetPythonVersionOSX(pythonPath):
   p = subprocess.Popen("ls -l %s/Versions | grep Current" % pythonPath, shell=True, stdout=subprocess.PIPE)
   out, err = p.communicate()
   m = re.search(r"Current\s+->\s+(%s/Versions/)?([0-9\.]+)" % pythonPath, out)
-  if m != None:
+  if m is not None:
     return m.group(2)
   return None
 
@@ -41,8 +41,8 @@ def _GetPythonVersionWIN(pythonPath):
   dn = os.path.dirname(pythonPath)
   fl = glob.glob(os.path.join(dn, "python*.dll"))
   if len(fl) == 1:
-    m = re.match(r"python(\d)(\d)\.dll", fl[0], re.IGNORECASE)
-    if m != None:
+    m = re.match(r"python(\d)(\d)\.dll", os.path.basename(fl[0]), re.IGNORECASE)
+    if m is not None:
       return "%s.%s" % (m.group(1), m.group(2))
   return None
 
@@ -52,7 +52,7 @@ def _GetPythonVersionUNIX(pythonPath):
   p = subprocess.Popen("ldd %s | grep libpython" % pythonPath, shell=True, stdout=subprocess.PIPE)
   out, err = p.communicate()
   m = re.search(r"libpython([0-9\.]+)\.so", out)
-  if m != None:
+  if m is not None:
     return m.group(1)
   return None
 
@@ -132,22 +132,23 @@ def _GetPythonSpec(specString):
             spec = (ver, fwh, None, fw)
       else:
         ver = _GetPythonVersionOSX(specString)
-        if ver != None:
+        if ver is not None:
           d = os.path.dirname(specString)
           n = os.path.splitext(os.path.basename(specString))[0]
           spec = (ver, "%s/Versions/%s/Headers" % (specString, ver), d, n)
     
     elif plat == "win32":
       ver = _GetPythonVersionWIN(specString)
-      if ver != None:
-        incdir = os.path.join(specString, "include")
-        libdir = os.path.join(specString, "libs")
+      if ver is not None:
+        d = os.path.dirname(specString)
+        incdir = os.path.join(d, "include")
+        libdir = os.path.join(d, "libs")
         lib = "python%s" % ver.replace(".", "")
         spec = (ver, incdir, libdir, lib)
     
     else:
       ver = _GetPythonVersionUNIX(specString)
-      if ver != None:
+      if ver is not None:
         # not specString but 2 dirs up (as specString is the path to the python executable)
         d = os.path.dirname(specString)
         if os.path.basename(d) == "bin":
