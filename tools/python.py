@@ -20,6 +20,7 @@
 from SCons.Script import *
 import os
 import re
+import glob
 import subprocess
 import excons
 from distutils import sysconfig
