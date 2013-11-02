@@ -232,8 +232,8 @@ def Require(e, ignoreLinkFlags=False):
     if not ignoreLinkFlags:
       fwdir = sysconfig.get_config_var("PYTHONFRAMEWORKPREFIX")
       fwname = sysconfig.get_config_var("PYTHONFRAMEWORK")
-      if _GetPythonVersionOSX("%s/%s.framework") != pyver:
-        e.Append(LINKFLAGS=" %s/%s.framework/Versions/%s" % (fwdir, fwname, pyver, fwname))
+      if _GetPythonVersionOSX("%s/%s.framework" % (fwdir, fwname)) != pyver:
+        e.Append(LINKFLAGS=" %s/%s.framework/Versions/%s/%s" % (fwdir, fwname, pyver, fwname))
       else:
         e.Append(LINKFLAGS=" -F%s -framework %s" % (fwdir, fwname))
   else:
