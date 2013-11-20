@@ -19,35 +19,48 @@
 
 from SCons.Script import *
 import os
-#import platform
+import sys
+import excons
 
 def Require(env):
-  linc = None
-  llib = None
+  linc = ARGUMENTS.get("with-lua-inc", None)
+  llib = ARGUMENTS.get("with-lua-lib", None)
   ldir = ARGUMENTS.get("with-lua", None)
-  if ldir != None:
-    linc = os.path.join(ldir, "include")
-    if str(Platform()) == "win32":
-      #if platform.architecture()[0] == "32bit":
-      if env["TARGET_ARCH"] == "x86":
-        llib = os.path.join(ldir, "lib", "x86")
+  
+  if ldir:
+    if not linc:
+      linc = os.path.join(ldir, "include")
+    if not llib:
+      if sys.platform == "win32":
+        if excons.Build64():
+          llib = os.path.join(ldir, "lib", "x64")
+        else:
+          llib = os.path.join(ldir, "lib", "x86")
       else:
-        llib = os.path.join(ldir, "lib", "x64")
-    else:
-      llib = os.path.join(ldir, "lib")
-  else:
-    linc = ARGUMENTS.get("with-lua-inc", None)
-    llib = ARGUMENTS.get("with-lua-lib", None)
-  if linc != None:
+        llib = os.path.join(ldir, "lib")
+  
+  if linc is None or llib is None:
+    print("WARNING - You may want to set lua include/library directories using with-lua=, with-lua-inc, with-lua-lib")
+
+  if linc and not os.path.isdir(linc):
+    print("WARNING - Invalid lua include directory: \"%s\"" % linc)
+    return
+
+  if llib and not os.path.isdir(llib):
+    print("WARNING - Invalid lua library directory: \"%s\"" % llib)
+    return
+
+  if linc:
     env.Append(CPPPATH=[linc])
-  if llib != None:
+  if llib:
     env.Append(LIBPATH=[llib])
-  if str(Platform()) == "win32":
+
+  if sys.platform == "win32":
     env.Append(CPPDEFINES = ["LUA_BUILD_AS_DLL"])
     env.Append(LIBS = ["lua51"])
   else:
     env.Append(LIBS = ["lua"])
-  #elif str(Platform()) == "darwin":
+  #elif sys.platform == "darwin":
   #  # Do not link lua static lib [would duplicate core]
   #  # But add linkflags so OSX doesn't complain about unresolved symbols
   #  env.Append(LINKFLAGS = " -undefined dynamic_lookup")

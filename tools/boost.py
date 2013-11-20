@@ -22,53 +22,61 @@ import sys
 import excons
 
 def Require(libs=[], static=False):
-   boost_base_dir = ARGUMENTS.get("with-boost", None)
-   if boost_base_dir is None:
-      raise Exception("Please set boost base directory using with-boost=")
+  boost_inc_dir = ARGUMENTS.get("with-boost-inc", None)
+  boost_lib_dir = ARGUMENTS.get("with-boost-lib", None)
+  boost_base_dir = ARGUMENTS.get("with-boost", None)
 
-   boost_inc_dir = boost_base_dir + "/include"
-   if sys.platform in ["win32", "darwin"]:
+  if boost_inc_dir is None and boost_base_dir:
+    boost_inc_dir = boost_base_dir + "/include"
+
+  if boost_lib_dir is None and boost_base_dir:
+    if sys.platform in ["win32", "darwin"]:
       boost_lib_dir = boost_base_dir + "/lib"
-   else:
+    else:
       boost_lib_dir = boost_base_dir + ("/lib64" if excons.Build64() else "/lib")
 
-   if not os.path.isdir(boost_inc_dir):
-      raise Exception("Invalid boost include directory: \"%s\"" % boost_inc_dir)
+  def _RealRequire(env):
+    linklibs = []
+    defs = []
 
-   if not os.path.isdir(boost_lib_dir):
-      raise Exception("Invalid boost lib directory: \"%s\"" % boost_lib_dir)
+    if boost_inc_dir is None or boost_lib_dir is None:
+      print("WARNING - You may want to set boost include/library directories using with-boost=, with-boost-inc, with-boost-lib")
 
-   def _RealRequire(env):
-      print("excons.tools.boost._RealRequire")
-      linklibs = []
-      defs = []
+    if boost_inc_dir and not os.path.isdir(boost_inc_dir):
+      print("WARNING - Invalid boost include directory: \"%s\"" % boost_inc_dir)
+      return
 
-      if sys.platform == "win32":
-         # All libs but Boost.Python are statically linked by default
-         # Libraries are auto-linked on windows
-         if static:
-            for lib in libs:
-               libname = lib.strip().split("-")[0]
-               if libname == "python":
-                  defs.append("BOOST_PYTHON_STATIC_LIB")
-               elif libname == "thread":
-                  defs.append("BOOST_THREAD_USE_LIB")
-         else:
-            for lib in boost_list:
-               libname = lib.strip().split("-")[0]
-               if libname == "thread":
-                  defs.append("BOOST_THREAD_USE_DLL")
-               elif libname != "python":
-                  defs.append("BOOST_%s_DYN_LINK" % libname.upper())
+    if boost_lib_dir and not os.path.isdir(boost_lib_dir):
+      print("WARNING - Invalid boost lib directory: \"%s\"" % boost_lib_dir)
+      return
+
+    if sys.platform == "win32":
+      # All libs but Boost.Python are statically linked by default
+      # Libraries are auto-linked on windows
+      if static:
+        for lib in libs:
+          libname = lib.strip().split("-")[0]
+          if libname == "python":
+            defs.append("BOOST_PYTHON_STATIC_LIB")
+          elif libname == "thread":
+            defs.append("BOOST_THREAD_USE_LIB")
       else:
-         print("=> Linking boost libraries: %s" % libs)
-         for lib in libs:
-            linklibs.append("boost_%s" % lib.strip())
+        for lib in boost_list:
+          libname = lib.strip().split("-")[0]
+          if libname == "thread":
+            defs.append("BOOST_THREAD_USE_DLL")
+          elif libname != "python":
+            defs.append("BOOST_%s_DYN_LINK" % libname.upper())
+    else:
+      for lib in libs:
+        linklibs.append("boost_%s" % lib.strip())
 
-      env.Append(CPPDEFINES = defs)
+    env.Append(CPPDEFINES = defs)
+    if boost_inc_dir:
       env.Append(CPPPATH = boost_inc_dir)
+    if boost_lib_dir:
       env.Append(LIBPATH = boost_lib_dir)
-      env.Append(LIBS = linklibs)
+    env.Append(LIBS = linklibs)
 
-   return _RealRequire
+  return _RealRequire
 

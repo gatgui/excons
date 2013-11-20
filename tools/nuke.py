@@ -18,7 +18,7 @@
 # USA.
 
 from SCons.Script import *
-import platform
+import sys
 
 def PluginExt():
   if str(Platform()) == "darwin":
@@ -29,37 +29,48 @@ def PluginExt():
     return ".so"
 
 def Require(env):
-  ndkinc = None
-  ndklib = None
-  
+  ndkinc = ARGUMENTS.get("with-nuke-inc", None)
+  ndklib = ARGUMENTS.get("with-nuke-lib", None)
   ndkdir = ARGUMENTS.get("with-nuke", None)
   
-  if ndkdir != None:
-    if str(Platform()) == "darwin":
+  if ndkdir:
+    if sys.platform == "darwin":
       ndkdir = os.path.join(ndkdir, "Contents", "MacOS")
-      ndkinc = os.path.join(ndkdir, "include")
-      ndklib = ndkdir
+      if ndkinc is None:
+        ndkinc = os.path.join(ndkdir, "include")
+      if ndklib is None:
+        ndklib = ndkdir
     else:
-      ndklib = ndkdir
-      ndkinc = os.path.join(ndkdir, "include")
-  else:
-    ndkinc = ARGUMENTS.get("with-nuke-inc", None)
-    ndklib = ARGUMENTS.get("with-nuke-lib", None)
+      if ndkinc is None:
+        ndkinc = os.path.join(ndkdir, "include")
+      if ndklib is None:  
+        ndklib = ndkdir
   
-  if ndkinc != None:
+  if ndkinc is None or ndklib is None:
+    print("WARNING - You may want to set nuke include/library directories using with-nuke=, with-nuke-inc, with-nuke-lib")
+
+  if ndkinc and not os.path.isdir(ndkinc):
+    print("WARNING - Invalid nuke include directory: \"%s\"" % ndkinc)
+    return
+
+  if ndklib and not os.path.isdir(ndklib):
+    print("WARNING - Invalid nuke library directory: \"%s\"" % ndklib)
+    return
+
+  if ndkinc:
     env.Append(CPPPATH=[ndkinc])
   
-  if ndklib != None:
+  if ndklib:
     env.Append(LIBPATH=[ndklib])
   
-  if str(Platform()) == "darwin":
+  if sys.platform == "darwin":
     #env.Append(CCFLAGS=" -isysroot /Developer/SDKs/MacOSX10.4u.sdk")
     #env.Append(LINKFLAGS=" -Wl,-syslibroot,/Developer/SDKs/MacOSX10.4u.sdk")
     #env.Append(LINKFLAGS=" -framework QuartzCore -framework IOKit -framework CoreFoundation -framework Carbon -framework ApplicationServices -framework OpenGL -framework AGL -framework Quicktime")
     pass
   
   env.Append(DEFINES = ["USE_GLEW"])
-  if str(Platform()) != "win32":
+  if sys.platform != "win32":
     env.Append(CCFLAGS = " -Wno-unused-variable -Wno-unused-parameter")
     env.Append(LIBS = ["DDImage", "GLEW"])
   else:

@@ -18,39 +18,52 @@
 # USA.
 
 from SCons.Script import *
+import sys
+import excons
 import excons.tools.gl as gl
-#import platform
 
 def Require(env):
   gl.Require(env)
-  glutinc = None
-  glutlib = None
+  
+  glutinc = ARGUMENTS.get("with-glut-inc", None)
+  glutlib = ARGUMENTS.get("with-glut-lib", None)
   glutdir = ARGUMENTS.get("with-glut", None)
-  if glutdir != None:
-    glutinc = os.path.join(glutdir, "include")
-    if str(Platform()) == "win32":
-      #if platform.architecture()[0] == "32bit":
-      if env["TARGET_ARCH"] == "x86":
-        glutlib = os.path.join(glutdir, "lib", "x86")
+  
+  if glutdir:
+    if glutinc is None:
+      glutinc = os.path.join(glutdir, "include")
+    if glutlib is None:
+      if sys.platform == "win32":
+        if excons.Build64():
+          glutlib = os.path.join(glutdir, "lib", "x64")
+        else:
+          glutlib = os.path.join(glutdir, "lib", "x86")
       else:
-        glutlib = os.path.join(glutdir, "lib", "x64")
-    else:
-      glutlib = os.path.join(glutdir, "lib")
-  else:
-    glutinc = ARGUMENTS.get("with-glut-inc", None)
-    glutlib = ARGUMENTS.get("with-glut-lib", None)
-  if glutinc != None:
+        glutlib = os.path.join(glutdir, "lib")
+  
+  if glutinc is None or glutlib is None:
+    print("WARNING - You may want to set GLUT include/library directories using with-glut=, with-glut-inc, with-glut-lib")
+
+  if glutinc and not os.path.isdir(glutinc):
+    print("WARNING - Invalid GLUT include directory: \"%s\"" % glutinc)
+    return
+
+  if glutlib and not os.path.isdir(glutlib):
+    print("WARNING - Invalid GLUT library directory: \"%s\"" % glutlib)
+    return
+
+  if glutinc:
     env.Append(CPPPATH=[glutinc])
-  if glutlib != None:
+  if glutlib:
     env.Append(LIBPATH=[glutlib])
-  if str(Platform()) == "win32":
+  
+  if sys.platform == "win32":
     env.Append(CPPDEFINES=["GLUT_NO_LIB_PRAGMA"])
-    #if platform.architecture()[0] == "32bit":
-    if env["TARGET_ARCH"] == "x86":
-      env.Append(LIBS = ["glut32"])
-    else:
+    if excons.Build64():
       env.Append(LIBS = ["glut64"])
-  elif str(Platform()) == "darwin":
+    else:
+      env.Append(LIBS = ["glut32"])
+  elif sys.platform == "darwin":
     env.Append(LINKFLAGS = " -framework GLUT")
   else:
     env.Append(LIBS = ["glut"])

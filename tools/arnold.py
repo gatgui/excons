@@ -43,13 +43,20 @@ def Require(env):
       else:
         arnoldlib = "%s/bin" % arnolddir
   
-  if not arnoldinc or not os.path.isdir(arnoldinc):
-    raise Exception("Invalid Arnold directory: %s" % arnoldinc)
+  if arnoldinc is None or arnoldlib is None:
+    print("WARNING - You may want to set arnold include/library directories using with-arnold=, with-arnold-inc, with-arnold-lib")
+
+  if arnoldinc and not os.path.isdir(arnoldinc):
+    print("WARNING - Invalid arnold directory: %s" % arnoldinc)
+    return
   
-  if not arnoldlib or not os.path.isdir(arnoldlib):
-    raise Exception("Invalid Arnold directory: %s" % arnoldlib)
+  if arnoldlib and not os.path.isdir(arnoldlib):
+    print("WARNING - Invalid arnold directory: %s" % arnoldlib)
+    return
   
-  env.Append(CPPPATH = [arnoldinc])
-  env.Append(LIBPATH = [arnoldlib])
+  if arnoldinc:
+    env.Append(CPPPATH = [arnoldinc])
+  if arnoldlib:
+    env.Append(LIBPATH = [arnoldlib])
   env.Append(LIBS = ["ai"])
 
