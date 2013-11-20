@@ -29,34 +29,9 @@ def PluginExt():
     return ".so"
 
 def Require(env):
-  ndkinc = ARGUMENTS.get("with-nuke-inc", None)
-  ndklib = ARGUMENTS.get("with-nuke-lib", None)
-  ndkdir = ARGUMENTS.get("with-nuke", None)
+  idn = ("Contents/MacOS/include" if sys.platform == "darwin" else "include")
+  ndkinc, ndklib = excons.GetDirs("nuke", incdirname=idn, libdirname="", libdirarch="none")
   
-  if ndkdir:
-    if sys.platform == "darwin":
-      ndkdir = os.path.join(ndkdir, "Contents", "MacOS")
-      if ndkinc is None:
-        ndkinc = os.path.join(ndkdir, "include")
-      if ndklib is None:
-        ndklib = ndkdir
-    else:
-      if ndkinc is None:
-        ndkinc = os.path.join(ndkdir, "include")
-      if ndklib is None:  
-        ndklib = ndkdir
-  
-  if ndkinc is None or ndklib is None:
-    print("WARNING - You may want to set nuke include/library directories using with-nuke=, with-nuke-inc, with-nuke-lib")
-
-  if ndkinc and not os.path.isdir(ndkinc):
-    print("WARNING - Invalid nuke include directory: \"%s\"" % ndkinc)
-    return
-
-  if ndklib and not os.path.isdir(ndklib):
-    print("WARNING - Invalid nuke library directory: \"%s\"" % ndklib)
-    return
-
   if ndkinc:
     env.Append(CPPPATH=[ndkinc])
   

@@ -29,7 +29,7 @@ out_dir  = os.path.abspath(".")
 mode_dir = None
 arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
 mscver   = None
-no_arch  = False  # Whether or not to create architecture directory
+no_arch  = False  # Whether or not to create architecture in output directory
 warnl    = "all"  # Warning level
 
 def Which(target):
@@ -94,66 +94,87 @@ def Build64():
   global arch_dir
   return (arch_dir == "x64")
 
-def GetDirs(name, defprefix=None, definc=None, deflib=None, nostd=False, noexc=False):
+def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc=True):
+  global arch_dir
   
   prefixflag = "with-%s" % name
   incflag = "%s-inc" % prefixflag
   libflag = "%s-lib" % prefixflag
   
   inc = ARGUMENTS.get(incflag, None)
-  if not inc and definc:
-    inc = definc
-  
   lib = ARGUMENTS.get(libflag, None)
-  if not lib and deflib:
-    lib = deflib
-  
-  prefix = None
   
   if not inc or not lib:
     prefix = ARGUMENTS.get(prefixflag, None)
     
     if not prefix:
-      if defprefix:
-        prefix = defprefix
-      elif not nostd:
-        if sys.platform == "darwin":
-          prefix = "/opt/local"
-        elif sys.platform != "win32":
-          prefix = "/usr"
-        if prefix:
-          print("Using standard prefix %s for %s, override using %s= or %s=/%s=" % (prefix, name, prefixflag, incflag, libflag))
+      msg = "Provide %s prefix using %s= or include and library paths using %s= and %s= respectively" % (name, prefixflag, incflag, libflag)
+      if not noexc:
+        raise Exception(msg)
     
-    if not prefix:
+    else:
+      prefix = os.path.abspath(os.path.expanduser(prefix))
+      
+      if not os.path.isdir(prefix):
+        msg = "Invalid prefix directory for %s: %s" % (name, prefix)
+        if noexc:
+          print("WARNING - %s" % msg)
+          prefix = None
+        else:
+          raise Exception(msg)
+      
+      else:
+        ARGUMENTS[prefixflag] = prefix
+        
+        if not inc:
+          inc = "%s/%s" % (prefix, incdirname)
+        
+        if not lib:
+          lib = "%s/%s" % (prefix, libdirname)
+          mode = (ARGUMENTS.get("libdir-arch", "none") if libdirarch is None else libdirarch)
+          if mode == "subdir":
+            lib += "/%s" % arch_dir
+          elif mode == "suffix" and Build64():
+            lib += "64"
+  
+  if inc is None:
+    msg = "provide %s include path by either using the prefix directory flag %s= or the include directory flag %s=" % (name, prefixflag, incflag)
+    if noexc:
+      print("WARNING - You may need to %s" % msg)
+    else:
+      raise Exception("Please %s" % msg)
+  
+  else:
+    inc = os.path.abspath(os.path.expanduser(inc))
+    if not os.path.isdir(inc):
+      msg = "Invalid include directory for %s: %s" % (name, inc)
       if noexc:
-        return (None, None)
+        print("WARNING - %s" % msg)
+        inc = None
       else:
-        raise Exception("Please provide %s prefix using %s= or include and library paths using %s= and %s= respectively" % (name, prefixflag, incflag, libflag))
+        raise Exception(msg)
+    else:
+      ARGUMENTS[incflag] = inc
+  
+  if lib is None:
+    msg = "provide %s library path by either using the prefix directory flag %s= or the library directory flag %s=" % (name, prefixflag, libflag)
+    if noexc:
+      print("WARNING - You may need to %s" % msg)
+    else:
+      raise Exception("Please %s" % msg)
+  
+  else:
+    lib = os.path.abspath(os.path.expanduser(lib))
     
-    if not inc:
-      inc = "%s/include" % prefix
-    
-    if not lib:
-      if sys.platform in ["win32", "darwin"] or Build32():
-        lib = "%s/lib" % prefix
+    if not os.path.isdir(lib):
+      msg = "Invalid library directory for %s: %s" % (name, lib)
+      if noexc:
+        print("WARNING - %s" % msg)
+        lib = None
       else:
-        lib = "%s/lib64" % prefix
-  
-  if prefix and os.path.isdir(prefix):
-    ARGUMENTS[prefixflag] = os.path.abspath(os.path.expanduser(prefix))
-  
-  inc = os.path.abspath(os.path.expanduser(inc))
-  lib = os.path.abspath(os.path.expanduser(lib))
-
-  if not os.path.isdir(inc):
-    inc = None
-  else:
-    ARGUMENTS[incflag] = inc
-
-  if not os.path.isdir(lib):
-    lib = None
-  else:
-    ARGUMENTS[libflag] = lib
+        raise Exception(msg)
+    else:
+      ARGUMENTS[libflag] = lib
   
   return (inc, lib)
 
@@ -164,7 +185,7 @@ def MakeBaseEnv(noarch=None):
 
   warnl = ARGUMENTS.get("warnings", "all")
   if not warnl in ["none", "std", "all"]:
-    print("=== Invalid warn level \"%s\". Should be one of: none, std, all. Defaulting to \"all\"" % warn)
+    print("WARNING - Invalid warning level \"%s\". Should be one of: none, std, all. Defaulting to \"all\"" % warn)
     warnl = "all"
   warne = (int(ARGUMENTS.get("warnings-as-errors", 0)) != 0)
 

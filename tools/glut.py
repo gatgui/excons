@@ -25,33 +25,7 @@ import excons.tools.gl as gl
 def Require(env):
   gl.Require(env)
   
-  glutinc = ARGUMENTS.get("with-glut-inc", None)
-  glutlib = ARGUMENTS.get("with-glut-lib", None)
-  glutdir = ARGUMENTS.get("with-glut", None)
-  
-  if glutdir:
-    if glutinc is None:
-      glutinc = os.path.join(glutdir, "include")
-    if glutlib is None:
-      if sys.platform == "win32":
-        if excons.Build64():
-          glutlib = os.path.join(glutdir, "lib", "x64")
-        else:
-          glutlib = os.path.join(glutdir, "lib", "x86")
-      else:
-        glutlib = os.path.join(glutdir, "lib")
-  
-  if glutinc is None or glutlib is None:
-    print("WARNING - You may want to set GLUT include/library directories using with-glut=, with-glut-inc, with-glut-lib")
-
-  if glutinc and not os.path.isdir(glutinc):
-    print("WARNING - Invalid GLUT include directory: \"%s\"" % glutinc)
-    return
-
-  if glutlib and not os.path.isdir(glutlib):
-    print("WARNING - Invalid GLUT library directory: \"%s\"" % glutlib)
-    return
-
+  glutinc, glutlib = excons.GetDirs("glut")
   if glutinc:
     env.Append(CPPPATH=[glutinc])
   if glutlib:

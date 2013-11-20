@@ -23,33 +23,7 @@ import sys
 import excons
 
 def Require(env):
-  fiinc = ARGUMENTS.get("with-freeimage-inc", None)
-  filib = ARGUMENTS.get("with-freeimage-lib", None)
-  fidir = ARGUMENTS.get("with-freeimage", None)
-  
-  if fidir:
-    if fiinc is None:
-      fiinc = os.path.join(fidir, "include")
-    if filib is None:
-      if sys.platform == "win32":
-        if excons.Build64():
-          filib = os.path.join(fidir, "lib", "x64")
-        else:
-          filib = os.path.join(fidir, "lib", "x86")
-      else:
-        filib = os.path.join(fidir, "lib")
-  
-  if fiinc is None or filib is None:
-    print("WARNING - You may want to set FreeImage include/library directories using with-freeimage=, with-freeimage-inc, with-freeimage-lib")
-
-  if fiinc and not os.path.isdir(fiinc):
-    print("WARNING - Invalid FreeImage include directory: \"%s\"" % fiinc)
-    return
-
-  if filib and not os.path.isdir(filib):
-    print("WARNING - Invalid FreeImage library directory: \"%s\"" % filib)
-    return
-
+  fiinc, filib = excons.GetDirs("freeimage")
   if fiinc:
     env.Append(CPPPATH=[fiinc])
   if filib:

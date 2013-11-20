@@ -39,7 +39,8 @@ def Require(env):
   if not mayadir:
     ver = ARGUMENTS.get("maya-ver", None)
     if not ver:
-      raise Exception("Please set Maya version using maya-ver=")
+      print("WARNING - Please set Maya version using maya-ver=")
+      return
     if sys.platform == "win32":
       if excons.arch_dir == "x64":
         mayadir = "C:/Program Files/Autodesk/Maya%s" % ver
@@ -53,7 +54,8 @@ def Require(env):
         mayadir += "-x64"
   
   if not os.path.isdir(mayadir):
-    raise Exception("Invalid Maya directory: %s" % mayadir)
+    print("WARNING - Invalid Maya directory: %s" % mayadir)
+    return
   
   if sys.platform == "darwin":
     env.Append(CPPDEFINES = ["CC_GNU_", "OSMac_", "OSMacOSX_", "REQUIRE_IOSTREAM", "OSMac_MachO_", "_LANGUAGE_C_PLUS_PLUS"])

@@ -42,14 +42,18 @@ def GetVersionAndDirectory(noexc=False):
   if not hfs:
     ver = ARGUMENTS.get("houdini-ver", None)
     if not ver:
+      msg = "Please set Houdini version using houdini-ver= or provide houdini path using with-houdini="
       if not noexc:
-        raise Exception("Please set Houdini version using houdini-ver=")
+        raise Exception(msg)
       else:
+        print("WARNING - %s" % msg)
         return (None, None)
     if not verexp.match(ver):
+      msg = "Invalid version format: \"%s\"" % ver
       if not noexc:
-        raise Exception("Invalid version format: \"%s\"" % ver)
+        raise Exception(msg)
       else:
+        print("WARNING - %s" % msg)
         return (None, None)
     if sys.platform == "win32":
       if excons.arch_dir == "x64":
@@ -66,23 +70,29 @@ def GetVersionAndDirectory(noexc=False):
     if not m:
       ver = ARGUMENTS.get("houdini-ver", None)
       if not ver:
+        msg = "Could not figure out houdini version from path \"%s\". Please provide it using houdini-ver=" % hfs
         if not noexc:
-          raise Exception("Could not figure out houdini version from path \"%s\". Please provide it using houdini-ver=" % hfs)
+          raise Exception(msg)
         else:
+          print("WARNING - %s" % msg)
           return (None, None)
     else:
       ver = m.group(0)
   
   if not os.path.isdir(hfs):
+    msg = "Invalid Houdini directory: %s" % hfs
     if not noexc:
-      raise Exception("Invalid Houdini directory: %s" % hfs)
+      raise Exception(msg)
     else:
+      print("WARNING - %s" % msg)
       return (None, None)
   
   return (ver, hfs)
 
 def Require(env):
-  ver, hfs = GetVersionAndDirectory()
+  ver, hfs = GetVersionAndDirectory(noexc=True)
+  if not ver or not hfs:
+    return
   
   # Call hcustom -c, hcustom -m to setup compile and link flags
   

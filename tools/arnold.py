@@ -30,29 +30,7 @@ def PluginExt():
     return ".so"
 
 def Require(env):
-  arnoldinc = ARGUMENTS.get("with-arnold-inc", None)
-  arnoldlib = ARGUMENTS.get("with-arnold-lib", None)
-  arnolddir = ARGUMENTS.get("with-arnold", None)
-  
-  if arnolddir:
-    if arnoldinc is None:
-      arnoldinc = "%s/include" % arnolddir
-    if arnoldlib is None:
-      if sys.platform == "win32":
-        arnoldlib = "%s/lib" % arnolddir
-      else:
-        arnoldlib = "%s/bin" % arnolddir
-  
-  if arnoldinc is None or arnoldlib is None:
-    print("WARNING - You may want to set arnold include/library directories using with-arnold=, with-arnold-inc, with-arnold-lib")
-
-  if arnoldinc and not os.path.isdir(arnoldinc):
-    print("WARNING - Invalid arnold directory: %s" % arnoldinc)
-    return
-  
-  if arnoldlib and not os.path.isdir(arnoldlib):
-    print("WARNING - Invalid arnold directory: %s" % arnoldlib)
-    return
+  arnoldinc, arnoldlib = excons.GetDirs("arnold", libdirname=("bin" if sys.platform != "win32" else "lib"))
   
   if arnoldinc:
     env.Append(CPPPATH = [arnoldinc])

@@ -23,33 +23,7 @@ import sys
 import excons
 
 def Require(env):
-  linc = ARGUMENTS.get("with-lua-inc", None)
-  llib = ARGUMENTS.get("with-lua-lib", None)
-  ldir = ARGUMENTS.get("with-lua", None)
-  
-  if ldir:
-    if not linc:
-      linc = os.path.join(ldir, "include")
-    if not llib:
-      if sys.platform == "win32":
-        if excons.Build64():
-          llib = os.path.join(ldir, "lib", "x64")
-        else:
-          llib = os.path.join(ldir, "lib", "x86")
-      else:
-        llib = os.path.join(ldir, "lib")
-  
-  if linc is None or llib is None:
-    print("WARNING - You may want to set lua include/library directories using with-lua=, with-lua-inc, with-lua-lib")
-
-  if linc and not os.path.isdir(linc):
-    print("WARNING - Invalid lua include directory: \"%s\"" % linc)
-    return
-
-  if llib and not os.path.isdir(llib):
-    print("WARNING - Invalid lua library directory: \"%s\"" % llib)
-    return
-
+  linc, llib = excons.GetDirs("lua")
   if linc:
     env.Append(CPPPATH=[linc])
   if llib:
