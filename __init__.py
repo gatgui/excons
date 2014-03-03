@@ -398,12 +398,20 @@ def DeclareTargets(env, prjs):
     
     if settings["type"] == "sharedlib":
       if str(Platform()) == "win32":
-        if no_arch:
-          outbn = os.path.join(out_dir, mode_dir, "bin", prj)
-          impbn = os.path.join(out_dir, mode_dir, "lib", prj)
+        if settings.get("win_separate_dll_and_lib", True):
+          if no_arch:
+            outbn = os.path.join(out_dir, mode_dir, "bin", prj)
+            impbn = os.path.join(out_dir, mode_dir, "lib", prj)
+          else:
+            outbn = os.path.join(out_dir, mode_dir, arch_dir, "bin", prj)
+            impbn = os.path.join(out_dir, mode_dir, arch_dir, "lib", prj)
         else:
-          outbn = os.path.join(out_dir, mode_dir, arch_dir, "bin", prj)
-          impbn = os.path.join(out_dir, mode_dir, arch_dir, "lib", prj)
+          if no_arch:
+            impbn = os.path.join(out_dir, mode_dir, "lib", prj)
+          else:
+            impbn = os.path.join(out_dir, mode_dir, arch_dir, "lib", prj)
+          outbn = impbn
+            
         try:
           os.makedirs(os.path.dirname(impbn))
         except:
