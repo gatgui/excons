@@ -61,7 +61,7 @@ def GetVersionAndDirectory(noexc=False):
       else:
         hfs = "C:/Program Files (x86)/Side Effects Software/Houdini %s" % ver
     elif sys.platform == "darwin":
-      hfs = "/Library/Frameworks/Houdini.framework/Versions/%s" % ver
+      hfs = "/Library/Frameworks/Houdini.framework/Versions/%s/Resources" % ver
     else:
       hfs = "/opt/hfs%s" % ver
   else:
@@ -78,6 +78,11 @@ def GetVersionAndDirectory(noexc=False):
           return (None, None)
     else:
       ver = m.group(0)
+    
+    if sys.platform == "darwin":
+      # Path specified by with-houdini should point the the version folder
+      # Append the "Resources" as is expected in HFS environment variable
+      hfs += "/Resources"
   
   if not os.path.isdir(hfs):
     msg = "Invalid Houdini directory: %s" % hfs
@@ -108,10 +113,7 @@ def Require(env):
       cmntools = os.path.join(os.path.split(os.path.split(cmntools)[0])[0], "VC")
       hcustomenv["MSVCDir"] = cmntools
   
-  if sys.platform != "darwin":
-    hcustom = "%s/bin/hcustom" % hfs
-  else:
-    hcustom = "%s/Resources/bin/hcustom" % hfs
+  hcustom = "%s/bin/hcustom" % hfs
   
   cmd = "\"%s\" -c" % hcustom
   p = subprocess.Popen(cmd, shell=True, env=hcustomenv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -136,7 +138,9 @@ def Require(env):
     # On OSX, linkflags does not provide frameworks or libraries to link
     libs = ["HoudiniUI", "HoudiniOPZ", "HoudiniOP3", "HoudiniOP2", "HoudiniOP1",
             "HoudiniSIM", "HoudiniGEO", "HoudiniPRM", "HoudiniUT"]
-    linkflags += " -l%s" % " -l".join(libs)
+    
+    libdir = "%s/Libraries" % "/".join(hfs.split("/")[:-1])
+    linkflags += " -flat_namespace -L %s -l%s" % (libdir, " -l".join(libs))
   
   env.Append(CCFLAGS=" %s" % ccflags)
   env.Append(LINKFLAGS=" %s" % linkflags)
