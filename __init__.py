@@ -94,7 +94,7 @@ def Build64():
   global arch_dir
   return (arch_dir == "x64")
 
-def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc=True):
+def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc=True, silent=False):
   global arch_dir
   
   prefixflag = "with-%s" % name
@@ -118,7 +118,8 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
       if not os.path.isdir(prefix):
         msg = "Invalid prefix directory for %s: %s" % (name, prefix)
         if noexc:
-          print("WARNING - %s" % msg)
+          if not silent:
+            print("WARNING - %s" % msg)
           prefix = None
         else:
           raise Exception(msg)
@@ -140,7 +141,8 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   if inc is None:
     msg = "provide %s include path by either using the prefix directory flag %s= or the include directory flag %s=" % (name, prefixflag, incflag)
     if noexc:
-      print("WARNING - You may need to %s" % msg)
+      if not silent:
+        print("WARNING - You may need to %s" % msg)
     else:
       raise Exception("Please %s" % msg)
   
@@ -149,7 +151,8 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
     if not os.path.isdir(inc):
       msg = "Invalid include directory for %s: %s" % (name, inc)
       if noexc:
-        print("WARNING - %s" % msg)
+        if not silent:
+          print("WARNING - %s" % msg)
         inc = None
       else:
         raise Exception(msg)
@@ -159,7 +162,8 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   if lib is None:
     msg = "provide %s library path by either using the prefix directory flag %s= or the library directory flag %s=" % (name, prefixflag, libflag)
     if noexc:
-      print("WARNING - You may need to %s" % msg)
+      if not silent:
+        print("WARNING - You may need to %s" % msg)
     else:
       raise Exception("Please %s" % msg)
   
@@ -169,7 +173,8 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
     if not os.path.isdir(lib):
       msg = "Invalid library directory for %s: %s" % (name, lib)
       if noexc:
-        print("WARNING - %s" % msg)
+        if not silent:
+          print("WARNING - %s" % msg)
         lib = None
       else:
         raise Exception(msg)
