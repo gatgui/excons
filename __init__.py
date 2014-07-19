@@ -307,7 +307,7 @@ def MakeBaseEnv(noarch=None):
       SetupRelease = SetupMSVCReleaseWithDebug
   else:
     env = Environment()
-    cppflags = " -pipe"
+    cppflags = " -fPIC -pipe"
     if warnl == "none":
       cppflags += " -w"
     elif warnl == "std":
@@ -320,11 +320,10 @@ def MakeBaseEnv(noarch=None):
     SetupRelease = SetupGCCRelease
     SetupDebug = SetupGCCDebug
     if str(Platform()) == "darwin":
+      env.Append(CCFLAGS = " -fno-common -DPIC")
       if os.path.exists("/opt/local"):
         env.Append(CPPPATH = ["/opt/local/include"])
         env.Append(LIBPATH = ["/opt/local/lib"])
-    else:
-      env.Append(CCFLAGS = " -fPIC")
   
   if int(ARGUMENTS.get("debug", 0)):
     mode_dir = "debug"
