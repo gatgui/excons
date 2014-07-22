@@ -429,7 +429,7 @@ def DeclareTargets(env, prjs):
     if settings["type"] in ["program", "testprograms", "staticlib"]:
       shared = False
     
-    if str(Platform()) != "win32" and settings["type"] == "dynamicmodule":
+    if str(Platform()) != "win32" and settings["type"] != "sharedlib":
       penv.Append(CCFLAGS = ["-fvisibility=hidden"])
     
     objs = []
