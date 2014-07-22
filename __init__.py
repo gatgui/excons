@@ -320,7 +320,7 @@ def MakeBaseEnv(noarch=None):
       env['SHLINKCOM'] = [env['SHLINKCOM'], '\"%s\" -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;2' % mt]
     SetupRelease = SetupMSVCRelease
     SetupDebug = SetupMSVCDebug
-    if int(ARGUMENTS.get("debugInfo", "0")) == 1:
+    if int(ARGUMENTS.get("with-debug-info", "0")) == 1:
       SetupRelease = SetupMSVCReleaseWithDebug
   else:
     env = Environment()
@@ -336,7 +336,7 @@ def MakeBaseEnv(noarch=None):
     env.Append(CPPFLAGS = cppflags)
     SetupRelease = SetupGCCRelease
     SetupDebug = SetupGCCDebug
-    if int(ARGUMENTS.get("debugInfo", "0")) == 1:
+    if int(ARGUMENTS.get("with-debug-info", "0")) == 1:
       SetupRelease = SetupGCCReleaseWithDebug
     if str(Platform()) == "darwin":
       env.Append(CCFLAGS = " -fno-common -DPIC")
