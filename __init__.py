@@ -267,6 +267,23 @@ def MakeBaseEnv(noarch=None):
       else:
         env.Append(LINKFLAGS = " -s")
   
+  def SetupGCCReleaseWithDebug(env):
+    if arch_dir == "x64":
+      if str(Platform()) == "darwin":
+        env.Append(CCFLAGS="-arch x86_64")
+        env.Append(LINKFLAGS="-arch x86_64")
+      else:
+        env.Append(CCFLAGS="-m64")
+        env.Append(LINKFLAGS="-m64")
+    else:
+      if str(Platform()) == "darwin":
+        env.Append(CCFLAGS="-arch i386")
+        env.Append(LINKFLAGS="-arch i386")
+      else:
+        env.Append(CCFLAGS="-m32")
+        env.Append(LINKFLAGS="-m32")
+    env.Append(CPPFLAGS = " -O2 -g -ggdb")
+    env.Append(CPPDEFINES = ["NDEBUG"])
   
   SetupRelease = None
   SetupDebug   = None
@@ -319,6 +336,8 @@ def MakeBaseEnv(noarch=None):
     env.Append(CPPFLAGS = cppflags)
     SetupRelease = SetupGCCRelease
     SetupDebug = SetupGCCDebug
+    if int(ARGUMENTS.get("debugInfo", "0")) == 1:
+      SetupRelease = SetupGCCReleaseWithDebug
     if str(Platform()) == "darwin":
       env.Append(CCFLAGS = " -fno-common -DPIC")
       if os.path.exists("/opt/local"):
