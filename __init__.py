@@ -259,7 +259,7 @@ def MakeBaseEnv(noarch=None):
       else:
         env.Append(CCFLAGS="-m32")
         env.Append(LINKFLAGS="-m32")
-    env.Append(CPPFLAGS = " -O2")
+    env.Append(CPPFLAGS = " -O3")
     env.Append(CPPDEFINES = ["NDEBUG"])
     if int(ARGUMENTS.get("strip", 0)) == 1:
       if str(Platform()) == "darwin":
@@ -282,7 +282,7 @@ def MakeBaseEnv(noarch=None):
       else:
         env.Append(CCFLAGS="-m32")
         env.Append(LINKFLAGS="-m32")
-    env.Append(CPPFLAGS = " -O2 -g -ggdb")
+    env.Append(CPPFLAGS = " -O3 -g -ggdb")
     env.Append(CPPDEFINES = ["NDEBUG"])
   
   SetupRelease = None
