@@ -324,7 +324,7 @@ def MakeBaseEnv(noarch=None):
       SetupRelease = SetupMSVCReleaseWithDebug
   else:
     env = Environment()
-    cppflags = " -fPIC -pipe"
+    cppflags = " -fPIC -pipe -pthread"
     if warnl == "none":
       cppflags += " -w"
     elif warnl == "std":
