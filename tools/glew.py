@@ -25,9 +25,10 @@ def Require(env):
   gl.Require(env)
   
   glewinc, glewlib = excons.GetDirs("glew")
-  glew_static = (int(ARGUMENTS.get("glew-static", "1")) != 0)
-  glew_no_glu = (int(ARGUMENTS.get("glew-noglu", "1")) != 0)
-  glew_mx = (int(ARGUMENTS.get("glew-mx", "0")) != 0)
+  glew_static = (excons.GetArguments("glew-static", 1, int) != 0)
+  glew_no_glu = (excons.GetArguments("glew-noglu", 1, int) != 0)
+  glew_mx = (excons.GetArguments("glew-mx", 0, int) != 0)
+  
   
   if glewinc:
     env.Append(CPPPATH=[glewinc])

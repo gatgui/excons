@@ -24,13 +24,116 @@ import re
 import sys
 from SCons.Script import *
 
-bld_dir  = os.path.abspath("./.build")
-out_dir  = os.path.abspath(".")
-mode_dir = None
-arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
-mscver   = None
-no_arch  = False  # Whether or not to create architecture in output directory
-warnl    = "all"  # Warning level
+args_cache_path = os.path.abspath("./excons.cache")
+args_cache      = None
+args_no_cache   = False
+bld_dir         = os.path.abspath("./.build")
+out_dir         = os.path.abspath(".")
+mode_dir        = None
+arch_dir        = "x86" if platform.architecture()[0] == '32bit' else "x64"
+mscver          = None
+no_arch         = False  # Whether or not to create architecture in output directory
+warnl           = "all"  # Warning level
+
+class Cache(dict):
+  def __init__(self, *args, **kwargs):
+    super(Cache, self).__init__(*args, **kwargs)
+    super(Cache, self).__setitem__(sys.platform, {})
+    self.updated = False
+  
+  def write(self):
+    global args_cache_path
+    
+    if self.updated:
+      print("[excons] Write flags cache: %s" % args_cache_path)
+      f = open(args_cache_path, "w")
+      f.write("%s\n" % str(self))
+      f.close()
+  
+  def __setitem__(self, k, v):
+    super(Cache, self).__getitem__(sys.platform)[k] = v
+    self.updated = True
+  
+  def __getitem__(self, k):
+    return super(Cache, self).__getitem__(sys.platform)[k]
+  
+  def get(self, k, default=None):
+    try:
+      return self[k]
+    except:
+      return default
+  
+  def rawset(self, k, v):
+    super(Cache, self).__setitem__(k, v)
+
+
+def GetArgument(key, default=None, convert=None):
+  global args_cache, args_cache_path, args_no_cache
+  
+  if args_no_cache:
+    rv = ARGUMENTS.get(key, default)
+  
+  else:
+    if args_cache is None:
+      # First call to GetArgument (as args_no_cache is False by default)
+      
+      if int(ARGUMENTS.get("no-cache", "0")):
+        args_no_cache = True
+        return GetArgument(key, default, convert)
+      
+      args_cache = Cache()
+      
+      if os.path.exists(args_cache_path):
+        print("[excons] Read flags cache: %s" % args_cache_path)
+        import ast
+        import copy
+        
+        f = open(args_cache_path, "r")
+        cc = f.read()
+        f.close()
+        
+        try:
+          d = ast.literal_eval(cc)
+          for k, v in d.iteritems():
+            args_cache.rawset(k, copy.deepcopy(v))
+        except Exception, e:
+          print(e)
+          args_cache.clear()
+    
+    rv = ARGUMENTS.get(key, None)
+    
+    if rv is None:
+      rv = args_cache.get(key, None)
+      
+      if rv is not None:
+        print("[excons] %s = %s" % (key, rv))
+      else:
+        return default
+    
+    else:
+      args_cache[key] = rv
+  
+  if convert:
+    try:
+      return convert(rv)
+    except:
+      print("[excons] Failed to convert \"%s\" value" % key)
+      return default
+  
+  else:
+    return rv
+
+def SetArgument(key, value, cache=False):
+  global args_cache, args_no_cache
+  
+  ARGUMENTS[key] = str(value)
+  
+  if not args_no_cache and cache:
+    if args_cache is None:
+      # force creation
+      GetArgument("__dummy__")
+    
+    args_cache[key] = str(value)
 
 def Which(target):
   pathsplit = None
@@ -101,11 +204,11 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   incflag = "%s-inc" % prefixflag
   libflag = "%s-lib" % prefixflag
   
-  inc = ARGUMENTS.get(incflag, None)
-  lib = ARGUMENTS.get(libflag, None)
+  inc = GetArgument(incflag)
+  lib = GetArgument(libflag)
   
   if not inc or not lib:
-    prefix = ARGUMENTS.get(prefixflag, None)
+    prefix = GetArgument(prefixflag)
     
     if not prefix:
       msg = "Provide %s prefix using %s= or include and library paths using %s= and %s= respectively" % (name, prefixflag, incflag, libflag)
@@ -132,7 +235,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
         
         if not lib:
           lib = "%s/%s" % (prefix, libdirname)
-          mode = (ARGUMENTS.get("libdir-arch", "none") if libdirarch is None else libdirarch)
+          mode = (GetArgument("libdir-arch", "none") if libdirarch is None else libdirarch)
           if mode == "subdir":
             lib += "/%s" % arch_dir
           elif mode == "suffix" and Build64():
@@ -186,22 +289,23 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
 def MakeBaseEnv(noarch=None):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch
   
-  no_arch  = (int(ARGUMENTS.get("no-arch", "0")) == 1)
+  no_arch = (GetArgument("no-arch", 0, int) != 0)
 
-  warnl = ARGUMENTS.get("warnings", "all")
+  warnl = GetArgument("warnings", "all")
   if not warnl in ["none", "std", "all"]:
     print("WARNING - Invalid warning level \"%s\". Should be one of: none, std, all. Defaulting to \"all\"" % warn)
     warnl = "all"
-  warne = (int(ARGUMENTS.get("warnings-as-errors", 0)) != 0)
+  
+  warne = (GetArgument("warnings-as-errors", 0, int) != 0)
 
-  arch_over = ARGUMENTS.get("x64", None)
+  arch_over = GetArgument("x64")
   if arch_over != None:
     if int(arch_over) == 1:
       arch_dir = "x64"
     else:
       arch_dir = "x86"
   else:
-    arch_over = ARGUMENTS.get("x86", None)
+    arch_over = GetArgument("x86")
     if arch_over != None:
       if int(arch_over) == 1:
         arch_dir = "x86"
@@ -261,7 +365,7 @@ def MakeBaseEnv(noarch=None):
         env.Append(LINKFLAGS="-m32")
     env.Append(CPPFLAGS = " -O3")
     env.Append(CPPDEFINES = ["NDEBUG"])
-    if int(ARGUMENTS.get("strip", 0)) == 1:
+    if GetArgument("strip", 0, int):
       if str(Platform()) == "darwin":
         env.Append(LINKFLAGS = " -Wl,-dead_strip")
       else:
@@ -289,7 +393,7 @@ def MakeBaseEnv(noarch=None):
   SetupDebug   = None
   
   if str(Platform()) == "win32":
-    mscver = ARGUMENTS.get("mscver", "8.0")
+    mscver = GetArgument("mscver", "9.0")
     msvsarch = "amd64" if arch_dir == "x64" else "x86"
     env = Environment(MSVC_VERSION=mscver, MSVS_VERSION=mscver, MSVS_ARCH=msvsarch, TARGET_ARCH=msvsarch)
     # XP:    _WIN32_WINNT=0x0500
@@ -320,7 +424,7 @@ def MakeBaseEnv(noarch=None):
       env['SHLINKCOM'] = [env['SHLINKCOM'], '\"%s\" -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;2' % mt]
     SetupRelease = SetupMSVCRelease
     SetupDebug = SetupMSVCDebug
-    if int(ARGUMENTS.get("with-debug-info", "0")) == 1:
+    if GetArgument("with-debug-info", 0, int):
       SetupRelease = SetupMSVCReleaseWithDebug
   else:
     env = Environment()
@@ -336,7 +440,7 @@ def MakeBaseEnv(noarch=None):
     env.Append(CPPFLAGS = cppflags)
     SetupRelease = SetupGCCRelease
     SetupDebug = SetupGCCDebug
-    if int(ARGUMENTS.get("with-debug-info", "0")) == 1:
+    if GetArgument("with-debug-info", 0, int):
       SetupRelease = SetupGCCReleaseWithDebug
     if str(Platform()) == "darwin":
       env.Append(CCFLAGS = " -fno-common -DPIC")
@@ -344,7 +448,7 @@ def MakeBaseEnv(noarch=None):
         env.Append(CPPPATH = ["/opt/local/include"])
         env.Append(LIBPATH = ["/opt/local/lib"])
   
-  if int(ARGUMENTS.get("debug", 0)):
+  if GetArgument("debug", 0, int):
     mode_dir = "debug"
     SetupDebug(env)
   else:
@@ -364,7 +468,7 @@ def MakeBaseEnv(noarch=None):
   return env
 
 def DeclareTargets(env, prjs):
-  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache
   
   all_projs = {}
   
@@ -468,7 +572,7 @@ def DeclareTargets(env, prjs):
         penv.Clean(pout, impbn+".exp")
         if float(mscver) > 7.1 and float(mscver) < 10.0:
           penv.Clean(pout, outbn+".dll.manifest")
-        if int(ARGUMENTS.get("debug", 0)):
+        if GetArgument("debug", 0, int):
           penv.Clean(pout, outbn+".ilk")
           penv.Clean(pout, outbn+".pdb")
       else:
@@ -483,16 +587,16 @@ def DeclareTargets(env, prjs):
         outbn = os.path.join(out_dir, mode_dir, "bin", prj)
       else:
         outbn = os.path.join(out_dir, mode_dir, arch_dir, "bin", prj)
-      if int(ARGUMENTS.get("no-console", 0)) or ("console" in settings and settings["console"] is False):
+      if GetArgument("no-console", 0, int) or ("console" in settings and settings["console"] is False):
         NoConsole(penv)
-      SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(ARGUMENTS.get("stack-size", None))))
+      SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(GetArgument("stack-size", None))))
       pout = penv.Program(outbn, objs)
       add_deps(pout)
       # Cleanup
       if str(Platform()) == "win32":
         if float(mscver) > 7.1 and float(mscver) < 10.0:
           penv.Clean(pout, outbn+".exe.manifest")
-        if int(ARGUMENTS.get("debug", 0)):
+        if GetArgument("debug", 0, int):
           penv.Clean(pout, outbn+".ilk")
           penv.Clean(pout, outbn+".pdb")
     
@@ -505,9 +609,9 @@ def DeclareTargets(env, prjs):
     
     elif settings["type"] == "testprograms":
       pout = []
-      if int(ARGUMENTS.get("no-console", 0)) or ("console" in settings and settings["console"] is False):
+      if GetArgument("no-console", 0, int) or ("console" in settings and settings["console"] is False):
         NoConsole(penv)
-      SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(ARGUMENTS.get("stack-size", None))))
+      SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(GetArgument("stack-size", None))))
       for obj in objs:
         name = os.path.splitext(os.path.basename(str(obj)))[0]
         if no_arch:
@@ -521,7 +625,7 @@ def DeclareTargets(env, prjs):
         if str(Platform()) == "win32":
           if float(mscver) > 7.1 and float(mscver) < 10.0:
             penv.Clean(prg, outbn+".exe.manifest")
-          if int(ARGUMENTS.get("debug", 0)):
+          if GetArgument("debug", 0, int):
             penv.Clean(prg, outbn+".ilk")
             penv.Clean(prg, outbn+".pdb")
     
@@ -547,7 +651,7 @@ def DeclareTargets(env, prjs):
         penv.Clean(pout, impbn+".exp")
         if float(mscver) > 7.1 and float(mscver) < 10.0:
           penv.Clean(pout, outbn+penv["SHLIBSUFFIX"]+".manifest")
-        if int(ARGUMENTS.get("debug", 0)):
+        if GetArgument("debug", 0, int):
           penv.Clean(pout, outbn+".ilk")
           penv.Clean(pout, outbn+".pdb")
       else:
@@ -582,6 +686,8 @@ def DeclareTargets(env, prjs):
       else:
         Alias(prj, pout)
         all_projs[prj] = pout
-    
+  
+  if not args_no_cache and args_cache:
+    args_cache.write()
 
 

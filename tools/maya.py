@@ -34,10 +34,10 @@ def Plugin(env):
     env.Append(LINKFLAGS = " -Wl,-Bsymbolic")
 
 def Require(env):
-  mayadir = ARGUMENTS.get("with-maya", None)
+  mayadir = excons.GetArgument("with-maya")
   
   if not mayadir:
-    ver = ARGUMENTS.get("maya-ver", None)
+    ver = excons.GetArgument("maya-ver")
     if not ver:
       print("WARNING - Please set Maya version using maya-ver=")
       return

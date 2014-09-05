@@ -37,10 +37,10 @@ def Plugin(env):
 
 def GetVersionAndDirectory(noexc=False):
   verexp = re.compile(r"\d+\.\d+\.\d+(\.\d+)?")
-  hfs = ARGUMENTS.get("with-houdini", None)
+  hfs = excons.GetArgument("with-houdini")
   
   if not hfs:
-    ver = ARGUMENTS.get("houdini-ver", None)
+    ver = excons.GetArgument("houdini-ver")
     if not ver:
       msg = "Please set Houdini version using houdini-ver= or provide houdini path using with-houdini="
       if not noexc:
@@ -68,7 +68,7 @@ def GetVersionAndDirectory(noexc=False):
     # retrive version from hfs
     m = verexp.search(hfs)
     if not m:
-      ver = ARGUMENTS.get("houdini-ver", None)
+      ver = excons.GetArgument("houdini-ver")
       if not ver:
         msg = "Could not figure out houdini version from path \"%s\". Please provide it using houdini-ver=" % hfs
         if not noexc:

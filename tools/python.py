@@ -188,7 +188,7 @@ def _GetPythonSpec(specString):
   return spec
 
 def Version():
-  po = ARGUMENTS.get("with-python", None)
+  po = excons.GetArgument("with-python")
 
   if po is not None:
     rv = _GetPythonSpec(po)
@@ -198,7 +198,7 @@ def Version():
   return str(sysconfig.get_python_version())
 
 def Require(e, ignoreLinkFlags=False):
-  po = ARGUMENTS.get("with-python", None)
+  po = excons.GetArgument("with-python")
   
   if po is not None:
     rv = _GetPythonSpec(po)
