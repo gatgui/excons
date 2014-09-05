@@ -37,19 +37,20 @@ def Plugin(env):
 
 def GetVersionAndDirectory(noexc=False):
   verexp = re.compile(r"\d+\.\d+\.\d+(\.\d+)?")
-  hfs = excons.GetArgument("with-houdini")
+  hspec = excons.GetArgument("with-houdini")
   
-  if not hfs:
-    ver = excons.GetArgument("houdini-ver")
-    if not ver:
-      msg = "Please set Houdini version using houdini-ver= or provide houdini path using with-houdini="
-      if not noexc:
-        raise Exception(msg)
-      else:
-        print("WARNING - %s" % msg)
-        return (None, None)
+  if hspec is None:
+    msg = "Please set Houdini version or directory using with-houdini="
+    if not noexc:
+      raise Exception(msg)
+    else:
+      print("WARNING - %s" % msg)
+      return (None, None)
+  
+  if not os.path.isdir(hspec):
+    ver = hspec
     if not verexp.match(ver):
-      msg = "Invalid version format: \"%s\"" % ver
+      msg = "Invalid Houdini version format: \"%s\"" % ver
       if not noexc:
         raise Exception(msg)
       else:
@@ -64,18 +65,18 @@ def GetVersionAndDirectory(noexc=False):
       hfs = "/Library/Frameworks/Houdini.framework/Versions/%s/Resources" % ver
     else:
       hfs = "/opt/hfs%s" % ver
+  
   else:
     # retrive version from hfs
+    hfs = hspec
     m = verexp.search(hfs)
     if not m:
-      ver = excons.GetArgument("houdini-ver")
-      if not ver:
-        msg = "Could not figure out houdini version from path \"%s\". Please provide it using houdini-ver=" % hfs
-        if not noexc:
-          raise Exception(msg)
-        else:
-          print("WARNING - %s" % msg)
-          return (None, None)
+      msg = "Could not figure out houdini version from path \"%s\". Please provide it using houdini-ver=" % hfs
+      if not noexc:
+        raise Exception(msg)
+      else:
+        print("WARNING - %s" % msg)
+        return (None, None)
     else:
       ver = m.group(0)
     

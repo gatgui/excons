@@ -19,6 +19,9 @@
 
 from SCons.Script import *
 import sys
+import excons
+import re
+import os
 
 def PluginExt():
   if str(Platform()) == "darwin":
@@ -29,8 +32,39 @@ def PluginExt():
     return ".so"
 
 def Require(env):
+  nukespec = excons.GetArgument("with-nuke")
+  
+  if nukespec is None:
+    print("WARNING - Please set Nuke version or directory using with-nuke=")
+    return
+  
   idn = ("Contents/MacOS/include" if sys.platform == "darwin" else "include")
-  ndkinc, ndklib = excons.GetDirs("nuke", incdirname=idn, libdirname="", libdirarch="none")
+  ldn = ("Contents/MacOS" if sys.platform == "darwin" else "")
+  
+  if os.path.isdir(nukespec):
+    if sys.platform == "darwin":
+      bn = os.path.basename(nukespec)
+      _, ext = os.path.splitext(bn)
+      if ext != ".app":
+        nukespec += "/%s.app" % bn
+        excons.SetArgument("with-nuke", nukespec)
+    
+    ndkinc, ndklib = excons.GetDirs("nuke", incdirname=idn, libdirname=ldn, libdirarch="none")
+  
+  else:
+    if not re.match(r"\d+\.\d+v\d+", nukespec):
+      print("WARNING - Invalid Nuke version format: \"%s\"" % nukespec)
+      return
+    
+    if sys.platform == "win32":
+      ndkbase = "C:/Program Files/Nuke%s" % nukespec
+    elif sys.platform == "darwin":
+      ndkbase = "/Applications/Nuke%s/Nuke%s.app" % (nukespec, nukespec)
+    else:
+      ndkbase = "/usr/local/Nuke%s" % nukespec
+    
+    ndkinc = "%s/%s" % (ndkbase, idn)
+    ndklib = "%s/%s" % (ndkbase, ldn) if ldn else ndkbase
   
   if ndkinc:
     env.Append(CPPPATH=[ndkinc])

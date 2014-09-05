@@ -20,6 +20,7 @@
 from SCons.Script import *
 import excons
 import sys
+import re
 
 def PluginExt():
   if str(Platform()) == "darwin":
@@ -34,13 +35,17 @@ def Plugin(env):
     env.Append(LINKFLAGS = " -Wl,-Bsymbolic")
 
 def Require(env):
-  mayadir = excons.GetArgument("with-maya")
+  mayaspec = excons.GetArgument("with-maya")
   
-  if not mayadir:
-    ver = excons.GetArgument("maya-ver")
-    if not ver:
-      print("WARNING - Please set Maya version using maya-ver=")
+  if not mayaspec:
+    print("WARNING - Please set Maya version or directory using with-maya=")
+    return
+  
+  if not os.path.isdir(mayaspec):
+    if not re.match(r"\d+(\.\d+)?", mayaspec):
+      print("WARNING - Invalid Maya specification \"%s\": Must be a directory or a version number" % mayaspec)
       return
+    ver = mayaspec
     if sys.platform == "win32":
       if excons.arch_dir == "x64":
         mayadir = "C:/Program Files/Autodesk/Maya%s" % ver
@@ -53,9 +58,8 @@ def Require(env):
       if excons.arch_dir == "x64":
         mayadir += "-x64"
   
-  if not os.path.isdir(mayadir):
-    print("WARNING - Invalid Maya directory: %s" % mayadir)
-    return
+  else:
+    mayadir = mayaspec
   
   if sys.platform == "darwin":
     env.Append(CPPDEFINES = ["CC_GNU_", "OSMac_", "OSMacOSX_", "REQUIRE_IOSTREAM", "OSMac_MachO_", "_LANGUAGE_C_PLUS_PLUS"])
