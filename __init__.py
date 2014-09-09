@@ -45,14 +45,16 @@ class Cache(dict):
     global args_cache_path
     
     if self.updated:
-      print("[excons] Write flags cache: %s" % args_cache_path)
+      print("[excons] Write excons.cache: %s" % args_cache_path)
       f = open(args_cache_path, "w")
       f.write("%s\n" % str(self))
       f.close()
   
   def __setitem__(self, k, v):
-    super(Cache, self).__getitem__(sys.platform)[k] = v
-    self.updated = True
+    pd = super(Cache, self).__getitem__(sys.platform)
+    if pd.get(k, None) != v:
+      pd[k] = v
+      self.updated = True
   
   def __getitem__(self, k):
     return super(Cache, self).__getitem__(sys.platform)[k]
@@ -84,7 +86,7 @@ def GetArgument(key, default=None, convert=None):
       args_cache = Cache()
       
       if os.path.exists(args_cache_path):
-        print("[excons] Read flags cache: %s" % args_cache_path)
+        print("[excons] Read excons.cache: %s" % args_cache_path)
         import ast
         import copy
         
@@ -95,6 +97,8 @@ def GetArgument(key, default=None, convert=None):
         try:
           d = ast.literal_eval(cc)
           for k, v in d.iteritems():
+            for k2, v2 in v.iteritems():
+              print("[excons]  %s = %s" % (k2, v2))
             args_cache.rawset(k, copy.deepcopy(v))
         except Exception, e:
           print(e)
@@ -105,9 +109,7 @@ def GetArgument(key, default=None, convert=None):
     if rv is None:
       rv = args_cache.get(key, None)
       
-      if rv is not None:
-        print("[excons] %s = %s" % (key, rv))
-      else:
+      if rv is None:
         return default
     
     else:
@@ -285,6 +287,25 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
       ARGUMENTS[libflag] = lib
   
   return (inc, lib)
+
+def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=None, incdirdef=None, libdirdef=None, noexc=True, silent=False):
+  inc_dir, lib_dir = GetDirs(name, incdirname=incdirname, libdirname=libdirname, libdirarch=libdirarch, noexc=True, silent=True)
+  
+  if inc_dir is None:
+    inc_dir = incdir_default
+  
+  if lib_dir is None:
+    lib_dir = libdir_default
+  
+  if inc_dir is None or lib_dir is None:
+    msg = "%s directories not set (use with-%s=, with-%s-inc=, with-%s-lib=)" % (name, name, name, name)
+    if noexc:
+      if not silent:
+        print("WARNING - %s" % msg)
+    else:
+      raise Exception(msg)
+  
+  return (inc_dir, lib_dir)
 
 def MakeBaseEnv(noarch=None):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch
