@@ -97,8 +97,9 @@ def GetArgument(key, default=None, convert=None):
         try:
           d = ast.literal_eval(cc)
           for k, v in d.iteritems():
-            for k2, v2 in v.iteritems():
-              print("[excons]  %s = %s" % (k2, v2))
+            if k == sys.platform:
+              for k2, v2 in v.iteritems():
+                print("[excons]  %s = %s" % (k2, v2))
             args_cache.rawset(k, copy.deepcopy(v))
         except Exception, e:
           print(e)
