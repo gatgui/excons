@@ -27,7 +27,7 @@ def Require(env):
     env.Append(CPPPATH=[zlibinc])
   
   if zliblib:
-    env.Append(CPPPATH=[zliblib])
+    env.Append(LIBPATH=[zliblib])
   
   if str(Platform()) != "win32":
     env.Append(LIBS = ["z"])
@@ -37,7 +37,7 @@ def Require(env):
     if static is None:
       static = excons.GetArgument("static", "1")
     
-    if int(static) != 0:
+    if int(static) == 0:
       env.Append(CPPDEFINES = ["ZLIB_DLL"])
       env.Append(LIBS = ["zdll"])
     else:
