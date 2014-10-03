@@ -34,6 +34,7 @@ arch_dir        = "x86" if platform.architecture()[0] == '32bit' else "x64"
 mscver          = None
 no_arch         = False  # Whether or not to create architecture in output directory
 warnl           = "all"  # Warning level
+issued_warnings = set()
 
 class Cache(dict):
   def __init__(self, *args, **kwargs):
@@ -53,6 +54,7 @@ class Cache(dict):
   def __setitem__(self, k, v):
     pd = super(Cache, self).__getitem__(sys.platform)
     if pd.get(k, None) != v:
+      print("[excons] Update cache: %s = %s" % (k, v))
       pd[k] = v
       self.updated = True
   
@@ -200,6 +202,13 @@ def Build64():
   global arch_dir
   return (arch_dir == "x64")
 
+def WarnOnce(msg):
+  global issued_warnings
+  
+  if not msg in issued_warnings:
+    print("[excons] Warning: %s" % msg)
+    issued_warnings.add(msg)
+
 def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc=True, silent=False):
   global arch_dir
   
@@ -209,6 +218,9 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   
   inc = GetArgument(incflag)
   lib = GetArgument(libflag)
+  
+  inc_was_none = (inc is None)
+  lib_was_none = (lib is None)
   
   if not inc or not lib:
     prefix = GetArgument(prefixflag)
@@ -225,7 +237,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
         msg = "Invalid prefix directory for %s: %s" % (name, prefix)
         if noexc:
           if not silent:
-            print("WARNING - %s" % msg)
+            WarnOnce(msg)
           prefix = None
         else:
           raise Exception(msg)
@@ -235,6 +247,10 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
         
         if not inc:
           inc = "%s/%s" % (prefix, incdirname)
+        else:
+          if not incflag in ARGUMENTS:
+            msg = "'%s' read from cache, '%s' won't affect it" % (incflag, prefixflag)
+            WarnOnce(msg)
         
         if not lib:
           lib = "%s/%s" % (prefix, libdirname)
@@ -243,12 +259,22 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
             lib += "/%s" % arch_dir
           elif mode == "suffix" and Build64():
             lib += "64"
+        else:
+          if not libflag in ARGUMENTS:
+            msg = "'%s' read from cache, '%s' won't affect it" % (libflag, prefixflag)
+            WarnOnce(msg)
+  
+  else:
+    if prefixflag in ARGUMENTS:
+      msg = "'%s' and '%s' read from cache, '%s' won't affect them" % (incflag, libflag, prefixflag)
+      WarnOnce(msg)
   
   if inc is None:
     msg = "provide %s include path by either using the prefix directory flag %s= or the include directory flag %s=" % (name, prefixflag, incflag)
     if noexc:
       if not silent:
-        print("WARNING - You may need to %s" % msg)
+        msg = "You may need to %s" % msg
+        WarnOnce(msg)
     else:
       raise Exception("Please %s" % msg)
   
@@ -258,18 +284,19 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
       msg = "Invalid include directory for %s: %s" % (name, inc)
       if noexc:
         if not silent:
-          print("WARNING - %s" % msg)
+          WarnOnce(msg)
         inc = None
       else:
         raise Exception(msg)
-    else:
+    elif not inc_was_none:
       ARGUMENTS[incflag] = inc
   
   if lib is None:
     msg = "provide %s library path by either using the prefix directory flag %s= or the library directory flag %s=" % (name, prefixflag, libflag)
     if noexc:
       if not silent:
-        print("WARNING - You may need to %s" % msg)
+        msg = "You may need to %s" % msg
+        WarnOnce(msg)
     else:
       raise Exception("Please %s" % msg)
   
@@ -280,11 +307,11 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
       msg = "Invalid library directory for %s: %s" % (name, lib)
       if noexc:
         if not silent:
-          print("WARNING - %s" % msg)
+          WarnOnce(msg)
         lib = None
       else:
         raise Exception(msg)
-    else:
+    elif not lib_was_none:
       ARGUMENTS[libflag] = lib
   
   return (inc, lib)
@@ -302,7 +329,7 @@ def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=
     msg = "%s directories not set (use with-%s=, with-%s-inc=, with-%s-lib=)" % (name, name, name, name)
     if noexc:
       if not silent:
-        print("WARNING - %s" % msg)
+        WarnOnce(msg)
     else:
       raise Exception(msg)
   
@@ -315,7 +342,7 @@ def MakeBaseEnv(noarch=None):
 
   warnl = GetArgument("warnings", "all")
   if not warnl in ["none", "std", "all"]:
-    print("WARNING - Invalid warning level \"%s\". Should be one of: none, std, all. Defaulting to \"all\"" % warn)
+    print("[excons] Warning: Invalid warning level \"%s\". Should be one of: none, std, all. Defaulting to \"all\"" % warn)
     warnl = "all"
   
   warne = (GetArgument("warnings-as-errors", 0, int) != 0)
