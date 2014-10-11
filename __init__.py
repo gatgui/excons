@@ -629,6 +629,8 @@ def DeclareTargets(env, prjs):
           pout = penv.SharedLibrary(os.path.join(out_dir, mode_dir, "lib", prj), objs)
         else:
           pout = penv.SharedLibrary(os.path.join(out_dir, mode_dir, arch_dir, "lib", prj), objs)
+        if sys.platform == "darwin":
+          penv.AddPostAction(pout, "install_name_tool -id @rpath/lib%s.dylib $TARGETS" % os.path.basename(prj))
       add_deps(pout)
     
     elif settings["type"] == "program":
