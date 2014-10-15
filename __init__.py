@@ -19,22 +19,23 @@
 
 import os
 import glob
+import stat
 import platform
 import re
 import sys
 from SCons.Script import *
 
-args_cache_path = os.path.abspath("./excons.cache")
-args_cache      = None
-args_no_cache   = False
-bld_dir         = os.path.abspath("./.build")
-out_dir         = os.path.abspath(".")
-mode_dir        = None
-arch_dir        = "x86" if platform.architecture()[0] == '32bit' else "x64"
-mscver          = None
-no_arch         = False  # Whether or not to create architecture in output directory
-warnl           = "all"  # Warning level
-issued_warnings = set()
+args_cache_path  = os.path.abspath("./excons.cache")
+args_cache       = None
+args_no_cache    = False
+bld_dir          = os.path.abspath("./.build")
+out_dir          = os.path.abspath(".")
+mode_dir         = None
+arch_dir         = "x86" if platform.architecture()[0] == '32bit' else "x64"
+mscver           = None
+no_arch          = False  # Whether or not to create architecture in output directory
+warnl            = "all"  # Warning level
+issued_warnings  = set()
 
 class Cache(dict):
   def __init__(self, *args, **kwargs):
@@ -50,6 +51,8 @@ class Cache(dict):
       f = open(args_cache_path, "w")
       f.write("%s\n" % str(self))
       f.close()
+      
+      self.updated = False
   
   def __setitem__(self, k, v):
     pd = super(Cache, self).__getitem__(sys.platform)
@@ -106,6 +109,9 @@ def GetArgument(key, default=None, convert=None):
         except Exception, e:
           print(e)
           args_cache.clear()
+    
+    # What if cache was modified in the meantime
+    # => happens when using SConscript("path/to/another/SConstruct")
     
     rv = ARGUMENTS.get(key, None)
     
