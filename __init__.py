@@ -326,10 +326,10 @@ def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=
   inc_dir, lib_dir = GetDirs(name, incdirname=incdirname, libdirname=libdirname, libdirarch=libdirarch, noexc=True, silent=True)
   
   if inc_dir is None:
-    inc_dir = incdir_default
+    inc_dir = incdirdef
   
   if lib_dir is None:
-    lib_dir = libdir_default
+    lib_dir = libdirdef
   
   if inc_dir is None or lib_dir is None:
     msg = "%s directories not set (use with-%s=, with-%s-inc=, with-%s-lib=)" % (name, name, name, name)
