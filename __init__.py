@@ -47,9 +47,13 @@ class Cache(dict):
     global args_cache_path
     
     if self.updated:
+      import pprint
+      
       print("[excons] Write excons.cache: %s" % args_cache_path)
       f = open(args_cache_path, "w")
-      f.write("%s\n" % str(self))
+      #f.write("%s\n" % str(self))
+      pprint.pprint(self, f)
+      f.write("\n")
       f.close()
       
       self.updated = False
