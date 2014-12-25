@@ -26,7 +26,7 @@ def PluginExt():
   if str(Platform()) == "darwin":
     return ".bundle"
   elif str(Platform()) == "win32":
-    return ".dll"
+    return ".mll"
   else:
     return ".so"
 
