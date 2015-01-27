@@ -22,7 +22,7 @@ from SCons.Script import *
 from string import Template
 
 def Require(e):
-  rb_conf = Template("ruby -e \"require 'rbconfig'; print Config::CONFIG['$flag']\"")
+  rb_conf = Template("ruby -e \"print (if require 'rbconfig' then Config else RbConfig end)::CONFIG['$flag']\"")
   e.Append(CPPPATH=[os.popen(rb_conf.substitute(flag='archdir')).read()])
   e.Append(LIBPATH=[os.popen(rb_conf.substitute(flag='libdir')).read()])
   e.Append(LIBS=[os.popen(rb_conf.substitute(flag='RUBY_SO_NAME')).read()])
