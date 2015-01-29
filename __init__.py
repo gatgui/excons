@@ -352,7 +352,7 @@ def MakeBaseEnv(noarch=None):
 
   warnl = GetArgument("warnings", "all")
   if not warnl in ["none", "std", "all"]:
-    print("[excons] Warning: Invalid warning level \"%s\". Should be one of: none, std, all. Defaulting to \"all\"" % warn)
+    print("[excons] Warning: Invalid warning level \"%s\". Should be one of: none, std, all. Defaulting to \"all\"" % warnl)
     warnl = "all"
   
   warne = (GetArgument("warnings-as-errors", 0, int) != 0)
@@ -468,7 +468,8 @@ def MakeBaseEnv(noarch=None):
     elif warnl == "std":
       env.Append(CPPFLAGS = " /W3")
     elif warnl == "all":
-      env.Append(CPPFLAGS = " /Wall")
+      #env.Append(CPPFLAGS = " /Wall")
+      env.Append(CPPFLAGS = " /W4")
 
     #if "INCLUDE" in os.environ:
     #  env.Append(CPPPATH=os.environ["INCLUDE"].split(";"))
