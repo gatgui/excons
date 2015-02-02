@@ -21,6 +21,7 @@ from SCons.Script import *
 import excons
 import sys
 import re
+import os
 
 def PluginExt():
   if str(Platform()) == "darwin":
@@ -34,17 +35,19 @@ def Plugin(env):
   if not sys.platform in ["win32", "darwin"]:
     env.Append(LINKFLAGS = " -Wl,-Bsymbolic")
 
-def Require(env):
+def GetMayaRoot(noWarn=False):
   mayaspec = excons.GetArgument("with-maya")
   
   if not mayaspec:
-    print("WARNING - Please set Maya version or directory using with-maya=")
-    return
+    if not noWarn:
+      print("WARNING - Please set Maya version or directory using with-maya=")
+    return None
   
   if not os.path.isdir(mayaspec):
     if not re.match(r"\d+(\.\d+)?", mayaspec):
-      print("WARNING - Invalid Maya specification \"%s\": Must be a directory or a version number" % mayaspec)
-      return
+      if not noWarn:
+        print("WARNING - Invalid Maya specification \"%s\": Must be a directory or a version number" % mayaspec)
+      return None
     ver = mayaspec
     if sys.platform == "win32":
       if excons.arch_dir == "x64":
@@ -60,7 +63,37 @@ def Require(env):
   
   else:
     mayadir = mayaspec
+
+  return mayadir
+
+def Version(asString=True):
+  mayadir = GetMayaRoot(noWarn=True)
+  if not mayadir:
+    return (None if not asString else "")
   
+  if sys.platform == "darwin":
+    mayainc = os.path.join(mayadir, "devkit", "include")
+  else:
+    mayainc = os.path.join(mayadir, "include")
+  
+  mtypes = os.path.join(mayainc, "maya", "MTypes.h")
+  
+  if os.path.isfile(mtypes):
+    defexp = re.compile(r"^\s*#define\s+MAYA_API_VERSION\s+([0-9]+)")
+    f = open(mtypes, "r")
+    for line in f.readlines():
+      m = defexp.match(line)
+      if m:
+        return (int(m.group(1)) if not asString else m.group(1))
+    f.close()
+  
+  return None
+
+def Require(env):
+  mayadir = GetMayaRoot()
+  if not mayadir:
+    return
+
   if sys.platform == "darwin":
     env.Append(CPPDEFINES = ["CC_GNU_", "OSMac_", "OSMacOSX_", "REQUIRE_IOSTREAM", "OSMac_MachO_", "_LANGUAGE_C_PLUS_PLUS"])
     env.Append(CPPPATH = ["%s/devkit/include" % mayadir])
