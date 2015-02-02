@@ -21,6 +21,8 @@ from SCons.Script import *
 import excons
 import glob
 import sys
+import re
+import os
 
 def FindFileIn(filename, directory):
   for item in glob.glob(directory+"/*"):
@@ -42,6 +44,22 @@ def PluginExt():
   else:
     return ".so"
 
+def Version(asString=True):
+  vrayinc, _ = excons.GetDirs("vray")
+
+  vraybase = os.path.join(vrayinc, "vraybase.h")
+  
+  if os.path.isfile(vraybase):
+    defexp = re.compile(r"^\s*#define\s+VRAY_DLL_VERSION\s+(0x[a-fA-F0-9]+)")
+    f = open(vraybase, "r")
+    for line in f.readlines():
+      m = defexp.match(line)
+      if m:
+        return (int(m.group(1), 16) if not asString else m.group(1)[2:])
+    f.close()
+
+  return None
+
 def Require(env):
   vrayinc, vraylib = excons.GetDirs("vray")
   
@@ -58,4 +76,10 @@ def Require(env):
       env.Append(LIBPATH = [vraylib])
   
   env.Append(LIBS = ["vray", "plugman_s", "vutils_s"])
+
+  if sys.platform == "win32":
+    env.Append(CPPDEFINES = ["SENSELESS_DEFINE_FOR_WIN32",
+                             "_CRT_SECURE_NO_DEPRECATE",
+                             "_CRT_NONSTDC_NO_DEPRECATE"])
+    env.Append(LIBS = ["user32"])
 
