@@ -586,6 +586,11 @@ def DeclareTargets(env, prjs):
       odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, settings["alias"])
     else:
       odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, prj)
+    # On windows, also msvc-9.0
+    if str(Platform()) == "win32":
+      msvcver = env.get("MSVC_VERSION", None)
+      if msvcver:
+        odir = os.path.join(odir, "msvc-%s" % msvcver)
     if "bldprefix" in settings:
       odir = os.path.join(odir, settings["bldprefix"])
     
