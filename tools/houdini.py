@@ -125,6 +125,10 @@ def Require(env):
       ccflags += ' /DDLLEXPORT="__declspec(dllexport)"'
     else:
       ccflags += ' -DDLLEXPORT='
+  if sys.platform != "win32":
+    if int(ver.split(".")[0]) >= 14:
+      if not "-std=c++11" in ccflags:
+        ccflags += ' -DBOOST_NO_DEFAULTED_FUNCTIONS -DBOOST_NO_DELETED_FUNCTIONS'
   
   cmd = "\"%s\" -m" % hcustom
   p = subprocess.Popen(cmd, shell=True, env=hcustomenv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
