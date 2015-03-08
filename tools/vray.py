@@ -37,9 +37,7 @@ def FindFileIn(filename, directory):
   return None
 
 def PluginExt():
-  if str(Platform()) == "darwin":
-    return ".bundle"
-  elif str(Platform()) == "win32":
+  if str(Platform()) == "win32":
     return ".dll"
   else:
     return ".so"
