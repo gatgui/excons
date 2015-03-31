@@ -42,6 +42,9 @@ def Require(ilmthread=True, iexmath=True):
       if ilmbase_libsuffix:
          libs = map(lambda x: x+ilmbase_libsuffix, libs)
       
+      if sys.platform == "win32":
+         env.Append(CPPDEFINES=["OPENEXR_DLL"])
+      
       if ilmbase_inc:
          env.Append(CPPPATH=[ilmbase_inc])
       

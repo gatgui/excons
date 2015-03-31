@@ -35,7 +35,19 @@ def Require(hl=False, verbose=False):
     global ThreadSafe_exp, Szlib_exp, Zlib_exp
     
     hdf5_inc, hdf5_lib = excons.GetDirs("hdf5")
+    
+    if hdf5_inc:
+      env.Append(CPPPATH=[hdf5_inc])
+    
+    if hdf5_lib:
+      env.Append(LIBPATH=[hdf5_lib])
+    
     hdf5_libname = excons.GetArgument("hdf5-libname", ("hdf5" if sys.platform != "win32" else "libhdf5"))
+    
+    if hl:
+      env.Append(LIBS=[hdf5_libname, hdf5_libname+"_hl"])
+    else:
+      env.Append(LIBS=[hdf5_libname])
     
     hdf5_static = excons.GetArgument("hdf5-static", None)
     if hdf5_static is None:
@@ -49,10 +61,6 @@ def Require(hl=False, verbose=False):
     hdf5_threadsafe = False
     hdf5_szip = False
     hdf5_zlib = False
-    
-    incdirs = []
-    libdirs = []
-    libs = []
     
     if hdf5_inc:
       h5conf = os.path.join(hdf5_inc, "H5pubconf.h")
@@ -90,36 +98,18 @@ def Require(hl=False, verbose=False):
         threads.Require(env)
       
       if hdf5_zlib:
-        if not excons.GetArgument("with-zlib") and \
-           not excons.GetArgument("with-zlib-inc") and \
-           not excons.GetArgument("with-zlib-lib"):
-          if hdf5_inc:
-            excons.SetArgument("with-zlib-inc", hdf5_inc)
-          if hdf5_lib:
-            excons.SetArgument("with-zlib-lib", hdf5_inc)
-           
         zlib.Require(env)
       
       if hdf5_szip:
         szip_inc, szip_lib = excons.GetDirsWithDefault("szip", incdirdef=hdf5_inc, libdirdef=hdf5_lib)
+        
         if szip_inc and szip_inc != hdf5_inc:
-          incdirs.append(szip_inc)
+          env.Append(CPPPATH=[szip_inc])
+        
         if szip_lib and szip_lib != hdf5_lib:
-          libdirs.append(szip_lib)
+          env.Append(LIBPATH=[szip_lib])
+        
         szip_libname = excons.GetArgument("szip-libname", ("sz" if sys.platform != "win32" else "libszip"))
-        libs.append(szip_libname)
-    
-    if hdf5_inc:
-      incdirs.append(hdf5_inc)
-    if hdf5_lib:
-      incdirs.append(hdf5_lib)
-    
-    libs.append(hdf5_libname)
-    if hl:
-      libs.append(hdf5_libname+"_hl")
-    
-    env.Append(CPPPATH=incdirs)
-    env.Append(LIBPATH=libdirs)
-    env.Append(LIBS=libs)
+        env.Append(LIBS=[szip_libname])
       
   return _RealRequire
