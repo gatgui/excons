@@ -29,14 +29,7 @@ def Require(libs=[]):
     
     boost_inc_dir, boost_lib_dir = excons.GetDirs("boost")
     
-    static = excons.GetArgument("boost-static", None)
-    if static is None:
-      static = (excons.GetArgument("static", 0, int) != 0)
-    else:
-      try:
-        static = (int(static) != 0)
-      except:
-        static = True
+    static = (excons.GetArgument("boost-static", 0, int) != 0)
     
     boost_libsuffix = excons.GetArgument("boost-libsuffix", None)
     
@@ -50,6 +43,7 @@ def Require(libs=[]):
             defs.append("BOOST_PYTHON_STATIC_LIB")
           elif libname == "thread":
             defs.append("BOOST_THREAD_USE_LIB")
+      
       else:
         for lib in boost_list:
           libname = lib.strip().split("-")[0]
@@ -57,6 +51,7 @@ def Require(libs=[]):
             defs.append("BOOST_THREAD_USE_DLL")
           elif libname != "python":
             defs.append("BOOST_%s_DYN_LINK" % libname.upper())
+    
     else:
       for lib in libs:
         linklibs.append("boost_%s%s" % (lib.strip(), boost_libsuffix if boost_libsuffix else ""))

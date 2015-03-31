@@ -34,14 +34,7 @@ def Require(env):
     env.Append(LIBS = [zlib_name])
   
   else:
-    static = excons.GetArgument("zlib-static", None)
-    if static is None:
-      static = (excons.GetArgument("static", 0, int) != 0)
-    else:
-      try:
-        static = (int(static) != 0)
-      except:
-        static = True
+    static = (excons.GetArgument("zlib-static", 0, int) != 0)
     
     if static:
       zlib_name = excons.GetArgument("zlib-libname", "zdll")

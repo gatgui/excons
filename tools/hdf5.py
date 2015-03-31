@@ -49,14 +49,7 @@ def Require(hl=False, verbose=False):
     else:
       env.Append(LIBS=[hdf5_libname])
     
-    hdf5_static = excons.GetArgument("hdf5-static", None)
-    if hdf5_static is None:
-      hdf5_static = (excons.GetArgument("static", 0, int) != 0)
-    else:
-      try:
-        hdf5_static = (int(hdf5_static) != 0)
-      except:
-        hdf5_static = True
+    hdf5_static = (excons.GetArgument("hdf5-static", 0, int) != 0)
     
     hdf5_threadsafe = False
     hdf5_szip = False

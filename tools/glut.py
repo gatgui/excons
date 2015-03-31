@@ -26,8 +26,10 @@ def Require(env):
   gl.Require(env)
   
   glutinc, glutlib = excons.GetDirs("glut")
+  
   if glutinc:
     env.Append(CPPPATH=[glutinc])
+  
   if glutlib:
     env.Append(LIBPATH=[glutlib])
   
@@ -35,10 +37,13 @@ def Require(env):
     env.Append(CPPDEFINES=["GLUT_NO_LIB_PRAGMA"])
     if excons.Build64():
       env.Append(LIBS = ["glut64"])
+      
     else:
       env.Append(LIBS = ["glut32"])
+  
   elif sys.platform == "darwin":
     env.Append(LINKFLAGS = " -framework GLUT")
+  
   else:
     env.Append(LIBS = ["glut"])
 

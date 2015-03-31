@@ -24,15 +24,15 @@ import excons
 
 def Require(env):
   fiinc, filib = excons.GetDirs("freeimage")
+  
   if fiinc:
     env.Append(CPPPATH=[fiinc])
+  
   if filib:
     env.Append(LIBPATH=[filib])
+  
+  if excons.GetArgument("freeimage-static", 0, int) != 0:
+    env.Append(CPPDEFINES=["FREEIMAGE_LIB"])
+  
   env.Append(LIBS = ["freeimage"])
-
-
-def RequireStatic(env):
-  Require(env)
-  env.Append(CPPDEFINES=["FREEIMAGE_LIB"])
-
 
