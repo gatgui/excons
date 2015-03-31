@@ -21,13 +21,24 @@ from SCons.Script import *
 import sys
 import excons
 
-def Require(libs=[], static=False):
+def Require(libs=[]):
   
   def _RealRequire(env):
     linklibs = []
     defs = []
     
     boost_inc_dir, boost_lib_dir = excons.GetDirs("boost")
+    
+    static = excons.GetArgument("boost-static", None)
+    if static is None:
+      static = (excons.GetArgument("static", 0, int) != 0)
+    else:
+      try:
+        static = (int(static) != 0)
+      except:
+        static = True
+    
+    boost_libsuffix = excons.GetArgument("boost-libsuffix", None)
     
     if sys.platform == "win32":
       # All libs but Boost.Python are statically linked by default
@@ -48,13 +59,16 @@ def Require(libs=[], static=False):
             defs.append("BOOST_%s_DYN_LINK" % libname.upper())
     else:
       for lib in libs:
-        linklibs.append("boost_%s" % lib.strip())
+        linklibs.append("boost_%s%s" % (lib.strip(), boost_libsuffix if boost_libsuffix else ""))
     
     env.Append(CPPDEFINES = defs)
+    
     if boost_inc_dir:
       env.Append(CPPPATH = boost_inc_dir)
+    
     if boost_lib_dir:
       env.Append(LIBPATH = boost_lib_dir)
+    
     env.Append(LIBS = linklibs)
   
   return _RealRequire
