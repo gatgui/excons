@@ -462,6 +462,8 @@ def MakeBaseEnv(noarch=None):
     if m:
       winnt = "_WIN32_WINNT=0x0%s00" % m.group(1)
     env.Append(CPPDEFINES = [winnt, "_USE_MATH_DEFINES", "_WIN32", "WIN32", "_WINDOWS"])
+    if arch_dir == "x64":
+      env.Append(CPPDEFINES = ["_WIN64", "WIN64"])
     env.Append(CPPFLAGS = " /GR /EHsc")
     if warnl == "none":
       env.Append(CPPFLAGS = " /w")
