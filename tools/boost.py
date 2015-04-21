@@ -45,7 +45,7 @@ def Require(libs=[]):
             defs.append("BOOST_THREAD_USE_LIB")
       
       else:
-        for lib in boost_list:
+        for lib in libs:
           libname = lib.strip().split("-")[0]
           if libname == "thread":
             defs.append("BOOST_THREAD_USE_DLL")
