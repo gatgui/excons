@@ -27,6 +27,8 @@ def Require(ilmthread=True, iexmath=True):
       
       ilmbase_libsuffix = excons.GetArgument("ilmbase-libsuffix", "")
       
+      static = (excons.GetArgument("ilmbase-static", 0, int) != 0)
+
       if ilmbase_inc and not ilmbase_inc.endswith("OpenEXR"):
          ilmbase_inc += "/OpenEXR"
       
@@ -43,7 +45,8 @@ def Require(ilmthread=True, iexmath=True):
          libs = map(lambda x: x+ilmbase_libsuffix, libs)
       
       if sys.platform == "win32":
-         env.Append(CPPDEFINES=["OPENEXR_DLL"])
+         if not static:
+            env.Append(CPPDEFINES=["OPENEXR_DLL"])
       
       if ilmbase_inc:
          env.Append(CPPPATH=[ilmbase_inc])
