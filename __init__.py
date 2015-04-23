@@ -25,17 +25,39 @@ import re
 import sys
 from SCons.Script import *
 
-args_cache_path  = os.path.abspath("./excons.cache")
-args_cache       = None
-args_no_cache    = False
-bld_dir          = os.path.abspath("./.build")
-out_dir          = os.path.abspath(".")
-mode_dir         = None
-arch_dir         = "x86" if platform.architecture()[0] == '32bit' else "x64"
-mscver           = None
-no_arch          = False  # Whether or not to create architecture in output directory
-warnl            = "all"  # Warning level
-issued_warnings  = set()
+args_cache_path = "./excons.cache"
+args_cache = None
+args_no_cache = False
+bld_dir = "./.build"
+out_dir = "."
+mode_dir = None
+arch_dir = "x64"
+mscver = None
+no_arch = False
+warnl = "all"
+issued_warnings = True
+
+
+def InitGlobals():
+  global args_cache, args_cache_path, args_no_cache
+  global bld_dir, out_dir, mode_dir, arch_dir
+  global mscver, no_arch, warnl, issued_warnings
+  
+  if args_cache and not args_no_cache:
+    args_cache.write()
+  
+  args_cache_path = os.path.abspath("./excons.cache")
+  args_cache = None
+  args_no_cache = False
+  bld_dir = os.path.abspath("./.build")
+  out_dir = os.path.abspath(".")
+  mode_dir = None
+  arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
+  mscver = None
+  no_arch = False  # Whether or not to create architecture in output directory
+  warnl = "all"  # Warning level
+  issued_warnings = set()
+
 
 class Cache(dict):
   def __init__(self, *args, **kwargs):
@@ -347,6 +369,8 @@ def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=
 
 def MakeBaseEnv(noarch=None):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch
+  
+  InitGlobals()
   
   no_arch = (GetArgument("no-arch", 0, int) != 0)
 
@@ -711,7 +735,7 @@ def DeclareTargets(env, prjs):
         if "ext" in settings:
           penv["SHLIBSUFFIX"] = settings["ext"]
         # set import lib in build folder
-        impbn = os.path.join(odir, os.path.basename(prj)) #prj)
+        impbn = os.path.join(odir, os.path.basename(prj))
         penv['no_import_lib'] = 1
         penv.Append(SHLINKFLAGS = " /implib:%s.lib" % impbn)
         pout = penv.SharedLibrary(outbn, objs)
