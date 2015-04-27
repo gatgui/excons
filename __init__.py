@@ -35,7 +35,7 @@ arch_dir = "x64"
 mscver = None
 no_arch = False
 warnl = "all"
-issued_warnings = True
+issued_warnings = set()
 
 
 def InitGlobals():
