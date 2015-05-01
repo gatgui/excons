@@ -19,6 +19,7 @@
 
 from SCons.Script import *
 import excons
+import os
 
 def Require(ilmthread=True, iexmath=True):
    
@@ -49,7 +50,7 @@ def Require(ilmthread=True, iexmath=True):
             env.Append(CPPDEFINES=["OPENEXR_DLL"])
       
       if ilmbase_inc:
-         env.Append(CPPPATH=[ilmbase_inc])
+         env.Append(CPPPATH=[ilmbase_inc, os.path.dirname(ilmbase_inc)])
       
       if ilmbase_lib:
          env.Append(LIBPATH=[ilmbase_lib])
