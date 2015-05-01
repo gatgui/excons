@@ -512,13 +512,14 @@ def MakeBaseEnv(noarch=None):
     SetupDebug = SetupMSVCDebug
     if GetArgument("with-debug-info", 0, int):
       SetupRelease = SetupMSVCReleaseWithDebug
+    
   else:
     env = Environment()
     cppflags = " -fPIC -pipe -pthread"
     if warnl == "none":
       cppflags += " -w"
     elif warnl == "std":
-      cppflags += " -W"
+      cppflags += " -W -Wno-unused-parameter"
     else:
       cppflags += " -W -Wall"
     if warne:
@@ -533,7 +534,26 @@ def MakeBaseEnv(noarch=None):
       if os.path.exists("/opt/local"):
         env.Append(CPPPATH = ["/opt/local/include"])
         env.Append(LIBPATH = ["/opt/local/lib"])
-  
+      
+      vers = map(int, platform.mac_ver()[0].split("."))
+      # starting OSX 10.9, default compiler is clang
+      if vers[0] > 10 or vers[1] >= 9:
+        if GetArgument("use-c++11", 0, int):
+          SetArgument("use-c++11", 1)
+          env.Append(CPPFLAGS=" -std=c++11")
+          
+          if warnl == "std":
+            # remove some more c++11 specific warnings
+            env.Append(CPPFLAGS=" ".join(["-Wno-deprecated-register",
+                                          "-Wno-deprecated-declarations",
+                                          "-Wno-missing-field-initializers",
+                                          "-Wno-unused-private-field"]))
+        
+        if GetArgument("use-stdc++", 0, int):
+          SetArgument("use-stdc++", 1)
+          env.Append(CPPFLAGS=" -stdlib=libstdc++")
+          env.Append(LINKFLAGS=" -stdlib=libstdc++")
+
   if GetArgument("debug", 0, int):
     mode_dir = "debug"
     SetupDebug(env)
