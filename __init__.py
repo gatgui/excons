@@ -27,6 +27,7 @@ from SCons.Script import *
 
 args_cache_path = "./excons.cache"
 args_cache = None
+args_cache_echo = True
 args_no_cache = False
 bld_dir = "./.build"
 out_dir = "."
@@ -66,7 +67,7 @@ class Cache(dict):
     self.updated = False
   
   def write(self):
-    global args_cache_path
+    global args_cache_path, args_cache_echo
     
     if self.updated:
       import pprint
@@ -101,7 +102,7 @@ class Cache(dict):
 
 
 def GetArgument(key, default=None, convert=None):
-  global args_cache, args_cache_path, args_no_cache
+  global args_cache, args_cache_path, args_no_cache, args_cache_echo
   
   if args_no_cache:
     rv = ARGUMENTS.get(key, default)
@@ -128,10 +129,11 @@ def GetArgument(key, default=None, convert=None):
         try:
           d = ast.literal_eval(cc)
           for k, v in d.iteritems():
-            if k == sys.platform:
+            if args_cache_echo and k == sys.platform:
               for k2, v2 in v.iteritems():
                 print("[excons]  %s = %s" % (k2, v2))
             args_cache.rawset(k, copy.deepcopy(v))
+          args_cache_echo = False
         except Exception, e:
           print(e)
           args_cache.clear()
