@@ -21,6 +21,7 @@ from SCons.Script import *
 import os
 import re
 import sys
+import glob
 import excons
 from excons.tools import zlib
 from excons.tools import threads
@@ -56,10 +57,13 @@ def Require(hl=False, verbose=False):
     hdf5_zlib = False
     
     if hdf5_inc:
-      h5conf = os.path.join(hdf5_inc, "H5pubconf.h")
-      if os.path.isfile(h5conf):
+      # Note: On Fedora 14, H5pubconf.h has been renamed to H5pubconf-64.h
+      #       -> be slightly more flexible when looking up this file
+      lst = filter(lambda x: os.path.basename(x).startswith("H5pubconf"), glob.glob(hdf5_inc+"/*.h"))
+      if len(lst) > 0:
+        h5conf = lst[0]
         if verbose:
-          print("[HDF5] Reading configuration header...")
+          print("[HDF5] Reading configuration header '%s'..." % h5conf)
         
         f = open(h5conf, "r")
          
