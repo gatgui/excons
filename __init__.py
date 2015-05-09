@@ -25,39 +25,18 @@ import re
 import sys
 from SCons.Script import *
 
-args_cache_path = "./excons.cache"
+args_cache_path = os.path.abspath("./excons.cache")
 args_cache = None
 args_cache_echo = True
 args_no_cache = False
-bld_dir = "./.build"
-out_dir = "."
+bld_dir = os.path.abspath("./.build")
+out_dir = os.path.abspath(".")
 mode_dir = None
 arch_dir = "x64"
 mscver = None
 no_arch = False
 warnl = "all"
 issued_warnings = set()
-
-
-def InitGlobals():
-  global args_cache, args_cache_path, args_no_cache
-  global bld_dir, out_dir, mode_dir, arch_dir
-  global mscver, no_arch, warnl, issued_warnings
-  
-  if args_cache and not args_no_cache:
-    args_cache.write()
-  
-  args_cache_path = os.path.abspath("./excons.cache")
-  args_cache = None
-  args_no_cache = False
-  bld_dir = os.path.abspath("./.build")
-  out_dir = os.path.abspath(".")
-  mode_dir = None
-  arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
-  mscver = None
-  no_arch = False  # Whether or not to create architecture in output directory
-  warnl = "all"  # Warning level
-  issued_warnings = set()
 
 
 class Cache(dict):
@@ -177,7 +156,7 @@ def SetArgument(key, value, cache=False):
 def Which(target):
   pathsplit = None
   texp = None
-
+  
   if sys.platform == "win32":
     pathsplit = ";"
     if re.search(r"\.(exe|bat)$", target, re.IGNORECASE) is None:
@@ -187,7 +166,7 @@ def Which(target):
   else:
     pathsplit = ":"
     texp = re.compile(target)
-
+  
   if "PATH" in os.environ:
     paths = filter(lambda x: len(x)>0, map(lambda x: x.strip(), os.environ["PATH"].split(pathsplit)))
     for path in paths:
@@ -197,7 +176,7 @@ def Which(target):
         bn = os.path.basename(item)
         if texp.match(bn) != None:
           return item.replace("\\", "/")
-
+  
   return None
 
 def NoConsole(env):
@@ -372,17 +351,15 @@ def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=
 def MakeBaseEnv(noarch=None):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch
   
-  InitGlobals()
-  
   no_arch = (GetArgument("no-arch", 0, int) != 0)
-
+  
   warnl = GetArgument("warnings", "all")
   if not warnl in ["none", "std", "all"]:
     print("[excons] Warning: Invalid warning level \"%s\". Should be one of: none, std, all. Defaulting to \"all\"" % warnl)
     warnl = "all"
   
   warne = (GetArgument("warnings-as-errors", 0, int) != 0)
-
+  
   arch_over = GetArgument("x64")
   if arch_over != None:
     if int(arch_over) == 1:
@@ -396,7 +373,7 @@ def MakeBaseEnv(noarch=None):
         arch_dir = "x86"
       else:
         arch_dir = "x64"
-
+  
   if noarch != None:
     no_arch = noarch
   
@@ -498,7 +475,7 @@ def MakeBaseEnv(noarch=None):
     elif warnl == "all":
       #env.Append(CPPFLAGS = " /Wall")
       env.Append(CPPFLAGS = " /W4")
-
+    
     #if "INCLUDE" in os.environ:
     #  env.Append(CPPPATH=os.environ["INCLUDE"].split(";"))
     #if "LIB" in os.environ:
@@ -555,7 +532,7 @@ def MakeBaseEnv(noarch=None):
           SetArgument("use-stdc++", 1)
           env.Append(CPPFLAGS=" -stdlib=libstdc++")
           env.Append(LINKFLAGS=" -stdlib=libstdc++")
-
+  
   if GetArgument("debug", 0, int):
     mode_dir = "debug"
     SetupDebug(env)
