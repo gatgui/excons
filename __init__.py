@@ -39,6 +39,34 @@ warnl = "all"
 issued_warnings = set()
 
 
+def InitGlobals(output_dir="."):
+  global args_cache, args_cache_path, args_no_cache
+  global bld_dir, out_dir, mode_dir, arch_dir
+  global mscver, no_arch, warnl, issued_warnings
+  
+  if not output_dir:
+    output_dir = "."
+  
+  cache_path = os.path.abspath("%s/excons.cache" % output_dir)
+  
+  if cache_path != args_cache_path:
+    if args_cache and not args_no_cache:
+      args_cache.write()
+    
+    args_cache_path = cache_path
+    args_cache = None
+    args_no_cache = False
+    
+  bld_dir = os.path.abspath("%s/.build" % output_dir)
+  out_dir = os.path.abspath(output_dir)
+  mode_dir = None
+  arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
+  mscver = None
+  no_arch = False  # Whether or not to create architecture in output directory
+  warnl = "all"  # Warning level
+  issued_warnings = set()
+
+
 class Cache(dict):
   def __init__(self, *args, **kwargs):
     super(Cache, self).__init__(*args, **kwargs)
@@ -350,6 +378,9 @@ def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=
 
 def MakeBaseEnv(noarch=None):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch
+  
+  if int(ARGUMENTS.get("shared-build", "1")) == 0:
+    InitGlobals()
   
   no_arch = (GetArgument("no-arch", 0, int) != 0)
   
