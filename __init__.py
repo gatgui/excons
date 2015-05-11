@@ -1,17 +1,17 @@
 # Copyright (C) 2009, 2010  Gaetan Guidet
-# 
+#
 # This file is part of excons.
-# 
+#
 # excons is free software; you can redistribute it and/or modify it
 # under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation; either version 2.1 of the License, or (at
 # your option) any later version.
-# 
+#
 # excons is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
@@ -19,7 +19,6 @@
 
 import os
 import glob
-import stat
 import platform
 import re
 import sys
@@ -196,20 +195,20 @@ def Which(target):
     texp = re.compile(target)
   
   if "PATH" in os.environ:
-    paths = filter(lambda x: len(x)>0, map(lambda x: x.strip(), os.environ["PATH"].split(pathsplit)))
+    paths = filter(lambda x: len(x) > 0, map(lambda x: x.strip(), os.environ["PATH"].split(pathsplit)))
     for path in paths:
       for item in glob.glob(os.path.join(path, "*")):
         if os.path.isdir(item):
           continue
         bn = os.path.basename(item)
-        if texp.match(bn) != None:
+        if texp.match(bn) is not None:
           return item.replace("\\", "/")
   
   return None
 
 def NoConsole(env):
   if str(Platform()) == "win32":
-    env.Append(LINKFLAGS = " /subsystem:windows /entry:mainCRTStartup")
+    env.Append(LINKFLAGS=" /subsystem:windows /entry:mainCRTStartup")
 
 def ParseStackSize(s):
   if not s:
@@ -229,11 +228,11 @@ def ParseStackSize(s):
 def SetStackSize(env, size):
   if size:
     if sys.platform == "win32":
-      env.Append(LINKFLAGS = " /stack:0x%x" % size)
+      env.Append(LINKFLAGS=" /stack:0x%x" % size)
     elif sys.platform == "darwin":
-      env.Append(LINKFLAGS = " -Wl,-stack_size,0x%x" % size)
+      env.Append(LINKFLAGS=" -Wl,-stack_size,0x%x" % size)
     else:
-      env.Append(LINKFLAGS = " -Wl,--stack,0x%x" % size)
+      env.Append(LINKFLAGS=" -Wl,--stack,0x%x" % size)
 
 def Build32():
   global arch_dir
@@ -290,7 +289,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
           inc = "%s/%s" % (prefix, incdirname)
         else:
           if not incflag in ARGUMENTS:
-            msg = "'%s' read from cache, '%s' won't affect it" % (incflag, prefixflag)
+            msg = "'%s' read from cache, '%s' flag ignored" % (incflag, prefixflag)
             WarnOnce(msg)
         
         if not lib:
@@ -302,16 +301,16 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
             lib += "64"
         else:
           if not libflag in ARGUMENTS:
-            msg = "'%s' read from cache, '%s' won't affect it" % (libflag, prefixflag)
+            msg = "'%s' read from cache, '%s' flag ignored" % (libflag, prefixflag)
             WarnOnce(msg)
   
   else:
     if prefixflag in ARGUMENTS:
-      msg = "'%s' and '%s' read from cache, '%s' won't affect them" % (incflag, libflag, prefixflag)
+      msg = "'%s' and '%s' read from cache, '%s' flag ignored" % (incflag, libflag, prefixflag)
       WarnOnce(msg)
   
   if inc is None:
-    msg = "provide %s include path by either using the prefix directory flag %s= or the include directory flag %s=" % (name, prefixflag, incflag)
+    msg = "provide %s include and/or library path by using one of %s=, %s= or %s= flags" % (name, prefixflag, incflag, libflag)
     if noexc:
       if not silent:
         msg = "You may need to %s" % msg
@@ -333,7 +332,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
       ARGUMENTS[incflag] = inc
   
   if lib is None:
-    msg = "provide %s library path by either using the prefix directory flag %s= or the library directory flag %s=" % (name, prefixflag, libflag)
+    msg = "provide %s include and/or library path by using one of %s=, %s= or %s= flags" % (name, prefixflag, incflag, libflag)
     if noexc:
       if not silent:
         msg = "You may need to %s" % msg
@@ -392,36 +391,36 @@ def MakeBaseEnv(noarch=None):
   warne = (GetArgument("warnings-as-errors", 0, int) != 0)
   
   arch_over = GetArgument("x64")
-  if arch_over != None:
+  if arch_over is not None:
     if int(arch_over) == 1:
       arch_dir = "x64"
     else:
       arch_dir = "x86"
   else:
     arch_over = GetArgument("x86")
-    if arch_over != None:
+    if arch_over is not None:
       if int(arch_over) == 1:
         arch_dir = "x86"
       else:
         arch_dir = "x64"
   
-  if noarch != None:
+  if noarch is not None:
     no_arch = noarch
   
   def SetupMSVCDebug(env):
-    env.Append(CPPFLAGS = " /MDd /Od /Zi")
-    env.Append(CPPDEFINES = ["_DEBUG"])
-    env.Append(LINKFLAGS = " /debug /opt:noref /opt:noicf /incremental:yes")
+    env.Append(CPPFLAGS=" /MDd /Od /Zi")
+    env.Append(CPPDEFINES=["_DEBUG"])
+    env.Append(LINKFLAGS=" /debug /opt:noref /opt:noicf /incremental:yes")
   
   def SetupMSVCRelease(env):
-    env.Append(CPPFLAGS = " /Gy /MD /O2")
-    env.Append(CPPDEFINES = ["NDEBUG"])
-    env.Append(LINKFLAGS = " /release /opt:ref /opt:icf /incremental:no")
+    env.Append(CPPFLAGS=" /Gy /MD /O2")
+    env.Append(CPPDEFINES=["NDEBUG"])
+    env.Append(LINKFLAGS=" /release /opt:ref /opt:icf /incremental:no")
   
   def SetupMSVCReleaseWithDebug(env):
-    env.Append(CPPFLAGS = " /MD /Od /Zi")
-    env.Append(CPPDEFINES = ["NDEBUG"])
-    env.Append(LINKFLAGS = " /debug /opt:noref /opt:noicf /incremental:yes")
+    env.Append(CPPFLAGS=" /MD /Od /Zi")
+    env.Append(CPPDEFINES=["NDEBUG"])
+    env.Append(LINKFLAGS=" /debug /opt:noref /opt:noicf /incremental:yes")
   
   def SetupGCCDebug(env):
     if arch_dir == "x64":
@@ -438,8 +437,9 @@ def MakeBaseEnv(noarch=None):
       else:
         env.Append(CCFLAGS="-m32")
         env.Append(LINKFLAGS="-m32")
-    env.Append(CPPFLAGS = " -O0 -g -ggdb")
-    env.Append(CPPDEFINES = ["_DEBUG"])
+    
+    env.Append(CPPFLAGS=" -O0 -g -ggdb")
+    env.Append(CPPDEFINES=["_DEBUG"])
   
   def SetupGCCRelease(env):
     if arch_dir == "x64":
@@ -456,13 +456,15 @@ def MakeBaseEnv(noarch=None):
       else:
         env.Append(CCFLAGS="-m32")
         env.Append(LINKFLAGS="-m32")
-    env.Append(CPPFLAGS = " -O3")
-    env.Append(CPPDEFINES = ["NDEBUG"])
+    
+    env.Append(CPPFLAGS=" -O3")
+    env.Append(CPPDEFINES=["NDEBUG"])
+    
     if GetArgument("strip", 0, int):
       if str(Platform()) == "darwin":
-        env.Append(LINKFLAGS = " -Wl,-dead_strip")
+        env.Append(LINKFLAGS=" -Wl,-dead_strip")
       else:
-        env.Append(LINKFLAGS = " -s")
+        env.Append(LINKFLAGS=" -s")
   
   def SetupGCCReleaseWithDebug(env):
     if arch_dir == "x64":
@@ -479,11 +481,12 @@ def MakeBaseEnv(noarch=None):
       else:
         env.Append(CCFLAGS="-m32")
         env.Append(LINKFLAGS="-m32")
-    env.Append(CPPFLAGS = " -O3 -g -ggdb")
-    env.Append(CPPDEFINES = ["NDEBUG"])
+    
+    env.Append(CPPFLAGS=" -O3 -g -ggdb")
+    env.Append(CPPDEFINES=["NDEBUG"])
   
   SetupRelease = None
-  SetupDebug   = None
+  SetupDebug = None
   
   if str(Platform()) == "win32":
     mscver = GetArgument("mscver", "9.0")
@@ -495,17 +498,21 @@ def MakeBaseEnv(noarch=None):
     m = re.match(r"(\d)(\.(\d)(\.(\d+))?)?", platform.version())
     if m:
       winnt = "_WIN32_WINNT=0x0%s00" % m.group(1)
-    env.Append(CPPDEFINES = [winnt, "_USE_MATH_DEFINES", "_WIN32", "WIN32", "_WINDOWS"])
+    
+    env.Append(CPPDEFINES=[winnt, "_USE_MATH_DEFINES", "_WIN32", "WIN32", "_WINDOWS"])
+    
     if arch_dir == "x64":
-      env.Append(CPPDEFINES = ["_WIN64", "WIN64"])
-    env.Append(CPPFLAGS = " /GR /EHsc")
+      env.Append(CPPDEFINES=["_WIN64", "WIN64"])
+    
+    env.Append(CPPFLAGS=" /GR /EHsc")
+    
     if warnl == "none":
-      env.Append(CPPFLAGS = " /w")
+      env.Append(CPPFLAGS=" /w")
     elif warnl == "std":
-      env.Append(CPPFLAGS = " /W3")
+      env.Append(CPPFLAGS=" /W3")
     elif warnl == "all":
-      #env.Append(CPPFLAGS = " /Wall")
-      env.Append(CPPFLAGS = " /W4")
+      #env.Append(CPPFLAGS=" /Wall")
+      env.Append(CPPFLAGS=" /W4")
     
     #if "INCLUDE" in os.environ:
     #  env.Append(CPPPATH=os.environ["INCLUDE"].split(";"))
@@ -514,12 +521,15 @@ def MakeBaseEnv(noarch=None):
     mt = Which("mt")
     if mt is None:
       mt = "mt.exe"
+    
     if float(mscver) > 7.1 and float(mscver) < 10.0:
-      env.Append(CPPDEFINES = ["_CRT_SECURE_NO_DEPRECATE"])
+      env.Append(CPPDEFINES=["_CRT_SECURE_NO_DEPRECATE"])
       env['LINKCOM'] = [env['LINKCOM'], '\"%s\" -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;1' % mt]
       env['SHLINKCOM'] = [env['SHLINKCOM'], '\"%s\" -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;2' % mt]
+    
     SetupRelease = SetupMSVCRelease
     SetupDebug = SetupMSVCDebug
+    
     if GetArgument("with-debug-info", 0, int):
       SetupRelease = SetupMSVCReleaseWithDebug
     
@@ -534,16 +544,16 @@ def MakeBaseEnv(noarch=None):
       cppflags += " -W -Wall"
     if warne:
       cppflags += " -Werror"
-    env.Append(CPPFLAGS = cppflags)
+    env.Append(CPPFLAGS=cppflags)
     SetupRelease = SetupGCCRelease
     SetupDebug = SetupGCCDebug
     if GetArgument("with-debug-info", 0, int):
       SetupRelease = SetupGCCReleaseWithDebug
     if str(Platform()) == "darwin":
-      env.Append(CCFLAGS = " -fno-common -DPIC")
+      env.Append(CCFLAGS=" -fno-common -DPIC")
       if os.path.exists("/opt/local"):
-        env.Append(CPPPATH = ["/opt/local/include"])
-        env.Append(LIBPATH = ["/opt/local/lib"])
+        env.Append(CPPPATH=["/opt/local/include"])
+        env.Append(LIBPATH=["/opt/local/lib"])
       
       vers = map(int, platform.mac_ver()[0].split("."))
       # starting OSX 10.9, default compiler is clang
@@ -572,11 +582,11 @@ def MakeBaseEnv(noarch=None):
     SetupRelease(env)
   
   if no_arch:
-    env.Append(CPPPATH = [os.path.join(out_dir, mode_dir, "include")])
-    env.Append(LIBPATH = [os.path.join(out_dir, mode_dir, "lib")])
+    env.Append(CPPPATH=[os.path.join(out_dir, mode_dir, "include")])
+    env.Append(LIBPATH=[os.path.join(out_dir, mode_dir, "lib")])
   else:
-    env.Append(CPPPATH = [os.path.join(out_dir, mode_dir, arch_dir, "include")])
-    env.Append(LIBPATH = [os.path.join(out_dir, mode_dir, arch_dir, "lib")])
+    env.Append(CPPPATH=[os.path.join(out_dir, mode_dir, arch_dir, "include")])
+    env.Append(LIBPATH=[os.path.join(out_dir, mode_dir, arch_dir, "lib")])
   
   env["TARGET_ARCH"] = arch_dir
   env["TARGET_MODE"] = mode_dir
@@ -623,16 +633,16 @@ def DeclareTargets(env, prjs):
     
     
     if "libdirs" in settings:
-      penv.Append(LIBPATH = settings["libdirs"])
+      penv.Append(LIBPATH=settings["libdirs"])
     
     if "incdirs" in settings:
-      penv.Append(CPPPATH = settings["incdirs"])
+      penv.Append(CPPPATH=settings["incdirs"])
     
     if "defs" in settings:
-      penv.Append(CPPDEFINES = settings["defs"])
+      penv.Append(CPPDEFINES=settings["defs"])
     
     if "libs" in settings:
-      penv.Append(LIBS = settings["libs"])
+      penv.Append(LIBS=settings["libs"])
     
     if "custom" in settings:
       for customcall in settings["custom"]:
@@ -655,7 +665,7 @@ def DeclareTargets(env, prjs):
       shared = False
     
     if str(Platform()) != "win32" and settings["type"] != "sharedlib":
-      penv.Append(CCFLAGS = ["-fvisibility=hidden"])
+      penv.Append(CCFLAGS=["-fvisibility=hidden"])
     
     objs = []
     for src in settings["srcs"]:
@@ -686,7 +696,7 @@ def DeclareTargets(env, prjs):
         except:
           pass
         penv['no_import_lib'] = 1
-        penv.Append(SHLINKFLAGS = " /implib:%s.lib" % impbn)
+        penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
         pout = penv.SharedLibrary(outbn, objs)
         # Cleanup
         penv.Clean(pout, impbn+".lib")
@@ -767,7 +777,7 @@ def DeclareTargets(env, prjs):
         # set import lib in build folder
         impbn = os.path.join(odir, os.path.basename(prj))
         penv['no_import_lib'] = 1
-        penv.Append(SHLINKFLAGS = " /implib:%s.lib" % impbn)
+        penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
         pout = penv.SharedLibrary(outbn, objs)
         # Cleanup
         penv.Clean(pout, impbn+".lib")
@@ -812,5 +822,3 @@ def DeclareTargets(env, prjs):
   
   if not args_no_cache and args_cache:
     args_cache.write()
-
-

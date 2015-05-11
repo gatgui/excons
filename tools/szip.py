@@ -1,4 +1,4 @@
-# Copyright (C) 2009, 2010  Gaetan Guidet
+# Copyright (C) 2014  Gaetan Guidet
 #
 # This file is part of excons.
 #
@@ -18,34 +18,23 @@
 # USA.
 
 from SCons.Script import *
-import sys
 import excons
 
 def Require(env):
-  linc, llib = excons.GetDirs("lua")
-  if linc:
-    env.Append(CPPPATH=[linc])
-  if llib:
-    env.Append(LIBPATH=[llib])
-
-  if sys.platform == "win32":
-    env.Append(CPPDEFINES=["LUA_BUILD_AS_DLL"])
-    env.Append(LIBS=["lua51"])
+  szip_inc, szip_lib = excons.GetDirs("szip")
   
-  else:
-    env.Append(LIBS=["lua"])
+  if szip_inc:
+    env.Append(CPPPATH=[szip_inc])
   
-  #elif sys.platform == "darwin":
-  #  # Do not link lua static lib [would duplicate core]
-  #  # But add linkflags so OSX doesn't complain about unresolved symbols
-  #  env.Append(LINKFLAGS = " -undefined dynamic_lookup")
-  #else:
-  #  # Do not link lua static lib [would duplicate core]
-  #  # Only do it for final executable [using LinkLUA]
-  #  pass
-
-def ModulePrefix():
-  return "lib/lua/"
-
-def ModuleExtension():
-  return ".so"
+  if szip_lib:
+    env.Append(LIBPATH=[szip_lib])
+  
+  if excons.GetArgument("szip-static", 0, int) == 0:
+    env.Append(CPPDEFINES=["SZ_BUILT_AS_DYNAMIC_LIB"])
+  
+  szip_libname = excons.GetArgument("szip-libname", None)
+  if not szip_libname:
+    szip_libsuffix = excons.GetArgument("szip_libsuffix", "")
+    szip_libname = "%s%s" % (("sz" if sys.platform != "win32" else "libszip"), szip_libsuffix)
+  
+  env.Append(LIBS=[szip_libname])
