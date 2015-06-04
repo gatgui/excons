@@ -20,11 +20,8 @@
 from SCons.Script import *
 import sys
 import excons
-import excons.tools.gl as gl
 
 def Require(env):
-  gl.Require(env)
-  
   glutinc, glutlib = excons.GetDirs("glut")
   
   glutlibsuffix = excons.GetArgument("glut-libsuffix", "")
