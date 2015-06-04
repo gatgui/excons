@@ -55,7 +55,7 @@ def Require(hl=False, verbose=False):
       hdf5hl_libname = hdf5_libname + "_hl"
     
     if hl:
-      env.Append(LIBS=[hdf5_libname, hdf5hl_libname])
+      env.Append(LIBS=[hdf5hl_libname, hdf5_libname])
     else:
       env.Append(LIBS=[hdf5_libname])
     
@@ -64,73 +64,89 @@ def Require(hl=False, verbose=False):
     hdf5_szip = False
     hdf5_zlib = False
     
+    h5conf = None
+    
     if hdf5_inc:
       # Note: On Fedora 14, H5pubconf.h has been renamed to H5pubconf-64.h
       #       -> be slightly more flexible when looking up this file
       lst = filter(lambda x: os.path.basename(x).startswith("H5pubconf"), glob.glob(hdf5_inc+"/*.h"))
       if len(lst) > 0:
         h5conf = lst[0].replace("\\", "/")
-        
-        if h5conf in hdf5_confs:
-          if verbose:
-            print("[HDF5] Use cached configuration for '%s'..." % h5conf)
-          hdf5_threadsafe = hdf5_confs[h5conf]["threadsafe"]
-          hdf5_zlib = hdf5_confs[h5conf]["zlib"]
-          hdf5_szip = hdf5_confs[h5conf]["szip"]
-        
-        else:
-          if verbose:
-            print("[HDF5] Reading configuration header '%s'..." % h5conf)
-          
-          f = open(h5conf, "r")
-           
-          for l in f.readlines():
-            l = l.strip()
-            
-            if ThreadSafe_exp.match(l):
-              hdf5_threadsafe = True
-            
-            elif Szip_exp.match(l):
-              hdf5_szip = True
-            
-            elif Zlib_exp.match(l):
-              hdf5_zlib = True
-          
-          hdf5_confs[h5conf] = {"threadsafe": hdf5_threadsafe,
-                                "zlib": hdf5_zlib,
-                                "szip": hdf5_szip}
-          
-          f.close()
-        
+    
+    else:
+      # Look in current include paths
+      for d in env["CPPPATH"]:
+        lst = filter(lambda x: os.path.basename(x).startswith("H5pubconf"), glob.glob(d+"/*.h"))
+        if len(lst) > 0:
+          h5conf = lst[0].replace("\\", "/")
+          break
+    
+    quiet = not verbose
+    
+    if h5conf:
+      
+      if h5conf in hdf5_confs:
+        hdf5_threadsafe = hdf5_confs[h5conf]["threadsafe"]
+        hdf5_zlib = hdf5_confs[h5conf]["zlib"]
+        hdf5_szip = hdf5_confs[h5conf]["szip"]
+        quiet = True
+      
+      else:
         if verbose:
-          if hdf5_threadsafe:
-            print("[HDF5] Thread safe")
+          print("[excons][HDF5] Reading configuration header '%s'..." % h5conf)
+        
+        f = open(h5conf, "r")
+         
+        for l in f.readlines():
+          l = l.strip()
           
-          if hdf5_zlib:
-            print("[HDF5] Using zlib")
+          if ThreadSafe_exp.match(l):
+            hdf5_threadsafe = True
           
-          if hdf5_szip:
-            print("[HDF5] Using szip")
+          elif Szip_exp.match(l):
+            hdf5_szip = True
+          
+          elif Zlib_exp.match(l):
+            hdf5_zlib = True
+        
+        hdf5_confs[h5conf] = {"threadsafe": hdf5_threadsafe,
+                              "zlib": hdf5_zlib,
+                              "szip": hdf5_szip}
+        
+        f.close()
+      
+      if not quiet:
+        if hdf5_threadsafe:
+          print("[excons][HDF5] Thread safe")
+        
+        if hdf5_zlib:
+          print("[excons][HDF5] Using zlib")
+        
+        if hdf5_szip:
+          print("[excons][HDF5] Using szip")
+    
+    else:
+      print("[excons][HDF5] Could not find configuration header")
     
     if hdf5_static:
-      if verbose:
-        print("[HDF5] Static build")
+      if not quiet:
+        print("[excons][HDF5] Static build")
       
       if hdf5_threadsafe:
         threads.Require(env)
       
       if hdf5_zlib:
         if excons.GetArgument("zlib-static", None) is None:
-          if verbose:
-            print("[HDF5] force static zlib")
+          if not quiet:
+            print("[excons][HDF5] force static zlib")
           excons.SetArgument("zlib-static", 1)
         zlib.Require(env)
       
       if hdf5_szip:
         szip_static = excons.GetArgument("szip-static", None)
         if szip_static is None:
-          if verbose:
-            print("[HDF5] force static szip")
+          if not quiet:
+            print("[excons][HDF5] force static szip")
           excons.SetArgument("szip-static", 1)
         szip.Require(env)
       
