@@ -65,7 +65,7 @@ def Require(libs=[]):
       if sys.platform == "win32":
         autolinklib = (excons.GetArgument("boost-%s-autolink" % lib, (1 if useautolink else 0), int) != 0)
         if not autolinklib:
-          defs.append("BOOST_%s_NO_LIB")
+          defs.append("BOOST_%s_NO_LIB" % lib.upper())
         else:
           autolinkcount += 1
         
