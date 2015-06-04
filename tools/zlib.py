@@ -43,7 +43,6 @@ def Require(env):
       if not zlib_name:
         zlib_name = "zlib%s" % excons.GetArgument("zlib-libsuffix", "")
       
-      env.Append(CPPDEFINES=["ZLIB_DLL"])
       env.Append(LIBS=[zlib_name])
     
     else:
@@ -51,4 +50,5 @@ def Require(env):
       if not zlib_name:
         zlib_name = "zdll%s" % excons.GetArgument("zlib-libsuffix", "")
       
+      env.Append(CPPDEFINES=["ZLIB_DLL"])
       env.Append(LIBS=[zlib_name])
