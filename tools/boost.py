@@ -33,28 +33,66 @@ def Require(libs=[]):
     
     boost_libsuffix = excons.GetArgument("boost-libsuffix", "")
     
+    useautolink = False
+    autolinkcount = 0
     if sys.platform == "win32":
-      # All libs but Boost.Python are statically linked by default
-      # Libraries are auto-linked on windows
-      if static:
-        for lib in libs:
-          libname = lib.strip().split("-")[0]
-          if libname == "python":
-            defs.append("BOOST_PYTHON_STATIC_LIB")
-          elif libname == "thread":
-            defs.append("BOOST_THREAD_USE_LIB")
-      
-      else:
-        for lib in libs:
-          libname = lib.strip().split("-")[0]
-          if libname == "thread":
-            defs.append("BOOST_THREAD_USE_DLL")
-          elif libname != "python":
-            defs.append("BOOST_%s_DYN_LINK" % libname.upper())
+      useautolink = (excons.GetArgument("boost-autolink", 1, int) != 0)
     
-    else:
-      for lib in libs:
-        linklibs.append("boost_%s%s" % (lib.strip(), boost_libsuffix))
+    # All libs but Boost.Python are statically linked by default
+    # => use BOOST_PYTHON_STATIC_LIB to enable static linking
+    
+    # Libraries are auto-linked on windows by default
+    # => disable for all libraries using BOOST_ALL_NO_LIB
+    # => disable for a specific lib using BOOST_[libraryname]_NO_LIB
+    
+    for lib in libs:
+      incdir, libdir = excons.GetDirs("boost-%s" % lib)
+      if incdir:
+        env.Append(CPPPATH=[incdir])
+      
+      if libdir:
+        env.Append(LIBPATH=[libdir])
+      
+      libname = excons.GetArgument("boost-%s-libname" % lib, None)
+      if not libname:
+        libsuffix = excons.GetArgument("boost-%s-libsuffix" % lib, boost_libsuffix)
+        libname = "boost_%s%s" % (lib, libsuffix)
+      
+      libstatic = (excons.GetArgument("boost-%s-static" % lib, (1 if static else 0), int) != 0)
+      
+      autolinklib = False
+      
+      if sys.platform == "win32":
+        autolinklib = (excons.GetArgument("boost-%s-autolink" % lib, (1 if useautolink else 0), int) != 0)
+        if not autolinklib:
+          defs.append("BOOST_%s_NO_LIB")
+        else:
+          autolinkcount += 1
+        
+        if libstatic:
+          if lib == "thread":
+            # Not to confure with the 'LIB' meaning of BOOST_xxx_NO_LIB
+            defs.append("BOOST_THREAD_USE_LIB")
+          
+          elif lib == "python":
+            # Boost.Python is dynamically linked by 'default'
+            defs.append("BOOST_PYTHON_STATIC_LIB")
+        
+        else:
+          # Should not have to make a special case of Boost.Thread anymore, but
+          # for backward compatibility sake
+          if lib == "thread":
+            defs.append("BOOST_THREAD_USE_DLL")
+          
+          elif lib != "python":
+            defs.append("BOOST_%s_DYN_LINK" % lib.upper())
+      
+      if not autolinklib:
+        linklibs.append(libname)
+    
+    
+    if sys.platform == "win32" and autolinkcount == 0:
+      defs.Append("BOOST_ALL_NO_LIB")
     
     env.Append(CPPDEFINES=defs)
     
@@ -64,6 +102,7 @@ def Require(libs=[]):
     if boost_lib_dir:
       env.Append(LIBPATH=boost_lib_dir)
     
-    env.Append(LIBS=linklibs)
+    if linklibs:
+      env.Append(LIBS=linklibs)
   
   return _RealRequire
