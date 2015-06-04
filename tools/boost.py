@@ -92,7 +92,7 @@ def Require(libs=[]):
     
     
     if sys.platform == "win32" and autolinkcount == 0:
-      defs.Append("BOOST_ALL_NO_LIB")
+      defs.append("BOOST_ALL_NO_LIB")
     
     env.Append(CPPDEFINES=defs)
     
