@@ -41,7 +41,7 @@ def Require(env):
     if static:
       zlib_name = excons.GetArgument("zlib-libname", None)
       if not zlib_name:
-        zlib_name = "zdll%s" % excons.GetArgument("zlib-libsuffix", "")
+        zlib_name = "zlib%s" % excons.GetArgument("zlib-libsuffix", "")
       
       env.Append(CPPDEFINES=["ZLIB_DLL"])
       env.Append(LIBS=[zlib_name])
@@ -49,6 +49,6 @@ def Require(env):
     else:
       zlib_name = excons.GetArgument("zlib-libname", None)
       if not zlib_name:
-        zlib_name = "zlib%s" % excons.GetArgument("zlib-libsuffix", "")
+        zlib_name = "zdll%s" % excons.GetArgument("zlib-libsuffix", "")
       
       env.Append(LIBS=[zlib_name])
