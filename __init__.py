@@ -259,8 +259,16 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   inc = GetArgument(incflag)
   lib = GetArgument(libflag)
   
-  inc_was_none = (inc is None)
-  lib_was_none = (lib is None)
+  # Consider empty string as None too
+  inc_was_none = False
+  if not inc:
+    inc = None
+    inc_was_none = True
+  
+  lib_was_none = False
+  if not lib:
+    lib = None
+    lib_was_none = True
   
   if not inc or not lib:
     prefix = GetArgument(prefixflag)
