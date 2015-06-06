@@ -48,9 +48,6 @@ def PluginExt():
 def PluginPost(pluginName):
   
   def _Func(*args, **kwargs):
-    print("args = %s" % str(args))
-    print("kwargs = %s" % str(kwargs))
-    
     if sys.platform == "darwin":
       
       macos_dir = os.path.join(excons.OutputBaseDirectory(), PluginPrefix(pluginName))
