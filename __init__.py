@@ -601,6 +601,14 @@ def MakeBaseEnv(noarch=None):
   
   return env
 
+def OutputBaseDirectory():
+  global out_dir, mode_dir, arch_dir, no_arch
+  
+  if not no_arch:
+    return os.path.join(out_dir, mode_dir, arch_dir)
+  else:
+    return os.path.join(out_dir, mode_dir)
+
 def DeclareTargets(env, prjs):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache
   
