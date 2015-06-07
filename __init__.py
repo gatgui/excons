@@ -234,6 +234,30 @@ def SetStackSize(env, size):
     else:
       env.Append(LINKFLAGS=" -Wl,--stack,0x%x" % size)
 
+def SetRPath(env, settings, relpath=None):
+  if sys.platform != "win32":
+    osx = (sys.platform == "darwin")
+    
+    rpath = settings.get("rpath", None)
+    rpath_suffix = ("" if osx else ",--enable-new-dtags")
+    
+    if not rpath or not rpath.startswith("/"):
+      if rpath:
+        relpath = rpath
+      
+      if osx:
+        rpath = "@loader_path"
+        if relpath:
+          rpath += "/" + relpath
+      
+      else:
+        rpath = "'$ORIGIN"
+        if relpath:
+          rpath += "/" + relpath
+        rpath += "'"
+    
+    env.Append(LINKFLAGS=" -Wl,-rpath,%s%s" % (rpath, rpath_suffix))
+
 def Build32():
   global arch_dir
   return (arch_dir != "x64")
@@ -723,12 +747,16 @@ def DeclareTargets(env, prjs):
           penv.Clean(pout, outbn+".ilk")
           penv.Clean(pout, outbn+".pdb")
       else:
+        SetRPath(penv, settings)
         if no_arch:
           pout = penv.SharedLibrary(os.path.join(out_dir, mode_dir, "lib", prj), objs)
         else:
           pout = penv.SharedLibrary(os.path.join(out_dir, mode_dir, arch_dir, "lib", prj), objs)
         if sys.platform == "darwin":
-          penv.AddPostAction(pout, "install_name_tool -id @rpath/lib%s.dylib $TARGETS" % os.path.basename(prj))
+          penv.Append(LINKFLAGS=" -Wl,-install_name,@rpath/lib%s.dylib" % prj)
+          #penv.AddPostAction(pout, "install_name_tool -id @rpath/lib%s.dylib $TARGETS" % os.path.basename(prj))
+        else:
+          penv.Append(LINKFLAGS=" -Wl,-soname,lib%s.so" % prj)
       add_deps(pout)
     
     elif settings["type"] == "program":
@@ -739,6 +767,7 @@ def DeclareTargets(env, prjs):
       if GetArgument("no-console", 0, int) or ("console" in settings and settings["console"] is False):
         NoConsole(penv)
       SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(GetArgument("stack-size", None))))
+      SetRPath(penv, settings, relpath="../lib")
       pout = penv.Program(outbn, objs)
       add_deps(pout)
       # Cleanup
@@ -761,6 +790,7 @@ def DeclareTargets(env, prjs):
       if GetArgument("no-console", 0, int) or ("console" in settings and settings["console"] is False):
         NoConsole(penv)
       SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(GetArgument("stack-size", None))))
+      SetRPath(penv, settings, relpath="../lib")
       for obj in objs:
         name = os.path.splitext(os.path.basename(str(obj)))[0]
         if no_arch:
@@ -810,6 +840,7 @@ def DeclareTargets(env, prjs):
         else:
           if str(Platform()) == "darwin":
             penv["LDMODULESUFFIX"] = ".bundle"
+        SetRPath(penv, settings)
         pout = penv.LoadableModule(os.path.join(prefix, prj), objs)
       add_deps(pout)
     
