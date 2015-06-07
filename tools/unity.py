@@ -45,9 +45,14 @@ def PluginExt():
   else:
     return ".so"
 
+def PluginSetup(env):
+  if sys.platform == "darwin":
+    # Note: linked libraries must have their install_name set to @rpath/libXXX.dylib
+    env.Append(LINKFLAGS=" -Wl,-rpath,@loader_path/../Libraries")
+
 def PluginPost(pluginName):
   
-  def _Func(*args, **kwargs):
+  def _UnityPostBuild(*args, **kwargs):
     if sys.platform == "darwin":
       
       macos_dir = os.path.join(excons.OutputBaseDirectory(), PluginPrefix(pluginName))
@@ -83,10 +88,10 @@ def PluginPost(pluginName):
         f.write(plist_content)
         f.close()
   
-  return _Func
+  return _UnityPostBuild
 
 
-def AsPlugin(target):
+def AsPlugin(target, libs=[]):
   if not isinstance(target, dict):
     return
   
@@ -98,8 +103,20 @@ def AsPlugin(target):
   post = target.get("post", [])
   post.append(PluginPost(name))
   
+  custom = target.get("custom", [])
+  custom.append(PluginSetup)
+  
+  install = target.get("install", {})
+  if libs:
+    libs_dir = os.path.join(excons.OutputBaseDirectory(), PluginPrefix(name))
+    if sys.platform == "darwin":
+      libs_dir = os.path.join(os.path.dirname(libs_dir), "Libraries")
+    install[libs_dir] = libs
+  
   target["ext"] = PluginExt()
   target["prefix"] = PluginPrefix(name)
+  target["custom"] = custom
+  target["install"] = install
   target["post"] = post
 
 
