@@ -21,26 +21,35 @@ from SCons.Script import *
 import excons
 import os
 
-def Require(ilmthread=True, iexmath=True, python=False):
+def Require(ilmthread=None, iexmath=None, python=None):
    
+   if ilmthread is None:
+      ilmthread = (excons.GetArgument("ilmbase-thread", 1, int) != 0)
+
+   if iexmath is None:
+      iexmath = (excons.GetArgument("ilmbase-iexmath", 1, int) != 0)
+
+   if python is None:
+      python = (excons.GetArgument("ilmbase-python", 0, int) != 0)
+
    def _RealRequire(env):
       ilmbase_libsuffix = excons.GetArgument("ilmbase-libsuffix", "")
       
       # Add python bindings first
       if python:
-        pyilmbase_inc, pyilmbase_lib = excons.GetDirs("ilmbase-python")
-        
-        pyilmbase_libsuffix = excons.GetArgument("ilmbase-python-libsuffix", ilmbase_libsuffix)
-        
-        if pyilmbase_inc:
-          if not pyilmbase_inc.endswith("OpenEXR"):
-            pyilmbase_inc += "/OpenEXR"
-          env.Append(CPPPATH=[pyilmbase_inc, os.path.dirname(pyilmbase_inc)])
-        
-        if pyilmbase_lib:
-          env.Append(LIBPATH=[pyilmbase_lib])
-        
-        env.Append(LIBS=["PyImath" + pyilmbase_libsuffix])
+         pyilmbase_inc, pyilmbase_lib = excons.GetDirs("ilmbase-python")
+         
+         pyilmbase_libsuffix = excons.GetArgument("ilmbase-python-libsuffix", ilmbase_libsuffix)
+         
+         if pyilmbase_inc:
+            if not pyilmbase_inc.endswith("OpenEXR"):
+               pyilmbase_inc += "/OpenEXR"
+            env.Append(CPPPATH=[pyilmbase_inc, os.path.dirname(pyilmbase_inc)])
+         
+         if pyilmbase_lib:
+            env.Append(LIBPATH=[pyilmbase_lib])
+         
+         env.Append(LIBS=["PyImath" + pyilmbase_libsuffix])
       
       
       ilmbase_inc, ilmbase_lib = excons.GetDirs("ilmbase")
