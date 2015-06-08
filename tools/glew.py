@@ -21,17 +21,16 @@ from SCons.Script import *
 import excons
 
 def Require(env):
-  glewinc, glewlib = excons.GetDirs("glew")
+  glew_inc, glew_lib = excons.GetDirs("glew")
   glew_static = (excons.GetArgument("glew-static", 1, int) != 0)
   glew_no_glu = (excons.GetArgument("glew-noglu", 1, int) != 0)
   glew_mx = (excons.GetArgument("glew-mx", 0, int) != 0)
-  glewlibsuffix = excons.GetArgument("glew-libsuffix", "")
   
-  if glewinc:
-    env.Append(CPPPATH=[glewinc])
+  if glew_inc:
+    env.Append(CPPPATH=[glew_inc])
   
-  if glewlib:
-    env.Append(LIBPATH=[glewlib])
+  if glew_lib:
+    env.Append(LIBPATH=[glew_lib])
   
   defs = []
   
@@ -45,7 +44,17 @@ def Require(env):
     defs.append("GLEW_MX")
   
   env.Append(CPPDEFINES=defs)
-  
-  lib = "%s%s" % (("GLEW" if not glew_mx else "GLEW"), glewlibsuffix)
-  
-  env.Append(LIBS=[lib])
+
+  glew_libname = excons.GetArgument("glew-libname", None)
+  if not glew_libname:
+    glew_libsuffix = excons.GetArgument("glew-libsuffix", "")
+    
+    glew_libname = ("glew32" if sys.platform == "win32" else "GLEW") + glew_libsuffix
+    
+    if glew_mx:
+      glew_libname += "mx"
+
+    if sys.platform == "win32" and glew_static:
+      glew_libname += "s"
+
+  env.Append(LIBS=[glew_libname])
