@@ -251,7 +251,7 @@ def SetRPath(env, settings, relpath=None):
           rpath += "/" + relpath
       
       else:
-        rpath = "'$ORIGIN"
+        rpath = "'$$ORIGIN"
         if relpath:
           rpath += "/" + relpath
         rpath += "'"
