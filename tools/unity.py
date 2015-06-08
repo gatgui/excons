@@ -21,19 +21,19 @@ import os
 import sys
 import excons
 
-def PluginPrefix(pluginName):
-  if sys.platform == "win32":
-    prefix = "unity/%s/Plugins/x86" % pluginName
+def PluginPrefix(pluginname, package=None):
+  if package is None:
+    package = pluginname
+
+  if sys.platform != "darwin":
+    prefix = "unity/%s/Plugins/x86" % package
     if excons.Build64():
       prefix += "_64"
     
     return prefix
   
-  elif sys.platform == "darwin":
-    return "unity/%s/Plugins/%s.bundle/Contents/MacOS" % (pluginName, pluginName)
-  
   else:
-    return "unity/%s/Plugins" % pluginName
+    return "unity/%s/Plugins/%s.bundle/Contents/MacOS" % (package, pluginname)
 
 def PluginExt():
   if sys.platform == "win32":
@@ -45,17 +45,12 @@ def PluginExt():
   else:
     return ".so"
 
-def PluginSetup(env):
-  if sys.platform == "darwin":
-    # Note: linked libraries must have their install_name set to @rpath/libXXX.dylib
-    env.Append(LINKFLAGS=" -Wl,-rpath,@loader_path/../Libraries")
-
-def PluginPost(pluginName):
+def PluginPost(pluginname, package=None):
   
   def _UnityPostBuild(*args, **kwargs):
     if sys.platform == "darwin":
       
-      macos_dir = os.path.join(excons.OutputBaseDirectory(), PluginPrefix(pluginName))
+      macos_dir = os.path.join(excons.OutputBaseDirectory(), PluginPrefix(pluginname, package=package))
       contents_dir = os.path.dirname(macos_dir)
       
       plist_path = os.path.join(contents_dir, "Info.plist")
@@ -82,7 +77,7 @@ def PluginPost(pluginName):
 	<string>yes</string>
 </dict>
 </plist>
-""" % pluginName
+""" % pluginname
         
         f = open(plist_path, "w")
         f.write(plist_content)
@@ -91,7 +86,7 @@ def PluginPost(pluginName):
   return _UnityPostBuild
 
 
-def AsPlugin(target, libs=[]):
+def Plugin(target, libs=[], package=None):
   if not isinstance(target, dict):
     return
   
@@ -99,25 +94,26 @@ def AsPlugin(target, libs=[]):
     return
   
   name = target["name"]
+
+  prefix = PluginPrefix(name, package=package)
   
   post = target.get("post", [])
-  post.append(PluginPost(name))
-  
-  custom = target.get("custom", [])
-  custom.append(PluginSetup)
+  post.append(PluginPost(name, package=package))
   
   install = target.get("install", {})
   if libs:
-    libs_dir = os.path.join(excons.OutputBaseDirectory(), PluginPrefix(name))
+    libs_dir = os.path.join(excons.OutputBaseDirectory(), prefix)
     if sys.platform == "darwin":
       libs_dir = os.path.join(os.path.dirname(libs_dir), "Libraries")
     install[libs_dir] = libs
   
   target["ext"] = PluginExt()
-  target["prefix"] = PluginPrefix(name)
-  target["custom"] = custom
+  target["prefix"] = prefix
   target["install"] = install
   target["post"] = post
+  # For linux, rpath defaults to $ORIGIN
+  if sys.platform == "darwin":
+    target["rpath"] = "../Libraries"
 
 
 
