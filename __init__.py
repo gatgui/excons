@@ -747,14 +747,20 @@ def DeclareTargets(env, prjs):
           penv.Clean(pout, outbn+".ilk")
           penv.Clean(pout, outbn+".pdb")
       else:
-        SetRPath(penv, settings)
+        dn, bn = os.path.split(prj)
+        if dn:
+          dn += "/"
+          relpath = "/".join([".."] * dn.count("/"))
+        else:
+          relpath = None
+        
+        SetRPath(penv, settings, relpath=relpath)
+        
         if no_arch:
           pout = penv.SharedLibrary(os.path.join(out_dir, mode_dir, "lib", prj), objs)
         else:
           pout = penv.SharedLibrary(os.path.join(out_dir, mode_dir, arch_dir, "lib", prj), objs)
-        dn, bn = os.path.split(prj)
-        if dn:
-          dn += "/"
+        
         if sys.platform == "darwin":
           penv.Append(LINKFLAGS=" -Wl,-install_name,@rpath/%slib%s.dylib" % (dn, bn))
           #penv.AddPostAction(pout, "install_name_tool -id @rpath/lib%s.dylib $TARGETS" % os.path.basename(prj))
@@ -770,7 +776,15 @@ def DeclareTargets(env, prjs):
       if GetArgument("no-console", 0, int) or ("console" in settings and settings["console"] is False):
         NoConsole(penv)
       SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(GetArgument("stack-size", None))))
-      SetRPath(penv, settings, relpath="../lib")
+      
+      dn, _ = os.path.split(prj)
+      if dn:
+        relpath = "/".join([".."] * (1 + dn.count("/"))) + "/../lib"
+      else:
+        relpath = "../lib"
+      
+      SetRPath(penv, settings, relpath=relpath)
+      
       pout = penv.Program(outbn, objs)
       add_deps(pout)
       # Cleanup
