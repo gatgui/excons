@@ -58,23 +58,43 @@ def GetMayaRoot(noWarn=False):
       mayadir = "/Applications/Autodesk/maya%s" % ver
     else:
       mayadir = "/usr/autodesk/maya%s" % ver
-      if excons.arch_dir == "x64":
+      if excons.arch_dir == "x64" and os.path.isdir(mayadir+"-x64"):
         mayadir += "-x64"
   
   else:
-    mayadir = mayaspec
+    mayadir = mayaspec.replace("\\", "/")
+    if len(mayadir) > 0 and mayadir[-1] == "/":
+      mayadir = mayadir[:-1]
 
   return mayadir
+
+def GetMayaInc(mayadir):
+  mdk = excons.GetArgument("with-mayadevkit")
+  
+  if mdk is None:
+    if sys.platform == "darwin":
+      mayainc = mayadir + "/devkit/include"
+    else:
+      mayainc = mayadir + "/include"
+  
+  else:
+    mdk = mdk.replace("\\", "/")
+    if len(mdk) > 0 and mdk[-1] == "/":
+      mdk = mdk[:-1]
+    
+    if os.path.isabs(mdk):
+      mayainc = mdk + "/include"
+    else:
+      mayainc = mayadir + "/" + mdk + "/include"
+  
+  return mayainc
 
 def Version(asString=True):
   mayadir = GetMayaRoot(noWarn=True)
   if not mayadir:
     return (None if not asString else "")
   
-  if sys.platform == "darwin":
-    mayainc = os.path.join(mayadir, "devkit", "include")
-  else:
-    mayainc = os.path.join(mayadir, "include")
+  mayainc = GetMayaInc(mayadir)
   
   mtypes = os.path.join(mayainc, "maya", "MTypes.h")
   
@@ -94,15 +114,15 @@ def Require(env):
   if not mayadir:
     return
 
+  env.Append(CPPPATH=[GetMayaInc(mayadir)])
+  
   if sys.platform == "darwin":
     env.Append(CPPDEFINES=["CC_GNU_", "OSMac_", "OSMacOSX_", "REQUIRE_IOSTREAM", "OSMac_MachO_", "_LANGUAGE_C_PLUS_PLUS"])
-    env.Append(CPPPATH=["%s/devkit/include" % mayadir])
     env.Append(CCFLAGS=" -include \"%s/devkit/include/maya/OpenMayaMac.h\" -fno-gnu-keywords" % mayadir)
     env.Append(LIBPATH=["%s/Maya.app/Contents/MacOS" % mayadir])
     env.Append(LINKFLAGS=" -framework System -framework SystemConfiguration -framework CoreServices -framework Carbon -framework Cocoa -framework ApplicationServices -framework IOKit -framework OpenGL -framework AGL")
   
   else:
-    env.Append(CPPPATH=["%s/include" % mayadir])
     env.Append(LIBPATH=["%s/lib" % mayadir])
     
     if sys.platform == "win32":
