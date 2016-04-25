@@ -886,3 +886,21 @@ def DeclareTargets(env, prjs):
   
   if not args_no_cache and args_cache:
     args_cache.write()
+  
+  return all_projs
+
+def GetTargetOutputFiles(env, target, builders=None, verbose=False):
+  def GetTargetOuptutFilesIter(env, node):
+    if node.has_builder():
+      builder_name = node.get_builder().get_name(env)
+      if builders is None or builder_name in builders:
+        yield node
+      elif verbose:
+        print("Ignore builder '%s' output: %s" % (builder_name, node))
+    
+    for kid in node.all_children():
+      for kid in GetTargetOuptutFilesIter(env, kid):
+        yield kid
+  
+  node = env.arg2nodes(target, env.fs.Entry)[0]
+  return list(GetTargetOuptutFilesIter(env, node))
