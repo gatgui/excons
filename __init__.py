@@ -97,6 +97,12 @@ class Cache(dict):
   def __getitem__(self, k):
     return super(Cache, self).__getitem__(sys.platform)[k]
   
+  def remove(self, k):
+    pd = super(Cache, self).__getitem__(sys.platform)
+    if k in pd:
+      del(pd[k])
+      self.updated = True
+  
   def get(self, k, default=None):
     try:
       return self[k]
@@ -179,6 +185,16 @@ def SetArgument(key, value, cache=False):
       GetArgument("__dummy__")
     
     args_cache[key] = str(value)
+
+def RemoveCacheKey(key):
+  global args_cache, args_no_cache
+  
+  if not args_no_cache:
+    if args_cache is None:
+      # force creation
+      GetArgument("__dummy__")
+    
+    args_cache.remove(key)
 
 def Which(target):
   pathsplit = None
@@ -270,7 +286,13 @@ def WarnOnce(msg):
   global issued_warnings
   
   if not msg in issued_warnings:
-    print("[excons] Warning: %s" % msg)
+    first = True
+    for line in msg.split("\n"):
+      if first:
+        print("[excons] Warning: %s" % line)
+        first = False
+      else:
+        print("[excons]          %s" % line)
     issued_warnings.add(msg)
 
 def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc=True, silent=False):
@@ -279,70 +301,118 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   prefixflag = "with-%s" % name
   incflag = "%s-inc" % prefixflag
   libflag = "%s-lib" % prefixflag
+  incvar = name.upper() + "_INCLUDE"
+  libvar = name.upper() + "_LIB"
+  prefixsrc = None
+  incsrc = None
+  libsrc = None
+  
+  prefix = None
+  inc = None
+  lib = None
+  
+  prefix = GetArgument(prefixflag)
+  if prefix:
+    prefixsrc = ("flag" if prefixflag in ARGUMENTS else "cache")
+  else:
+    prefix = None
+  
+  prefixinc = None
+  prefixlib = None
   
   inc = GetArgument(incflag)
-  lib = GetArgument(libflag)
-  
-  # Consider empty string as None too
-  inc_was_none = False
-  if not inc:
+  if inc:
+    incsrc = ("flag" if incflag in ARGUMENTS else "cache")
+  else:
     inc = None
-    inc_was_none = True
   
-  lib_was_none = False
-  if not lib:
+  if (inc is None or incsrc == "cache") and incvar in os.environ:
+    val = os.environ[incvar]
+    if val:
+      #if inc is not None and prefixsrc != "flag":
+      if prefixsrc != "flag":
+        msg = "Ignore %s include directory read from cache.\nUse environment key %s value." % (name, incvar)
+        WarnOnce(msg)
+      inc = val
+      incsrc = "environment"
+  
+  lib = GetArgument(libflag)
+  if lib:
+    libsrc = ("flag" if libflag in ARGUMENTS else "cache")
+  else:
     lib = None
-    lib_was_none = True
   
-  if not inc or not lib:
-    prefix = GetArgument(prefixflag)
-    
-    if not prefix:
-      msg = "Provide %s prefix using %s= or include and library paths using %s= and %s= respectively" % (name, prefixflag, incflag, libflag)
-      if not noexc:
-        raise Exception(msg)
+  if (lib is None or libsrc == "cache") and libvar in os.environ:
+    val = os.environ[libvar]
+    if val:
+      #if lib is not None and prefixsrc != "flag":
+      if prefixsrc != "flag":
+        msg = "Ignore %s library directory read from cache.\nUse environment key %s value." % (name, libvar)
+        WarnOnce(msg)
+      lib = val
+      libsrc = "environment"
+  
+  # Priority (highest -> lowest)
+  #   inc/lib flag
+  #   prefix flag
+  #   inc/lib env var
+  #   inc/lib cache
+  #   prefix cache
+  
+  if (prefixsrc == "flag" and (incsrc != "flag" or libsrc != "flag")) or inc is None or lib is None:
+    if prefix is None:
+      msg = "provide %s include and/or library path by using one of:\n  %s=\n  %s=\n  %s=\nflags." % (name, prefixflag, incflag, libflag)
+      if noexc:
+        if not silent:
+          msg = "You may need to %s" % msg
+          WarnOnce(msg)
+      else:
+        raise Exception("Please %s" % msg)
     
     else:
       prefix = os.path.abspath(os.path.expanduser(prefix))
       
       if not os.path.isdir(prefix):
-        msg = "Invalid prefix directory for %s: %s" % (name, prefix)
+        msg = "Invalid %s prefix directory %s." % (name, prefix)
         if noexc:
           if not silent:
             WarnOnce(msg)
           prefix = None
         else:
           raise Exception(msg)
-      
       else:
-        ARGUMENTS[prefixflag] = prefix
-        
-        if not inc:
-          inc = "%s/%s" % (prefix, incdirname)
-        else:
-          if not incflag in ARGUMENTS:
-            msg = "'%s' read from cache, '%s' flag ignored" % (incflag, prefixflag)
-            WarnOnce(msg)
-        
-        if not lib:
-          lib = "%s/%s" % (prefix, libdirname)
-          mode = (GetArgument("libdir-arch", "none") if libdirarch is None else libdirarch)
-          if mode == "subdir":
-            lib += "/%s" % arch_dir
-          elif mode == "suffix" and Build64():
-            lib += "64"
-        else:
-          if not libflag in ARGUMENTS:
-            msg = "'%s' read from cache, '%s' flag ignored" % (libflag, prefixflag)
-            WarnOnce(msg)
+        SetArgument(prefixflag, prefix)
+      
+      prefixinc = "%s/%s" % (prefix, incdirname)
+      
+      prefixlib = "%s/%s" % (prefix, libdirname)
+      mode = (GetArgument("libdir-arch", "none") if libdirarch is None else libdirarch)
+      if mode == "subdir":
+        prefixlib += "/%s" % arch_dir
+      elif mode == "suffix" and Build64():
+        prefixlib += "64"
   
   else:
-    if prefixflag in ARGUMENTS:
-      msg = "'%s' and '%s' read from cache, '%s' flag ignored" % (incflag, libflag, prefixflag)
+    if prefixsrc == "cache" and incsrc != "environment" and libsrc != "environment":
+      RemoveCacheKey(prefixflag)
+  
+  if inc is None or (prefixsrc == "flag" and incsrc != "flag"):
+    if inc is not None:
+      msg = "Ignore %s include directory read from %s.\nDerive directory from explicit prefix." % (name, incsrc)
       WarnOnce(msg)
+      RemoveCacheKey(incflag)
+    inc = prefixinc
+  
+  if lib is None or (prefixsrc == "flag" and libsrc != "flag"):
+    if lib is not None:
+      msg = "Ignore %s library directory read from %s.\nDerive directory from explicit prefix." % (name, libsrc)
+      WarnOnce(msg)
+      RemoveCacheKey(libflag)
+    lib = prefixlib
   
   if inc is None:
-    msg = "provide %s include and/or library path by using one of %s=, %s= or %s= flags" % (name, prefixflag, incflag, libflag)
+    print("inc is none")
+    msg = "provide %s include and/or library path by using one of:\n  %s=\n  %s=\n  %s=\nflags." % (name, prefixflag, incflag, libflag)
     if noexc:
       if not silent:
         msg = "You may need to %s" % msg
@@ -353,18 +423,19 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   else:
     inc = os.path.abspath(os.path.expanduser(inc))
     if not os.path.isdir(inc):
-      msg = "Invalid include directory for %s: %s" % (name, inc)
+      msg = "Invalid %s include directory %s." % (name, inc)
       if noexc:
         if not silent:
           WarnOnce(msg)
         inc = None
       else:
         raise Exception(msg)
-    elif not inc_was_none:
-      ARGUMENTS[incflag] = inc
+    elif incsrc is not None:
+      SetArgument(incflag, inc)
   
   if lib is None:
-    msg = "provide %s include and/or library path by using one of %s=, %s= or %s= flags" % (name, prefixflag, incflag, libflag)
+    print("lib is none")
+    msg = "provide %s include and/or library path by using one of:\n  %s=\n  %s=\n  %s=\nflags." % (name, prefixflag, incflag, libflag)
     if noexc:
       if not silent:
         msg = "You may need to %s" % msg
@@ -376,15 +447,15 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
     lib = os.path.abspath(os.path.expanduser(lib))
     
     if not os.path.isdir(lib):
-      msg = "Invalid library directory for %s: %s" % (name, lib)
+      msg = "Invalid %s library directory %s." % (name, lib)
       if noexc:
         if not silent:
           WarnOnce(msg)
         lib = None
       else:
         raise Exception(msg)
-    elif not lib_was_none:
-      ARGUMENTS[libflag] = lib
+    elif libsrc is not None:
+      SetArgument(libflag, lib)
   
   return (inc, lib)
 
@@ -398,7 +469,7 @@ def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=
     lib_dir = libdirdef
   
   if inc_dir is None or lib_dir is None:
-    msg = "%s directories not set (use with-%s=, with-%s-inc=, with-%s-lib=)" % (name, name, name, name)
+    msg = "%s directories not set.\nUse with-%s=, with-%s-inc=, with-%s-lib= flags." % (name, name, name, name)
     if noexc:
       if not silent:
         WarnOnce(msg)
