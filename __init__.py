@@ -453,9 +453,9 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
         WarnOnce(msg)
     else:
       raise Exception("Please %s" % msg)
-  if inc:
+  if inc and incsrc != "environment":
     SetArgument(incflag, inc)
-  if lib:
+  if lib and libsrc != "environment":
     SetArgument(libflag, lib)
   
   return (inc, lib)
