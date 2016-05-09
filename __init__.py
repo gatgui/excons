@@ -244,6 +244,12 @@ def SetRPath(env, settings, relpath=None, rpaths=[""]):
     if relpath:
       all_rpaths.append(relpath)
     
+    # Keep 'rpath' for backward compatibility (string expected)
+    additional_rpath = settings.get("rpath", None)
+    if additional_rpath and not additional_rpath in all_rpaths:
+      all_rpaths.append(additional_rpath)
+    
+    # New 'rpaths' setting (string or collection)
     additional_rpaths = settings.get("rpaths", [])
     if type(additional_rpaths) in (str, unicode):
       additional_rpaths = [additional_rpaths]
