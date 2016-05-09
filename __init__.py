@@ -1051,6 +1051,10 @@ def DeclareTargets(env, prjs):
       aliased = all_projs.get(alias, [])
       aliased.extend(pout)
       all_projs[alias] = aliased
+      
+      # Also keep target name alias
+      if alias != prj:
+        Alias(prj, pout)
   
   if not args_no_cache and args_cache:
     args_cache.write()
