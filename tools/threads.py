@@ -20,8 +20,5 @@
 from SCons.Script import *
 
 def Require(env):
-  if str(Platform()) == "darwin":
-    env.Append(LINKFLAGS=" -framework CoreServices")
-  
-  elif str(Platform()) != "win32":
+  if str(Platform()) != "win32":
     env.Append(LIBS=["pthread"])
