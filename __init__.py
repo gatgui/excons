@@ -781,7 +781,7 @@ def DeclareTargets(env, prjs):
       for customcall in settings["custom"]:
         customcall(penv)
     
-    odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, alias)
+    odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, prj)
     
     # On windows, also msvc-9.0
     if str(Platform()) == "win32":
@@ -1048,11 +1048,15 @@ def DeclareTargets(env, prjs):
           inst = penv.Install(dst, files)
           penv.Depends(pout, inst)
       
-      Alias(alias, pout)
-      all_projs[alias] = pout
+      aliased = all_projs.get(alias, [])
+      aliased.extend(pout)
+      all_projs[alias] = aliased
   
   if not args_no_cache and args_cache:
     args_cache.write()
+  
+  for alias, targets in all_projs.iteritems():
+    Alias(alias, targets)
   
   return all_projs
 
