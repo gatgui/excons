@@ -284,13 +284,6 @@ def SetRPath(env, settings, relpath=None, rpaths=[""]):
         else:
           all_rpaths[i] = ("@loader_path" if osx else "$$ORIGIN")
     
-    rpath = ":".join(all_rpaths)
-    if not osx:
-      # enquotes because of possible $ sign
-      rpath = "'" + rpath + "'"
-    
-    rpath_suffix = ("" if osx else ",--enable-new-dtags")
-    
     # Remove -Wl,-rpath, not already in flags
     curlinkflags = str(env["LINKFLAGS"])
     linkflags = re.sub(r"\s*-Wl,-rpath,[^\s]*", "", curlinkflags)
@@ -298,7 +291,14 @@ def SetRPath(env, settings, relpath=None, rpaths=[""]):
       print("Removed -Wl,-rpath from LINKFLAGS ('%s' -> '%s')" % (curlinkflags, linkflags))
       env["LINKFLAGS"] = linkflags
     
-    env.Append(LINKFLAGS=" -Wl,-rpath,%s%s" % (rpath, rpath_suffix))
+    
+    if not osx:
+      # enquotes because of possible $ sign
+      rpath = "'%s'" % ":".join(all_rpaths)
+      env.Append(LINKFLAGS=" -Wl,-rpath,%s,--enable-new-dtags" % rpath)
+    else:
+      rpath = ",".join(map(lambda x: "-rpath,%s" % x, all_rpaths))
+      env.Append(LINKFLAGS=" -Wl,%s" % rpath)
 
 def Build32():
   global arch_dir
