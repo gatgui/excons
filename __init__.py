@@ -234,27 +234,47 @@ def SetStackSize(env, size):
     else:
       env.Append(LINKFLAGS=" -Wl,--stack,0x%x" % size)
 
-def SetRPath(env, settings, relpath=None):
+def SetRPath(env, settings, relpath=None, rpaths=[""]):
   if sys.platform != "win32":
     osx = (sys.platform == "darwin")
     
-    rpath = settings.get("rpath", None)
+    all_rpaths = rpaths[:]
+    
+    # Keep 'relpath' for backward compatibility
+    if relpath:
+      all_rpaths.append(relpath)
+    
+    additional_rpaths = settings.get("rpaths", [])
+    if type(additional_rpaths) in (str, unicode):
+      additional_rpaths = [additional_rpaths]
+    for rpath in additional_rpaths:
+      if not rpath in all_rpaths:
+        all_rpaths.append(rpath)
+    
+    for i in xrange(len(all_rpaths)):
+      path = all_rpaths[i]
+      if path is None:
+        continue
+      
+      if not path.startswith("/"):
+        if path:
+          all_rpaths[i] = "%s/%s" % (("@loader_path" if osx else "$$ORIGIN"), path)
+        else:
+          all_rpaths[i] = ("@loader_path" if osx else "$$ORIGIN")
+    
+    rpath = ":".join(all_rpaths)
+    if not osx:
+      # enquotes because of possible $ sign
+      rpath = "'" + rpath + "'"
+    
     rpath_suffix = ("" if osx else ",--enable-new-dtags")
     
-    if not rpath or not rpath.startswith("/"):
-      if rpath:
-        relpath = rpath
-      
-      if osx:
-        rpath = "@loader_path"
-        if relpath:
-          rpath += "/" + relpath
-      
-      else:
-        rpath = "'$$ORIGIN"
-        if relpath:
-          rpath += "/" + relpath
-        rpath += "'"
+    # Remove -Wl,-rpath, not already in flags
+    curlinkflags = str(env["LINKFLAGS"])
+    linkflags = re.sub(r"\s*-Wl,-rpath,[^\s]*", "", curlinkflags)
+    if linkflags != curlinkflags:
+      print("Removed -Wl,-rpath from LINKFLAGS ('%s' -> '%s')" % (curlinkflags, linkflags))
+      env["LINKFLAGS"] = linkflags
     
     env.Append(LINKFLAGS=" -Wl,-rpath,%s%s" % (rpath, rpath_suffix))
 
@@ -643,18 +663,39 @@ def DeclareTargets(env, prjs):
     # recusively add deps if one of the lib or deps is a project
     
     if not "name" in settings:
-      print("Project missing \"name\"")
+      print("[excons] Project missing \"name\"")
       continue
     
     prj = settings["name"]
+    prefix = settings.get("prefix", None)
     
     if not "srcs" in settings:
-      print("Project \"%s\" missing \"src\"" % prj)
+      print("[excons] Project \"%s\" missing \"src\"" % prj)
       continue
     
     if not "type" in settings:
-      print("Project \"%s\" missing \"type\"" % prj)
+      print("[excons] Project \"%s\" missing \"type\"" % prj)
       continue
+    
+    if "/" in prj.replace("\\", "/"):
+      print("[excons] Invalid target name '%s'. Please use 'prefix' instead." % prj)
+      spl = prj.split("/")
+      spl = prj.split("/")
+      prj = spl[-1]
+      subdir = "/".join(spl[:-1])
+      prefix = ("%s/%s" % (prefix, subdir) if prefix else subdir)
+      settings["name"] = prj
+      settings["prefix"] = prefix
+      print("[excons] => Update: name='%s', prefix='%s'" % (prj, prefix))
+    
+    if prefix:
+      if prefix.startswith("/"):
+        prefix = prefix[1:]
+      if prefix.endswith("/"):
+        prefix = prefix[:-1]
+      settings["prefix"] = prefix
+    
+    alias = settings.get("alias", prj)
     
     penv = env.Clone()
     
@@ -688,10 +729,8 @@ def DeclareTargets(env, prjs):
       for customcall in settings["custom"]:
         customcall(penv)
     
-    if "alias" in settings:
-      odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, settings["alias"])
-    else:
-      odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, prj)
+    odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, alias)
+    
     # On windows, also msvc-9.0
     if str(Platform()) == "win32":
       msvcver = env.get("MSVC_VERSION", None)
@@ -735,9 +774,11 @@ def DeclareTargets(env, prjs):
           os.makedirs(os.path.dirname(impbn))
         except:
           pass
+        
         penv['no_import_lib'] = 1
         penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
         pout = penv.SharedLibrary(outbn, objs)
+        
         # Cleanup
         penv.Clean(pout, impbn+".lib")
         penv.Clean(pout, impbn+".exp")
@@ -746,47 +787,96 @@ def DeclareTargets(env, prjs):
         if GetArgument("debug", 0, int):
           penv.Clean(pout, outbn+".ilk")
           penv.Clean(pout, outbn+".pdb")
+      
       else:
-        dn, bn = os.path.split(prj)
-        if dn:
-          dn += "/"
-          relpath = "/".join([".."] * dn.count("/"))
-        else:
-          relpath = None
+        relpath = None
+        if prefix:
+          relpath = "/".join([".."] * (1 + prefix.count("/")))
         
+        symlinks = set()
+        
+        penv["SHLIBPREFIX"] = ""
+        penv["SHLIBSUFFIX"] = ""
+        
+        outlibdir = os.path.join(out_dir, mode_dir).replace("\\", "/")
+        if not no_arch:
+          outlibdir += "/" + arch_dir
+        outlibdir += "/lib"
+        if prefix:
+          outlibdir += "/" + prefix
+        
+        outlibname = "lib%s" % prj
+        
+        version = settings.get("version", None)
+        if version:
+          if sys.platform == "darwin":
+            outlibname += version + ".dylib"
+            symlinks.add("%s/lib%s.dylib" % (outlibdir, prj))
+          else:
+            outlibname += ".so.%s" % version
+            symlinks.add("%s/lib%s.so" % (outlibdir, prj))
+        else:
+          outlibname += (".dylib" if sys.platform == "darwin" else ".so")
+        
+        # Setup rpath
         SetRPath(penv, settings, relpath=relpath)
         
-        if no_arch:
-          pout = penv.SharedLibrary(os.path.join(out_dir, mode_dir, "lib", prj), objs)
-        else:
-          pout = penv.SharedLibrary(os.path.join(out_dir, mode_dir, arch_dir, "lib", prj), objs)
-        
+        # Setup library name
         if sys.platform == "darwin":
-          penv.Append(LINKFLAGS=" -Wl,-install_name,@rpath/%slib%s.dylib" % (dn, bn))
-          #penv.AddPostAction(pout, "install_name_tool -id @rpath/lib%s.dylib $TARGETS" % os.path.basename(prj))
+          libname = settings.get("install_name", "lib%s.dylib" % prj)
+          if not ".dylib" in libname:
+            libname += ".dylib"
+          if libname != outlibname:
+            symlinks.add("%s/%s" % (outlibdir, libname))
+          if not libname.startswith("@rpath"):
+            libname = "@rpath/%s" % libname
+          penv.Append(LINKFLAGS=" -Wl,-install_name,%s" % libname)
+        
         else:
-          penv.Append(LINKFLAGS=" -Wl,-soname,lib%s.so" % bn)
+          libname = settings.get("soname", "lib%s.so" % prj)
+          if not ".so" in libname:
+            libname += ".so"
+          if libname != outlibname:
+            symlinks.add("%s/%s" % (outlibdir, libname))
+          penv.Append(LINKFLAGS=" -Wl,-soname,%s" % libname)
+        
+        # Declare library target
+        pout = penv.SharedLibrary(outlibdir + "/" + outlibname, objs)
+        
+        # create symlinks
+        for symlink in symlinks:
+          dn, bn = os.path.split(symlink)
+          penv.AddPostAction(pout, "cd %s; ln -f -s %s %s" % (dn, outlibname, bn))
+          penv.Clean(pout, symlink)
+      
       add_deps(pout)
     
     elif settings["type"] == "program":
-      if no_arch:
-        outbn = os.path.join(out_dir, mode_dir, "bin", prj)
-      else:
-        outbn = os.path.join(out_dir, mode_dir, arch_dir, "bin", prj)
+      outbindir = os.path.join(out_dir, mode_dir).replace("\\", "/")
+      if not no_arch:
+        outbindir += "/" + arch_dir
+      outbindir += "/bin"
+      if prefix:
+        outbindir += "/" + prefix
+      
+      outbn = outbindir + "/" + prj
+      
       if GetArgument("no-console", 0, int) or ("console" in settings and settings["console"] is False):
         NoConsole(penv)
+      
       SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(GetArgument("stack-size", None))))
       
-      dn, _ = os.path.split(prj)
-      if dn:
-        relpath = "/".join([".."] * (1 + dn.count("/"))) + "/../lib"
+      if prefix:
+        relpath = "/".join([".."] * (1 + prefix.count("/"))) + "/../lib"
       else:
         relpath = "../lib"
       
       SetRPath(penv, settings, relpath=relpath)
       
       pout = penv.Program(outbn, objs)
+      
       add_deps(pout)
+      
       # Cleanup
       if str(Platform()) == "win32":
         if float(mscver) > 7.1 and float(mscver) < 10.0:
@@ -796,27 +886,49 @@ def DeclareTargets(env, prjs):
           penv.Clean(pout, outbn+".pdb")
     
     elif settings["type"] == "staticlib":
-      if no_arch:
-        pout = penv.StaticLibrary(os.path.join(out_dir, mode_dir, "lib", prj), objs)
-      else:
-        pout = penv.StaticLibrary(os.path.join(out_dir, mode_dir, arch_dir, "lib", prj), objs)
+      outlibdir = os.path.join(out_dir, mode_dir).replace("\\", "/")
+      if not no_arch:
+        outlibdir += "/" + arch_dir
+      outlibdir += "/lib"
+      if prefix:
+        outlibdir += "/" + prefix
+      
+      pout = penv.StaticLibrary(outlibdir + "/" + prj, objs)
+      
       add_deps(pout)
     
     elif settings["type"] == "testprograms":
       pout = []
+      
+      outbindir = os.path.join(out_dir, mode_dir).replace("\\", "/")
+      if not no_arch:
+        outbindir += "/" + arch_dir
+      outbindir += "/bin"
+      if prefix:
+        outbindir += "/" + prefix
+      
       if GetArgument("no-console", 0, int) or ("console" in settings and settings["console"] is False):
         NoConsole(penv)
+      
       SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(GetArgument("stack-size", None))))
-      SetRPath(penv, settings, relpath="../lib")
+      
+      if prefix:
+        relpath = "/".join([".."] * (1 + prefix.count("/"))) + "/../lib"
+      else:
+        relpath = "../lib"
+      SetRPath(penv, settings, relpath=relpath)
+      
       for obj in objs:
         name = os.path.splitext(os.path.basename(str(obj)))[0]
-        if no_arch:
-          outbn = os.path.join(out_dir, mode_dir, "bin", name)
-        else:
-          outbn = os.path.join(out_dir, mode_dir, arch_dir, "bin", name)
+        
+        outbn = outbindir + "/" + name
+        
         prg = penv.Program(outbn, obj)
+        
         add_deps(prg)
+        
         pout.append(prg)
+        
         # Cleanup
         if str(Platform()) == "win32":
           if float(mscver) > 7.1 and float(mscver) < 10.0:
@@ -826,30 +938,34 @@ def DeclareTargets(env, prjs):
             penv.Clean(prg, outbn+".pdb")
     
     elif settings["type"] == "dynamicmodule":
-      if no_arch:
-        prefix = os.path.join(out_dir, mode_dir)
-      else:
-        prefix = os.path.join(out_dir, mode_dir, arch_dir)
-      if "prefix" in settings:
-        prefix = os.path.join(prefix, settings["prefix"])
+      outmoddir = os.path.join(out_dir, mode_dir)
+      if not no_arch:
+        outmoddir += "/" + arch_dir
+      if prefix:
+        outmoddir += "/" + prefix
+      
       if str(Platform()) == "win32":
-        outbn = os.path.join(prefix, prj)
+        outbn = outmoddir + "/" + prj
         penv["SHLIBPREFIX"] = ""
         if "ext" in settings:
           penv["SHLIBSUFFIX"] = settings["ext"]
+       
         # set import lib in build folder
         impbn = os.path.join(odir, os.path.basename(prj))
         penv['no_import_lib'] = 1
         penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
         pout = penv.SharedLibrary(outbn, objs)
+        
         # Cleanup
         penv.Clean(pout, impbn+".lib")
         penv.Clean(pout, impbn+".exp")
         if float(mscver) > 7.1 and float(mscver) < 10.0:
           penv.Clean(pout, outbn+penv["SHLIBSUFFIX"]+".manifest")
+        
         if GetArgument("debug", 0, int):
           penv.Clean(pout, outbn+".ilk")
           penv.Clean(pout, outbn+".pdb")
+      
       else:
         penv["LDMODULEPREFIX"] = ""
         if "ext" in settings:
@@ -857,8 +973,11 @@ def DeclareTargets(env, prjs):
         else:
           if str(Platform()) == "darwin":
             penv["LDMODULESUFFIX"] = ".bundle"
+        
         SetRPath(penv, settings)
-        pout = penv.LoadableModule(os.path.join(prefix, prj), objs)
+        
+        pout = penv.LoadableModule(outmoddir + "/" + prj, objs)
+      
       add_deps(pout)
     
     else:
@@ -877,12 +996,8 @@ def DeclareTargets(env, prjs):
           inst = penv.Install(dst, files)
           penv.Depends(pout, inst)
       
-      if "alias" in settings:
-        Alias(settings["alias"], pout)
-        all_projs[settings["alias"]] = pout
-      else:
-        Alias(prj, pout)
-        all_projs[prj] = pout
+      Alias(alias, pout)
+      all_projs[alias] = pout
   
   if not args_no_cache and args_cache:
     args_cache.write()
