@@ -1,0 +1,16 @@
+import sys
+
+sys.path.insert(0, "../..")
+
+import excons
+
+
+i, l = excons.GetDirs("alembic")
+print("CPPPATH=%s" % i)
+print("LIBPATH=%s" % l)
+
+# for testing purpose only
+if not excons.args_no_cache and excons.args_cache:
+   excons.args_cache.write()
+
+sys.exit(0)

@@ -97,6 +97,12 @@ class Cache(dict):
   def __getitem__(self, k):
     return super(Cache, self).__getitem__(sys.platform)[k]
   
+  def remove(self, k):
+    pd = super(Cache, self).__getitem__(sys.platform)
+    if k in pd:
+      del(pd[k])
+      self.updated = True
+  
   def get(self, k, default=None):
     try:
       return self[k]
@@ -179,6 +185,16 @@ def SetArgument(key, value, cache=False):
       GetArgument("__dummy__")
     
     args_cache[key] = str(value)
+
+def RemoveCacheKey(key):
+  global args_cache, args_no_cache
+  
+  if not args_no_cache:
+    if args_cache is None:
+      # force creation
+      GetArgument("__dummy__")
+    
+    args_cache.remove(key)
 
 def Which(target):
   pathsplit = None
@@ -268,13 +284,6 @@ def SetRPath(env, settings, relpath=None, rpaths=[""]):
         else:
           all_rpaths[i] = ("@loader_path" if osx else "$$ORIGIN")
     
-    rpath = ":".join(all_rpaths)
-    if not osx:
-      # enquotes because of possible $ sign
-      rpath = "'" + rpath + "'"
-    
-    rpath_suffix = ("" if osx else ",--enable-new-dtags")
-    
     # Remove -Wl,-rpath, not already in flags
     curlinkflags = str(env["LINKFLAGS"])
     linkflags = re.sub(r"\s*-Wl,-rpath,[^\s]*", "", curlinkflags)
@@ -282,7 +291,14 @@ def SetRPath(env, settings, relpath=None, rpaths=[""]):
       print("Removed -Wl,-rpath from LINKFLAGS ('%s' -> '%s')" % (curlinkflags, linkflags))
       env["LINKFLAGS"] = linkflags
     
-    env.Append(LINKFLAGS=" -Wl,-rpath,%s%s" % (rpath, rpath_suffix))
+    
+    if not osx:
+      # enquotes because of possible $ sign
+      rpath = "'%s'" % ":".join(all_rpaths)
+      env.Append(LINKFLAGS=" -Wl,-rpath,%s,--enable-new-dtags" % rpath)
+    else:
+      rpath = ",".join(map(lambda x: "-rpath,%s" % x, all_rpaths))
+      env.Append(LINKFLAGS=" -Wl,%s" % rpath)
 
 def Build32():
   global arch_dir
@@ -296,7 +312,13 @@ def WarnOnce(msg):
   global issued_warnings
   
   if not msg in issued_warnings:
-    print("[excons] Warning: %s" % msg)
+    first = True
+    for line in msg.split("\n"):
+      if first:
+        print("[excons] Warning: %s" % line)
+        first = False
+      else:
+        print("[excons]          %s" % line)
     issued_warnings.add(msg)
 
 def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc=True, silent=False):
@@ -305,112 +327,136 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   prefixflag = "with-%s" % name
   incflag = "%s-inc" % prefixflag
   libflag = "%s-lib" % prefixflag
+  incvar = name.upper().replace("-", "_") + "_INCLUDE"
+  libvar = name.upper().replace("-", "_") + "_LIB"
+  prefixsrc = None
+  incsrc = None
+  libsrc = None
   
-  inc = GetArgument(incflag)
-  lib = GetArgument(libflag)
+  prefix = None
+  prefixinc = None
+  prefixlib = None
+  inc = None
+  lib = None
   
-  # Consider empty string as None too
-  inc_was_none = False
-  if not inc:
-    inc = None
-    inc_was_none = True
+  # Priority (highest -> lowest)
+  #   inc/lib flag
+  #   prefix flag
+  #   inc/lib env var
+  #   inc/lib cache
+  #   prefix cache
   
-  lib_was_none = False
-  if not lib:
-    lib = None
-    lib_was_none = True
-  
-  if not inc or not lib:
-    prefix = GetArgument(prefixflag)
-    
-    if not prefix:
-      msg = "Provide %s prefix using %s= or include and library paths using %s= and %s= respectively" % (name, prefixflag, incflag, libflag)
-      if not noexc:
-        raise Exception(msg)
-    
-    else:
-      prefix = os.path.abspath(os.path.expanduser(prefix))
-      
-      if not os.path.isdir(prefix):
-        msg = "Invalid prefix directory for %s: %s" % (name, prefix)
-        if noexc:
-          if not silent:
-            WarnOnce(msg)
-          prefix = None
-        else:
-          raise Exception(msg)
-      
-      else:
-        ARGUMENTS[prefixflag] = prefix
-        
-        if not inc:
-          inc = "%s/%s" % (prefix, incdirname)
-        else:
-          if not incflag in ARGUMENTS:
-            msg = "'%s' read from cache, '%s' flag ignored" % (incflag, prefixflag)
-            WarnOnce(msg)
-        
-        if not lib:
-          lib = "%s/%s" % (prefix, libdirname)
-          mode = (GetArgument("libdir-arch", "none") if libdirarch is None else libdirarch)
-          if mode == "subdir":
-            lib += "/%s" % arch_dir
-          elif mode == "suffix" and Build64():
-            lib += "64"
-        else:
-          if not libflag in ARGUMENTS:
-            msg = "'%s' read from cache, '%s' flag ignored" % (libflag, prefixflag)
-            WarnOnce(msg)
-  
-  else:
-    if prefixflag in ARGUMENTS:
-      msg = "'%s' and '%s' read from cache, '%s' flag ignored" % (incflag, libflag, prefixflag)
-      WarnOnce(msg)
-  
-  if inc is None:
-    msg = "provide %s include and/or library path by using one of %s=, %s= or %s= flags" % (name, prefixflag, incflag, libflag)
+  def errorwarn(msg):
     if noexc:
       if not silent:
-        msg = "You may need to %s" % msg
         WarnOnce(msg)
     else:
-      raise Exception("Please %s" % msg)
+        raise Exception(msg)
   
+  # Read prefix directory from flag or cache
+  prefix = GetArgument(prefixflag)
+  if prefix:
+    prefix = os.path.abspath(os.path.expanduser(prefix))
+    if not os.path.isdir(prefix):
+      errorwarn("Invalid %s prefix directory %s." % (name, prefix))
+      prefix = None
+    else:
+      # This won't update cache
+      prefixsrc = ("flag" if prefixflag in ARGUMENTS else "cache")
+      prefixinc = "%s/%s" % (prefix, incdirname)
+      prefixlib = "%s/%s" % (prefix, libdirname)
+      mode = (GetArgument("libdir-arch", "none") if libdirarch is None else libdirarch)
+      if mode == "subdir":
+        prefixlib += "/%s" % arch_dir
+      elif mode == "suffix" and Build64():
+        prefixlib += "64"
+      SetArgument(prefixflag, prefix)
   else:
+    prefix = None
+  
+  # Read include directory from flag or cache, fallback to prefixinc
+  inc = GetArgument(incflag)
+  if inc:
     inc = os.path.abspath(os.path.expanduser(inc))
     if not os.path.isdir(inc):
-      msg = "Invalid include directory for %s: %s" % (name, inc)
-      if noexc:
-        if not silent:
-          WarnOnce(msg)
-        inc = None
-      else:
-        raise Exception(msg)
-    elif not inc_was_none:
-      ARGUMENTS[incflag] = inc
+      errorwarn()
+      inc = None
+    else:
+      incsrc = ("flag" if incflag in ARGUMENTS else "cache")
+      if incsrc == "cache" and prefixsrc == "flag":
+        inc = prefixinc
+        incsrc = "flag"
+  else:
+    inc = prefixinc
+    incsrc = prefixsrc
   
-  if lib is None:
-    msg = "provide %s include and/or library path by using one of %s=, %s= or %s= flags" % (name, prefixflag, incflag, libflag)
+  # Warn if value present in environment is to be ignored
+  if incvar in os.environ:
+    if inc is None or incsrc == "cache":
+      val = os.environ[incvar]
+      if val:
+        val = os.path.abspath(os.path.expanduser(val))
+        if os.path.isdir(val):
+          msg = "Use environment key %s value." % incvar
+          WarnOnce(msg)
+          inc = val
+          incsrc = "environment"
+    else:
+      msg = "Ignore environment key %s value." % incvar
+      WarnOnce(msg)
+  
+  # Read library directory from flag or cache, fallback to prefixlib
+  lib = GetArgument(libflag)
+  if lib:
+    lib = os.path.abspath(os.path.expanduser(lib))
+    if not os.path.isdir(lib):
+      errorwarn()
+      lib = None
+    else:
+      libsrc = ("flag" if libflag in ARGUMENTS else "cache")
+      if libsrc == "cache" and prefixsrc == "flag":
+        lib = prefixlib
+        libsrc = "flag"
+  else:
+    lib = prefixlib
+    libsrc = prefixsrc
+  
+  # Warn if value present in environment is to be ignored
+  if libvar in os.environ:
+    if lib is None or libsrc == "cache":
+      val = os.environ[libvar]
+      if val:
+        val = os.path.abspath(os.path.expanduser(val))
+        if os.path.isdir(val):
+          msg = "Use environment key %s value." % libvar
+          WarnOnce(msg)
+          lib = val
+          libsrc = "environment"
+    else:
+      msg = "Ignore environment key %s value." % libvar
+      WarnOnce(msg)
+  
+  # Remove unused cache keys
+  if inc and inc == prefixinc:
+    RemoveCacheKey(incflag)
+  if lib and lib == prefixlib:
+    RemoveCacheKey(libflag)
+  if incsrc != "environment" and libsrc != "environment":
+    if inc and lib and inc != prefixinc and lib != prefixlib:
+      RemoveCacheKey(prefixflag)
+  
+  if inc is None or lib is None:
+    msg = "provide %s include and/or library path by using one of:\n  %s=\n  %s=\n  %s=\nflags, or set %s and/or %s environment variables." % (name, prefixflag, incflag, libflag, incvar, libvar)
     if noexc:
       if not silent:
         msg = "You may need to %s" % msg
         WarnOnce(msg)
     else:
       raise Exception("Please %s" % msg)
-  
-  else:
-    lib = os.path.abspath(os.path.expanduser(lib))
-    
-    if not os.path.isdir(lib):
-      msg = "Invalid library directory for %s: %s" % (name, lib)
-      if noexc:
-        if not silent:
-          WarnOnce(msg)
-        lib = None
-      else:
-        raise Exception(msg)
-    elif not lib_was_none:
-      ARGUMENTS[libflag] = lib
+  if inc and incsrc != "environment":
+    SetArgument(incflag, inc)
+  if lib and libsrc != "environment":
+    SetArgument(libflag, lib)
   
   return (inc, lib)
 
@@ -424,7 +470,7 @@ def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=
     lib_dir = libdirdef
   
   if inc_dir is None or lib_dir is None:
-    msg = "%s directories not set (use with-%s=, with-%s-inc=, with-%s-lib=)" % (name, name, name, name)
+    msg = "%s directories not set.\nUse with-%s=, with-%s-inc=, with-%s-lib= flags." % (name, name, name, name)
     if noexc:
       if not silent:
         WarnOnce(msg)
@@ -735,7 +781,7 @@ def DeclareTargets(env, prjs):
       for customcall in settings["custom"]:
         customcall(penv)
     
-    odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, alias)
+    odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, prj)
     
     # On windows, also msvc-9.0
     if str(Platform()) == "win32":
@@ -1002,11 +1048,19 @@ def DeclareTargets(env, prjs):
           inst = penv.Install(dst, files)
           penv.Depends(pout, inst)
       
-      Alias(alias, pout)
-      all_projs[alias] = pout
+      aliased = all_projs.get(alias, [])
+      aliased.extend(pout)
+      all_projs[alias] = aliased
+      
+      # Also keep target name alias
+      if alias != prj:
+        Alias(prj, pout)
   
   if not args_no_cache and args_cache:
     args_cache.write()
+  
+  for alias, targets in all_projs.iteritems():
+    Alias(alias, targets)
   
   return all_projs
 
