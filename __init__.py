@@ -327,8 +327,8 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   prefixflag = "with-%s" % name
   incflag = "%s-inc" % prefixflag
   libflag = "%s-lib" % prefixflag
-  incvar = name.upper() + "_INCLUDE"
-  libvar = name.upper() + "_LIB"
+  incvar = name.upper().replace("-", "_") + "_INCLUDE"
+  libvar = name.upper().replace("-", "_") + "_LIB"
   prefixsrc = None
   incsrc = None
   libsrc = None
