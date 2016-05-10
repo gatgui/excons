@@ -436,15 +436,6 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
       msg = "Ignore environment key %s value." % libvar
       WarnOnce(msg)
   
-  # Remove unused cache keys
-  if inc and inc == prefixinc:
-    RemoveCacheKey(incflag)
-  if lib and lib == prefixlib:
-    RemoveCacheKey(libflag)
-  if incsrc != "environment" and libsrc != "environment":
-    if inc and lib and inc != prefixinc and lib != prefixlib:
-      RemoveCacheKey(prefixflag)
-  
   if inc is None or lib is None:
     msg = "provide %s include and/or library path by using one of:\n  %s=\n  %s=\n  %s=\nflags, or set %s and/or %s environment variables." % (name, prefixflag, incflag, libflag, incvar, libvar)
     if noexc:
