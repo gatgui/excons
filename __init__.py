@@ -36,6 +36,7 @@ mscver = None
 no_arch = False
 warnl = "all"
 issued_warnings = set()
+printed_messages = set()
 
 
 def InitGlobals(output_dir="."):
@@ -320,6 +321,14 @@ def WarnOnce(msg):
       else:
         print("[excons]          %s" % line)
     issued_warnings.add(msg)
+
+def PrintOnce(msg):
+  global printed_messages
+  
+  if not msg in printed_messages:
+    for line in msg.split("\n"):
+      print("[excons] %s" % line)
+    printed_messages.add(msg)
 
 def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc=True, silent=False):
   global arch_dir
