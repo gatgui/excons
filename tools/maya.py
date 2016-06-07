@@ -38,15 +38,24 @@ def Plugin(env):
 def GetMayaRoot(noWarn=False):
   mayaspec = excons.GetArgument("with-maya")
   
+  if "MAYA_LOCATION" in os.environ:
+    if not "with-maya" in ARGUMENTS:
+      # MAYA_LOCATION environment is set and with-maya is either undefined or read from cache
+      excons.PrintOnce("Using MAYA_LOCATION environment.")
+      mayadir = os.environ["MAYA_LOCATION"]
+      return mayadir
+    else:
+      excons.PrintOnce("Ignoring MAYA_LOCATION environment.")
+  
   if not mayaspec:
     if not noWarn:
-      print("WARNING - Please set Maya version or directory using with-maya=")
+      excons.WarnOnce("Please set Maya version or directory using with-maya=")
     return None
   
   if not os.path.isdir(mayaspec):
     if not re.match(r"\d+(\.\d+)?", mayaspec):
       if not noWarn:
-        print("WARNING - Invalid Maya specification \"%s\": Must be a directory or a version number" % mayaspec)
+        excons.WarnOnce("Invalid Maya specification \"%s\": Must be a directory or a version number" % mayaspec)
       return None
     ver = mayaspec
     if sys.platform == "win32":
@@ -70,6 +79,15 @@ def GetMayaRoot(noWarn=False):
 
 def GetMayaInc(mayadir):
   mdk = excons.GetArgument("with-mayadevkit")
+  
+  if "MAYA_INCLUDE" in os.environ:
+    if "with-mayadevdir" not in ARGUMENTS:
+      # MAYA_INCLUDE environment is set and with-mayadevkit is either undefined or read from cache
+      excons.PrintOnce("Using MAYA_INCLUDE environment.")
+      mayainc = os.environ["MAYA_INCLUDE"]
+      return mayainc
+    else:
+      excons.PrintOnce("Ignoring MAYA_INCLUDE environment.")
   
   if mdk is None:
     if sys.platform == "darwin":
@@ -118,7 +136,9 @@ def Require(env):
   
   if sys.platform == "darwin":
     env.Append(CPPDEFINES=["CC_GNU_", "OSMac_", "OSMacOSX_", "REQUIRE_IOSTREAM", "OSMac_MachO_", "_LANGUAGE_C_PLUS_PLUS"])
-    env.Append(CCFLAGS=" -include \"%s/devkit/include/maya/OpenMayaMac.h\" -fno-gnu-keywords" % mayadir)
+    mach = "%s/maya/OpenMayaMac.h" % GetMayaInc(mayadir)
+    if os.path.isfile(mach):
+      env.Append(CCFLAGS=" -include \"%s\" -fno-gnu-keywords" % mach)
     env.Append(LIBPATH=["%s/Maya.app/Contents/MacOS" % mayadir])
     env.Append(LINKFLAGS=" -framework System -framework SystemConfiguration -framework CoreServices -framework Carbon -framework Cocoa -framework ApplicationServices -framework IOKit -framework OpenGL -framework AGL")
   
