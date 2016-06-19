@@ -1079,3 +1079,17 @@ def GetTargetOutputFiles(env, target, builders=None, verbose=False):
   
   node = env.arg2nodes(target, env.fs.Entry)[0]
   return list(GetTargetOuptutFilesIter(env, node))
+
+# 'targets' is the dictionary returned by DeclareTargets function
+def ConservativeClean(env, targetname, targets):
+  if GetOption("clean"):
+    if targetname in COMMAND_LINE_TARGETS:
+      targetnames = filter(lambda x: x != targetname, COMMAND_LINE_TARGETS)
+      if len(targetnames) == 0:
+        # if not other target specified keep all of them
+        targetnames = targets.keys()
+      for tgt in targetnames:
+        if tgt == targetname or not tgt in targets:
+          continue
+        for item in GetTargetOutputFiles(env, targets[tgt][0]):
+          env.NoClean(item)
