@@ -1039,14 +1039,22 @@ def DeclareTargets(env, prjs):
       if "post" in settings:
         penv.AddPostAction(pout, settings["post"])
       
+      def install_file(dstdir, filepath):
+        if os.path.isfile(filepath):
+          penv.Depends(pout, penv.Install(dstdir, filepath))
+        else:
+          dn = dstdir + "/" + os.path.basename(filepath)
+          for item in glob.glob(filepath + "/*"):
+            install_file(dn, item)
+      
       if "install" in settings:
         for prefix, files in settings["install"].iteritems():
           if no_arch:
             dst = os.path.join(out_dir, mode_dir, prefix)
           else:
             dst = os.path.join(out_dir, mode_dir, arch_dir, prefix)
-          inst = penv.Install(dst, files)
-          penv.Depends(pout, inst)
+          for f in files:
+            install_file(dst, f)
       
       aliased = all_projs.get(alias, [])
       aliased.extend(pout)
