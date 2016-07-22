@@ -485,7 +485,7 @@ def MakeBaseEnv(noarch=None):
   if int(ARGUMENTS.get("shared-build", "1")) == 0:
     InitGlobals()
   
-  no_arch = (GetArgument("no-arch", 0, int) != 0)
+  no_arch = (GetArgument("no-arch", 1, int) == 1)
   
   warnl = GetArgument("warnings", "all")
   if not warnl in ["none", "std", "all"]:
