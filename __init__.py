@@ -22,6 +22,7 @@ import glob
 import platform
 import re
 import sys
+import subprocess
 from SCons.Script import *
 
 args_cache_path = os.path.abspath("./excons.cache")
@@ -677,6 +678,18 @@ def MakeBaseEnv(noarch=None):
           SetArgument("use-stdc++", 1)
           env.Append(CPPFLAGS=" -stdlib=libstdc++")
           env.Append(LINKFLAGS=" -stdlib=libstdc++")
+    def symlink(source, target, env):
+      srcpath = str(source[0])
+      tgtpath = str(target[0])
+      tgtdir = os.path.dirname(tgtpath)
+      relsrcpath = os.path.relpath(srcpath, tgtdir)
+      cmd = "cd %s; ln -s %s %s" % (tgtdir, relsrcpath, os.path.basename(tgtpath))
+      p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      out, err = p.communicate()
+      if p.returncode != 0:
+        print("symlink failed: %s" % err)
+    builder = Builder(action=symlink)
+    env.Append(BUILDERS={"Symlink" : builder})
   
   if GetArgument("debug", 0, int):
     mode_dir = "debug"
@@ -807,6 +820,8 @@ def DeclareTargets(env, prjs):
         objs.append(penv.StaticObject(os.path.join(odir, bn), src))
     
     if settings["type"] == "sharedlib":
+      sout = []
+      
       if str(Platform()) == "win32":
         if settings.get("win_separate_dll_and_lib", True):
           if no_arch:
@@ -864,7 +879,7 @@ def DeclareTargets(env, prjs):
           if sys.platform == "darwin":
             outlibname += ".%s.dylib" % version
             symlinks.add("%s/lib%s.dylib" % (outlibdir, prj))
-          elif sys.platform != "win32":
+          else:
             outlibname += ".so.%s" % version
             symlinks.add("%s/lib%s.so" % (outlibdir, prj))
         else:
@@ -897,11 +912,13 @@ def DeclareTargets(env, prjs):
         
         # create symlinks
         for symlink in symlinks:
-          dn, bn = os.path.split(symlink)
-          penv.AddPostAction(pout, "cd %s; ln -f -s %s %s" % (dn, outlibname, bn))
-          penv.Clean(pout, symlink)
+          sout.extend(penv.Symlink(symlink, pout))
       
       add_deps(pout)
+      
+      if sout:
+        sout.extend(pout)
+        pout = sout
     
     elif settings["type"] == "program":
       outbindir = os.path.join(out_dir, mode_dir).replace("\\", "/")
@@ -1099,5 +1116,6 @@ def ConservativeClean(env, targetname, targets):
       for tgt in targetnames:
         if tgt == targetname or not tgt in targets:
           continue
-        for item in GetTargetOutputFiles(env, targets[tgt][0]):
-          env.NoClean(item)
+        for tobj in targets[tgt]:
+          for item in GetTargetOutputFiles(env, tobj):
+            env.NoClean(item)
