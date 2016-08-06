@@ -862,7 +862,7 @@ def DeclareTargets(env, prjs):
         version = settings.get("version", None)
         if version:
           if sys.platform == "darwin":
-            outlibname += version + ".dylib"
+            outlibname += ".%s.dylib" % version
             symlinks.add("%s/lib%s.dylib" % (outlibdir, prj))
           elif sys.platform != "win32":
             outlibname += ".so.%s" % version
