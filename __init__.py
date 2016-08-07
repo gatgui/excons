@@ -1177,9 +1177,18 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
   else:
     Alias("eco", distenv.InstallAs(distdir + "/%s_%s.env" % (name, version.replace(".", "_")), ecofile))
 
-  for targetname, subdiv in targetdirs.iteritems():
+  for targetname, subdir in targetdirs.iteritems():
+    dstdir = verdir + subdir
     for target in targets[targetname]:
-      Alias("eco", distenv.Install(verdir + subdiv, target))
+      path = str(target)
+      if os.path.islink(path):
+        lnksrc = os.readlink(path)
+        if not os.path.isabs(lnksrc):
+          lnksrc = dstdir + "/" + lnksrc
+          lnkdst = dstdir + "/" + os.path.basename(path)
+          Alias("eco", distenv.Symlink(lnkdst, lnksrc))
+          continue
+      Alias("eco", distenv.Install(dstdir, target))
 
   distenv.Clean("eco", verdir)
 
