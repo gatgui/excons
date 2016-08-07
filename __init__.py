@@ -1190,6 +1190,9 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
           continue
       Alias("eco", distenv.Install(dstdir, target))
 
+  # Also add version directory to 'eco' alias for additional install targets
+  Alias("eco", verdir)
+
   distenv.Clean("eco", verdir)
 
   ConservativeClean(env, "eco", targets=targets)
