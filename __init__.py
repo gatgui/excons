@@ -1087,6 +1087,8 @@ def DeclareTargets(env, prjs):
   for alias, targets in all_projs.iteritems():
     Alias(alias, targets)
   
+  env["EXCONS_TARGETS"] = all_projs
+
   return all_projs
 
 def GetTargetOutputFiles(env, target, builders=None, verbose=False):
@@ -1105,17 +1107,82 @@ def GetTargetOutputFiles(env, target, builders=None, verbose=False):
   node = env.arg2nodes(target, env.fs.Entry)[0]
   return list(GetTargetOuptutFilesIter(env, node))
 
-# 'targets' is the dictionary returned by DeclareTargets function
-def ConservativeClean(env, targetname, targets):
+# 'targets' is a dictionary like the one returned by DeclareTargets function
+#           key=target name, value=list of SCons targets
+def ConservativeClean(env, targetname, targets=None):
   if GetOption("clean"):
+    if targets is None and "EXCONS_TARGETS" in env:
+      print("Get targets from environment.")
+      targets = env["EXCONS_TARGETS"]
     if targetname in COMMAND_LINE_TARGETS:
       targetnames = filter(lambda x: x != targetname, COMMAND_LINE_TARGETS)
       if len(targetnames) == 0:
         # if not other target specified keep all of them
         targetnames = targets.keys()
-      for tgt in targetnames:
-        if tgt == targetname or not tgt in targets:
+      for tn in targetnames:
+        if tn == targetname or not tn in targets:
           continue
-        for tobj in targets[tgt]:
-          for item in GetTargetOutputFiles(env, tobj):
+        for target in targets[tn]:
+          for item in GetTargetOutputFiles(env, target):
             env.NoClean(item)
+
+def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=None, defaultdir="eco", dirflag="eco-dir"):
+  if targets is None and "EXCONS_TARGETS" in env:
+    targets = env["EXCONS_TARGETS"]
+
+  ecod = {}
+
+  try:
+    with open(ecofile, "r") as f:
+      ecod = eval(f.read())
+  except Exception, e:
+    print("Invalid ecosystem env (%s)" % e)
+    return
+
+  updenv = False
+
+  if name is None:
+    try:
+      name = ecod["tool"]
+    except:
+      print("No tool name for ecosystem distribution.")
+      return
+  else:
+    if not "tool" in ecod or ecod["tool"] != name:
+      ecod["tool"] = name
+      updenv = True
+
+  if version is None:
+    try:
+      version = ecod["version"]
+    except:
+      print("No tool version for ecosystem distribution.")
+      return
+  else:
+    if not "version" in ecod or ecod["version"] != version:
+      ecod["version"] = version
+      updenv = True
+
+  distenv = env.Clone()
+
+  distdir = GetArgument(dirflag, defaultdir)
+  verdir = "%s/%s/%s" % (distdir, name, version)
+
+  if updenv:
+    with open(ecofile+".tmp", "w") as f:
+      import pprint
+      pprint.pprint(ecod, stream=f, indent=1, width=1)
+      f.write("\n")
+    Alias("eco", distenv.InstallAs(distdir + "/%s_%s.env" % (name, version.replace(".", "_")), ecofile + ".tmp"))
+  else:
+    Alias("eco", distenv.InstallAs(distdir + "/%s_%s.env" % (name, version.replace(".", "_")), ecofile))
+
+  for targetname, subdiv in targetdirs.iteritems():
+    for target in targets[targetname]:
+      Alias("eco", distenv.Install(verdir + subdiv, target))
+
+  distenv.Clean("eco", verdir)
+
+  ConservativeClean(env, "eco", targets=targets)
+
+  return (distenv, verdir)
