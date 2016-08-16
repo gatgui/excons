@@ -38,12 +38,14 @@ no_arch = False
 warnl = "all"
 issued_warnings = set()
 printed_messages = set()
+all_targets = {}
 
 
 def InitGlobals(output_dir="."):
   global args_cache, args_cache_path, args_no_cache
   global bld_dir, out_dir, mode_dir, arch_dir
   global mscver, no_arch, warnl, issued_warnings
+  global all_targets
   
   if not output_dir:
     output_dir = "."
@@ -66,6 +68,7 @@ def InitGlobals(output_dir="."):
   no_arch = False  # Whether or not to create architecture in output directory
   warnl = "all"  # Warning level
   issued_warnings = set()
+  all_targets = {}
 
 
 class Cache(dict):
@@ -719,7 +722,7 @@ def OutputBaseDirectory():
     return os.path.join(out_dir, mode_dir)
 
 def DeclareTargets(env, prjs):
-  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets
   
   all_projs = {}
   
@@ -770,13 +773,16 @@ def DeclareTargets(env, prjs):
           if dep in all_projs:
             penv.Depends(tgt, all_projs[dep])
             # but should not clean all_projs[dep]
-      # also check in libs (because of windows way to handle shared lib)
+          elif dep in all_targets:
+            penv.Depends(tgt, all_targets[dep])
+      # also check libs
       if "libs" in settings:
         for lib in settings["libs"]:
           if lib in all_projs:
             penv.Depends(tgt, all_projs[lib])
             # but should not clean all_projs[lib]
-    
+          elif lib in all_targets:
+            penv.Depends(tgt, all_targets[lib])
     
     if "libdirs" in settings:
       penv.Append(LIBPATH=settings["libdirs"])
@@ -1086,6 +1092,10 @@ def DeclareTargets(env, prjs):
   
   for alias, targets in all_projs.iteritems():
     Alias(alias, targets)
+    if alias in all_targets:
+      PrintOnce("Target '%s' already declared in another SCons script.")
+    else:
+      all_targets[alias] = targets
   
   env["EXCONS_TARGETS"] = all_projs
 
