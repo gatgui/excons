@@ -41,21 +41,21 @@ def GetMayaRoot(noWarn=False):
   if "MAYA_LOCATION" in os.environ:
     if not "with-maya" in ARGUMENTS:
       # MAYA_LOCATION environment is set and with-maya is either undefined or read from cache
-      excons.PrintOnce("Using MAYA_LOCATION environment.")
+      excons.PrintOnce("Using MAYA_LOCATION environment.", tool="maya")
       mayadir = os.environ["MAYA_LOCATION"]
       return mayadir
     else:
-      excons.PrintOnce("Ignoring MAYA_LOCATION environment.")
+      excons.PrintOnce("Ignoring MAYA_LOCATION environment.", tool="maya")
   
   if not mayaspec:
     if not noWarn:
-      excons.WarnOnce("Please set Maya version or directory using with-maya=")
+      excons.WarnOnce("Please set Maya version or directory using with-maya=", tool="maya")
     return None
   
   if not os.path.isdir(mayaspec):
     if not re.match(r"\d+(\.\d+)?", mayaspec):
       if not noWarn:
-        excons.WarnOnce("Invalid Maya specification \"%s\": Must be a directory or a version number" % mayaspec)
+        excons.WarnOnce("Invalid Maya specification \"%s\": Must be a directory or a version number" % mayaspec, tool="maya")
       return None
     ver = mayaspec
     if sys.platform == "win32":
@@ -83,11 +83,11 @@ def GetMayaInc(mayadir):
   if "MAYA_INCLUDE" in os.environ:
     if "with-mayadevdir" not in ARGUMENTS:
       # MAYA_INCLUDE environment is set and with-mayadevkit is either undefined or read from cache
-      excons.PrintOnce("Using MAYA_INCLUDE environment.")
+      excons.PrintOnce("Using MAYA_INCLUDE environment.", tool="maya")
       mayainc = os.environ["MAYA_INCLUDE"]
       return mayainc
     else:
-      excons.PrintOnce("Ignoring MAYA_INCLUDE environment.")
+      excons.PrintOnce("Ignoring MAYA_INCLUDE environment.", tool="maya")
   
   if mdk is None:
     if sys.platform == "darwin":

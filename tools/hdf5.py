@@ -93,7 +93,7 @@ def Require(hl=False, verbose=False):
       
       else:
         if verbose:
-          print("[excons][HDF5] Reading configuration header '%s'..." % h5conf)
+          excons.PrintOnce("Reading configuration header '%s'..." % h5conf, tool="hdf5")
         
         f = open(h5conf, "r")
          
@@ -117,20 +117,20 @@ def Require(hl=False, verbose=False):
       
       if not quiet:
         if hdf5_threadsafe:
-          print("[excons][HDF5] Thread safe")
+          excons.PrintOnce("Thread safe", tool="hdf5")
         
         if hdf5_zlib:
-          print("[excons][HDF5] Using zlib")
+          excons.PrintOnce("Using zlib", tool="hdf5")
         
         if hdf5_szip:
-          print("[excons][HDF5] Using szip")
+          excons.PrintOnce("Using szip", tool="hdf5")
     
     else:
-      print("[excons][HDF5] Could not find configuration header")
+      excons.WarnOnce("Could not find configuration header", tool="hdf5")
     
     if hdf5_static:
       if not quiet:
-        print("[excons][HDF5] Static build")
+        excons.PrintOnce("Static build", tool="hdf5")
       
       if hdf5_threadsafe:
         threads.Require(env)
@@ -138,7 +138,7 @@ def Require(hl=False, verbose=False):
       if hdf5_zlib:
         if excons.GetArgument("zlib-static", None) is None:
           if not quiet:
-            print("[excons][HDF5] force static zlib")
+            excons.PrintOnce("Force static zlib", tool="hdf5")
           excons.SetArgument("zlib-static", 1)
         zlib.Require(env)
       
@@ -146,7 +146,7 @@ def Require(hl=False, verbose=False):
         szip_static = excons.GetArgument("szip-static", None)
         if szip_static is None:
           if not quiet:
-            print("[excons][HDF5] force static szip")
+            excons.PrintOnce("Force static szip", tool="hdf5")
           excons.SetArgument("szip-static", 1)
         szip.Require(env)
       

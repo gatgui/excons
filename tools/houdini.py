@@ -44,7 +44,7 @@ def GetVersionAndDirectory(noexc=False):
     if not noexc:
       raise Exception(msg)
     else:
-      print("WARNING - %s" % msg)
+      excons.WarnOnce(msg, tool="houdini")
       return (None, None)
   
   if not os.path.isdir(hspec):
@@ -54,7 +54,7 @@ def GetVersionAndDirectory(noexc=False):
       if not noexc:
         raise Exception(msg)
       else:
-        print("WARNING - %s" % msg)
+        excons.WarnOnce(msg, tool="houdini")
         return (None, None)
     if sys.platform == "win32":
       if excons.arch_dir == "x64":
@@ -75,7 +75,7 @@ def GetVersionAndDirectory(noexc=False):
       if not noexc:
         raise Exception(msg)
       else:
-        print("WARNING - %s" % msg)
+        excons.WarnOnce(msg, tool="houdini")
         return (None, None)
     else:
       ver = m.group(0)
@@ -90,7 +90,7 @@ def GetVersionAndDirectory(noexc=False):
     if not noexc:
       raise Exception(msg)
     else:
-      print("WARNING - %s" % msg)
+      excons.WarnOnce(msg, tool="houdini")
       return (None, None)
   
   return (ver, hfs)

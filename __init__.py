@@ -313,25 +313,33 @@ def Build64():
   global arch_dir
   return (arch_dir == "x64")
 
-def WarnOnce(msg):
+def WarnOnce(msg, tool=None):
   global issued_warnings
   
   if not msg in issued_warnings:
+    if tool is None:
+      hdr = ""
+    else:
+      hdr = "[%s]" % tool
     first = True
     for line in msg.split("\n"):
       if first:
-        print("[excons] Warning: %s" % line)
+        print("[excons]%s Warning! %s" % (hdr, line))
         first = False
       else:
-        print("[excons]          %s" % line)
+        print("[excons]%s          %s" % (hdr, line))
     issued_warnings.add(msg)
 
-def PrintOnce(msg):
+def PrintOnce(msg, tool=None):
   global printed_messages
   
   if not msg in printed_messages:
+    if tool is None:
+      hdr = ""
+    else:
+      hdr = "[%s]" % tool
     for line in msg.split("\n"):
-      print("[excons] %s" % line)
+      print("[excons]%s %s" % (hdr, line))
     printed_messages.add(msg)
 
 def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc=True, silent=False):
@@ -392,7 +400,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   if inc:
     inc = os.path.abspath(os.path.expanduser(inc))
     if not os.path.isdir(inc):
-      errorwarn()
+      errorwarn("Invalid %s include directory %s." % (name, inc))
       inc = None
     else:
       incsrc = ("flag" if incflag in ARGUMENTS else "cache")
@@ -423,7 +431,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   if lib:
     lib = os.path.abspath(os.path.expanduser(lib))
     if not os.path.isdir(lib):
-      errorwarn()
+      errorwarn("Invalid %s library directory %s." % (name, lib))
       lib = None
     else:
       libsrc = ("flag" if libflag in ARGUMENTS else "cache")

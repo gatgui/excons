@@ -35,7 +35,7 @@ def Require(env):
   nukespec = excons.GetArgument("with-nuke")
   
   if nukespec is None:
-    print("WARNING - Please set Nuke version or directory using with-nuke=")
+    excons.WarnOnce("Please set Nuke version or directory using with-nuke=", tool="nuke")
     return
   
   idn = ("Contents/MacOS/include" if sys.platform == "darwin" else "include")
@@ -53,7 +53,7 @@ def Require(env):
   
   else:
     if not re.match(r"\d+\.\d+v\d+", nukespec):
-      print("WARNING - Invalid Nuke version format: \"%s\"" % nukespec)
+      excons.WarnOnce("Invalid Nuke version format: \"%s\"" % nukespec, tool="nuke")
       return
     
     if sys.platform == "win32":

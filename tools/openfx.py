@@ -22,13 +22,12 @@ from SCons.Script import *
 import os
 import sys
 import shutil
-#import platform as pyplat
+import excons
 
 def MakeBundle(target=None, source=None, env=None):
   binaryPath = str(target[0])
   
-  print("openfx.MakeBundle for \"%s\"" % binaryPath)
-  print(os.getcwd())
+  excons.PrintOnce("MakeBundle for \"%s\"" % binaryPath, tool="openfx")
   
   outPath = os.path.join(os.path.dirname(binaryPath), "openfx")
   ofxName = os.path.basename(binaryPath)

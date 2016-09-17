@@ -181,7 +181,7 @@ def _GetPythonSpec(specString):
           if not os.path.isfile(os.path.join(libdir, "lib%s.so" % lib)):
             spec = None
 
-  print("[excons] Resolved python for \"%s\": %s" % (specString, spec))
+  excons.PrintOnce("Resolved python for \"%s\": %s" % (specString, spec), tool="python")
   
   _specCache[specString] = spec
 
