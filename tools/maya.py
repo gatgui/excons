@@ -23,6 +23,23 @@ import sys
 import re
 import os
 
+_maya_mscver = {"2013": "9.0",
+                "2013.5": "9.0",
+                "2014": "10.0",
+                "2015": "11.0",
+                "2016": "11.0",
+                "2016.5": "11.0"}
+
+def SetupMscver():
+  mayaver = Version(nice=True)
+  if sys.platform == "win32":
+    mscver = ARGUMENTS.get("mscver", None)
+    if mscver is None:
+      mscver = _maya_mscver.get(mayaver, None)
+      if mscver is not None:
+        print("Using msvc %s" % mscver)
+        ARGUMENTS["mscver"] = mscver
+
 def PluginExt():
   if str(Platform()) == "darwin":
     return ".bundle"
@@ -78,11 +95,18 @@ def GetMayaRoot(noWarn=False):
   return mayadir
 
 def GetMayaInc(mayadir):
-  mdk = excons.GetArgument("with-mayadevkit")
+  # Starting maya 2016, the base install doesn't come with include files
+  require_mdk = False
+  if sys.platform == "darwin":
+    require_mdk = not os.path.isdir(mayadir + "/devkit/include/maya")
+  else:
+    require_mdk = not os.path.isdir(mayadir + "/include/maya")
+  
+  mdk = (None if not require_mdk else excons.GetArgument("with-mayadevkit"))
   
   if "MAYA_INCLUDE" in os.environ:
-    if "with-mayadevdir" not in ARGUMENTS:
-      # MAYA_INCLUDE environment is set and with-mayadevkit is either undefined or read from cache
+    if not require_mdk or "with-mayadevkit" not in ARGUMENTS:
+      # MAYA_INCLUDE environment is set and maya is older than 2016 or with-mayadevkit is either undefined or read from cache
       excons.PrintOnce("Using MAYA_INCLUDE environment.", tool="maya")
       mayainc = os.environ["MAYA_INCLUDE"]
       return mayainc
@@ -107,7 +131,7 @@ def GetMayaInc(mayadir):
   
   return mayainc
 
-def Version(asString=True):
+def Version(asString=True, nice=False):
   mayadir = GetMayaRoot(noWarn=True)
   if not mayadir:
     return (None if not asString else "")
@@ -122,7 +146,16 @@ def Version(asString=True):
     for line in f.readlines():
       m = defexp.match(line)
       if m:
-        return (int(m.group(1)) if not asString else m.group(1))
+        if nice:
+          year = int(m.group(1)[:4])
+          sub = int(m.group(1)[5])
+          # Maya 2013 and 2016 have a binary incompatible .5 version
+          if sub >= 5 and year in (2013, 2016):
+            return (year+0.5 if not asString else "%d.5" % year)
+          else:
+            return (year if not asString else str(year))
+        else:
+          return (int(m.group(1)) if not asString else m.group(1))
     f.close()
   
   return None
