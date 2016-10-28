@@ -605,7 +605,7 @@ def MakeBaseEnv(noarch=None):
   SetupDebug = None
   
   if str(Platform()) == "win32":
-    mscver = GetArgument("mscver", "9.0")
+    mscver = GetArgument("mscver", "10.0")
     msvsarch = "amd64" if arch_dir == "x64" else "x86"
     env = Environment(MSVC_VERSION=mscver, MSVS_VERSION=mscver, MSVS_ARCH=msvsarch, TARGET_ARCH=msvsarch)
     # XP:    _WIN32_WINNT=0x0500
