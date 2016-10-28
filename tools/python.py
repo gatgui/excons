@@ -20,6 +20,7 @@
 from SCons.Script import *
 import os
 import re
+import sys
 import glob
 import subprocess
 import excons
@@ -113,6 +114,12 @@ def _GetPythonSpec(specString):
         lib = "python%s" % ver
         spec = (ver, incdir, libdir, lib)
 
+    if spec is None:
+      curver = str(sysconfig.get_python_version())
+      if curver != ver:
+        excons.PrintOnce("Couldn't find stock python %s.\nCurrent version doesn't match (%s), aborting build." % (ver, curver), tool="python")
+        sys.exit(1)
+
   else:
     if plat == "darwin":
       if specString[-1] == "/":
@@ -157,6 +164,10 @@ def _GetPythonSpec(specString):
           libdir = os.path.join(d, ("lib64" if excons.Build64() else "lib"))
           lib = "python%s" % ver
           spec = (ver, incdir, libdir, lib)
+    
+    if spec is None:
+      excons.PrintOnce("Invalid python specification \"%s\".\nAborting build." % specString, tool="python")
+      sys.exit(1)
 
   # check setup validity
   if spec is not None:
@@ -180,8 +191,12 @@ def _GetPythonSpec(specString):
         else:
           if not os.path.isfile(os.path.join(libdir, "lib%s.so" % lib)):
             spec = None
-
-  excons.PrintOnce("Resolved python for \"%s\": %s" % (specString, spec), tool="python")
+    
+    if spec is None:
+      excons.PrintOnce("Invalid python specification \"%s\". Aborting build." % specString, tool="python")
+      sys.exit(1)
+  
+  excons.PrintOnce("Resolved python for \"%s\": %s" % (specString, ('<current>' if spec is None else spec)), tool="python")
   
   _specCache[specString] = spec
 
@@ -258,3 +273,46 @@ def ModulePrefix():
 
 def ModuleExtension():
   return sysconfig.get_config_var("SO")
+
+def RequireCython(e):
+  cython_include_re = re.compile(r"^include\s+([\"'])(\S+)\1", re.MULTILINE)
+  
+  def scan_cython_includes(node, env, path):
+    if hasattr(node, "get_text_contents"):
+      lst = [m[1] for m in cython_include_re.findall(node.get_text_contents())]
+      return lst
+    elif hasattr(node, "get_contents"):
+      lst = [m[1] for m in cython_include_re.findall(str(node.get_contents()))]
+      return lst
+    else:
+      return []
+  
+  e.Append(SCANNERS=Scanner(function=scan_cython_includes, skeys=".pyx"))
+
+def CythonGenerate(e, pyx, h=None, c=None, incdirs=[], cpp=False):
+  cython = excons.GetArgument("with-cython", "")
+  if not cython:
+    cython = "cython%s" % Version()
+    path = excons.Which(cython)
+    if path is None:
+      excons.PrintOnce("No \"%s\" found in PATH. Try with \"cython\" instead" % cython, tool="python")
+      cython = "cython"
+      path = excons.Which(cython)
+      if path is None:
+        excons.PrintOnce("Cannot find a valid cython in your PATH, use with-cython= flag to provide a valid location.", tool="python")
+        sys.exit(1)
+    excons.PrintOnce("Use \"%s\" found in %s." % (cython, path), tool="python")
+  
+  if h is None:
+    h = os.path.splitext(pyx)[0] + ".h"
+  
+  if c is None:
+    c = os.path.splitext(pyx)[0] + (".cpp" if cpp else ".c")
+  
+  cmd = cython + " " + " ".join(map(lambda x: "-I %s" % x, incdirs)) + (" --cplus" if cpp else "") + " --embed-positions -o $TARGET $SOURCE"
+  
+  # Command seems to fail if PATH and PYTHONPATH are not set
+  ec = e.Clone()
+  ec["ENV"]["PATH"] = os.environ.get("PATH", "")
+  ec["ENV"]["PYTHONPATH"] = os.environ.get("PYTHONPATH", "")
+  return ec.Command([c, h], pyx, cmd)
