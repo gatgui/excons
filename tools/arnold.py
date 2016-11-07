@@ -34,6 +34,9 @@ def PluginExt():
 def Version(asString=True):
   arnoldinc, _ = excons.GetDirs("arnold", libdirname=("bin" if sys.platform != "win32" else "lib"))
   
+  if arnoldinc is None:
+    return ("0.0.0.0" if asString else (0, 0, 0, 0))
+  
   ai_version = os.path.join(arnoldinc, "ai_version.h")
   
   varch, vmaj, vmin, vpatch = 0, 0, 0, 0
