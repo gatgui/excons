@@ -1071,12 +1071,15 @@ def DeclareTargets(env, prjs):
         penv.AddPostAction(pout, settings["post"])
       
       def install_file(dstdir, filepath):
-        if os.path.isfile(filepath):
-          penv.Depends(pout, penv.Install(dstdir, filepath))
+        if type(filepath) in (str, unicode):
+          if os.path.isfile(filepath):
+            penv.Depends(pout, penv.Install(dstdir, filepath))
+          else:
+            dn = dstdir + "/" + os.path.basename(filepath)
+            for item in glob.glob(filepath + "/*"):
+              install_file(dn, item)
         else:
-          dn = dstdir + "/" + os.path.basename(filepath)
-          for item in glob.glob(filepath + "/*"):
-            install_file(dn, item)
+          penv.Depends(pout, penv.Install(dstdir, filepath))
       
       if "install" in settings:
         for prefix, files in settings["install"].iteritems():
