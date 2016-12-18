@@ -167,33 +167,24 @@ def Require(env):
     return
 
   env.Append(CPPPATH=[GetMayaInc(mayadir)])
-  
+  env.Append(CPPDEFINES=["REQUIRE_IOSTREAM", "_BOOL"])
+
   if sys.platform == "darwin":
-    env.Append(CPPDEFINES=["CC_GNU_", "OSMac_", "OSMacOSX_", "REQUIRE_IOSTREAM", "OSMac_MachO_", "_LANGUAGE_C_PLUS_PLUS"])
+    env.Append(CPPDEFINES=["OSMac_"])
+    env.Append(CPPFLAGS=" -Wno-unused-private-field")
+    env.Append(CCFLAGS=" -std=c++0x -stdlib=libstdc++")
     mach = "%s/maya/OpenMayaMac.h" % GetMayaInc(mayadir)
     if os.path.isfile(mach):
       env.Append(CCFLAGS=" -include \"%s\" -fno-gnu-keywords" % mach)
     env.Append(LIBPATH=["%s/Maya.app/Contents/MacOS" % mayadir])
-    env.Append(LINKFLAGS=" -framework System -framework SystemConfiguration -framework CoreServices -framework Carbon -framework Cocoa -framework ApplicationServices -framework IOKit -framework OpenGL -framework AGL")
-  
+    env.Append(LINKFLAGS=" -stdlib=libstdc++")
+
   else:
     env.Append(LIBPATH=["%s/lib" % mayadir])
-    
     if sys.platform == "win32":
-      env.Append(CPPDEFINES=["NT_PLUGIN", "AW_NEW_IOSTREAMS", "TRUE_AND_FALSE_DEFINED", "_BOOL"])
-      env.Append(LIBS=["opengl32", "glu32"])
-    
+      env.Append(CPPDEFINES=["NT_PLUGIN"])
     else:
-      env.Append(CPPDEFINES=["UNIX", "_BOOL", "LINUX", "FUNCPROTO", "_GNU_SOURCE", "REQUIRE_IOSTREAM"])
-      
-      if "x64" in mayadir:
-        env.Append(CPPDEFINES=["Bits64_", "LINUX_64"])
-      
-      else:
-        # ? who uses 32 bits application anyway...
-        pass
-      
-      env.Append(CCFLAGS=" -fno-strict-aliasing -Wno-comment -Wno-sign-compare -funsigned-char -Wno-reorder -fno-gnu-keywords -ftemplate-depth-25 -pthread")
-      env.Append(LIBS=["GL", "GLU"])
+      env.Append(CPPDEFINES=["LINUX"])
+      env.Append(CPPFLAGS=" -fno-strict-aliasing -Wno-comment -Wno-sign-compare -funsigned-char -Wno-reorder -fno-gnu-keywords -ftemplate-depth-25 -pthread")
   
-  env.Append(LIBS=["Foundation", "OpenMaya", "OpenMayaRender", "OpenMayaFX", "OpenMayaAnim", "OpenMayaUI"])
+  env.Append(LIBS=["OpenMaya", "OpenMayaAnim", "OpenMayaFX", "OpenMayaRender", "OpenMayaUI", "Foundation"])
