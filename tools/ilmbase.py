@@ -21,16 +21,21 @@ from SCons.Script import *
 import excons
 import os
 
-def Require(ilmthread=None, iexmath=None, python=None):
+def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
    
-   if ilmthread is None:
-      ilmthread = (excons.GetArgument("ilmbase-thread", 1, int) != 0)
+   if not halfonly:
+      if ilmthread is None:
+         ilmthread = (excons.GetArgument("ilmbase-thread", 1, int) != 0)
 
-   if iexmath is None:
-      iexmath = (excons.GetArgument("ilmbase-iexmath", 1, int) != 0)
+      if iexmath is None:
+         iexmath = (excons.GetArgument("ilmbase-iexmath", 1, int) != 0)
 
-   if python is None:
-      python = (excons.GetArgument("ilmbase-python", 0, int) != 0)
+      if python is None:
+         python = (excons.GetArgument("ilmbase-python", 0, int) != 0)
+   else:
+      ilmthread = False
+      iexmath = False
+      python = False
 
    def _RealRequire(env):
       ilmbase_libsuffix = excons.GetArgument("ilmbase-libsuffix", "")
@@ -62,10 +67,12 @@ def Require(ilmthread=None, iexmath=None, python=None):
       libs = []
       if ilmthread:
          libs.append("IlmThread")
-      libs.append("Imath")
+      if not halfonly:
+         libs.append("Imath")
       if iexmath:
          libs.append("IexMath")
-      libs.append("Iex")
+      if not halfonly:
+         libs.append("Iex")
       libs.append("Half")
       
       if ilmbase_libsuffix:
