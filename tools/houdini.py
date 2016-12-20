@@ -32,9 +32,8 @@ def SetupMscver():
   if sys.platform == "win32":
     mscver = ARGUMENTS.get("mscver", None)
     if mscver is None:
-      houver, _ = GetVersionAndDirectory(noexc=True)
+      houver = Version(full=False)
       if houver is not None:
-        houver = ".".join(houver.split(".")[:2])
         mscver = _hou_mscver.get(houver, None)
         if mscver is not None:
           print("Using msvc %s" % mscver)
@@ -50,6 +49,18 @@ def PluginExt():
 
 def Plugin(env):
   env.Append(CPPDEFINES=["MAKING_DSO"])
+
+def Version(asString=True, full=True):
+  ver, _ = GetVersionAndDirectory(noexc=True)
+  if ver is None:
+    return None
+  else:
+    if not full or not asString:
+      ver = ".".join(ver.split(".")[:2])
+    if asString:
+      return ver
+    else:
+      return float(ver)
 
 def GetVersionAndDirectory(noexc=False):
   verexp = re.compile(r"\d+\.\d+\.\d+(\.\d+)?")
