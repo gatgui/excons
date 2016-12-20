@@ -24,6 +24,22 @@ import re
 import os
 import subprocess
 
+_hou_mscver = {"15.0": "11.0",
+               "15.5": "14.0",
+               "16.0": "14.0"}
+
+def SetupMscver():
+  if sys.platform == "win32":
+    mscver = ARGUMENTS.get("mscver", None)
+    if mscver is None:
+      houver, _ = GetVersionAndDirectory(noexc=True)
+      if houver is not None:
+        houver = ".".join(houver.split(".")[:2])
+        mscver = _hou_mscver.get(houver, None)
+        if mscver is not None:
+          print("Using msvc %s" % mscver)
+          ARGUMENTS["mscver"] = mscver
+
 def PluginExt():
   if str(Platform()) == "darwin":
     return ".dylib"

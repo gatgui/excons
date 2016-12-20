@@ -32,14 +32,15 @@ _maya_mscver = {"2013": "9.0",
                 "2017": "11.0"}
 
 def SetupMscver():
-  mayaver = Version(nice=True)
   if sys.platform == "win32":
     mscver = ARGUMENTS.get("mscver", None)
     if mscver is None:
-      mscver = _maya_mscver.get(mayaver, None)
-      if mscver is not None:
-        print("Using msvc %s" % mscver)
-        ARGUMENTS["mscver"] = mscver
+      mayaver = Version(nice=True)
+      if mayaver is not None:
+        mscver = _maya_mscver.get(mayaver, None)
+        if mscver is not None:
+          print("Using msvc %s" % mscver)
+          ARGUMENTS["mscver"] = mscver
 
 def PluginExt():
   if str(Platform()) == "darwin":
