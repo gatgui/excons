@@ -661,10 +661,12 @@ def MakeBaseEnv(noarch=None):
     if warne:
       cppflags += " -Werror"
     env.Append(CPPFLAGS=cppflags)
+    
     SetupRelease = SetupGCCRelease
     SetupDebug = SetupGCCDebug
     if GetArgument("with-debug-info", 0, int):
       SetupRelease = SetupGCCReleaseWithDebug
+    
     if str(Platform()) == "darwin":
       env.Append(CCFLAGS=" -fno-common -DPIC")
       if os.path.exists("/opt/local"):
@@ -689,6 +691,12 @@ def MakeBaseEnv(noarch=None):
           SetArgument("use-stdc++", 1)
           env.Append(CXXFLAGS=" -stdlib=libstdc++")
           env.Append(LINKFLAGS=" -stdlib=libstdc++")
+    
+    else:
+      if GetArgument("use-c++11", 0, int):
+        SetArgument("use-c++11", 1)
+        env.Append(CXXFLAGS=" -std=c++11")
+    
     def symlink(source, target, env):
       srcpath = str(source[0])
       tgtpath = str(target[0])
