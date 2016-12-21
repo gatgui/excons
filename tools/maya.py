@@ -205,6 +205,6 @@ def Require(env):
       env.Append(CPPDEFINES=["NT_PLUGIN"])
     else:
       env.Append(CPPDEFINES=["LINUX"])
-      env.Append(CPPFLAGS=" -fno-strict-aliasing -Wno-comment -Wno-sign-compare -funsigned-char -Wno-reorder -fno-gnu-keywords -ftemplate-depth-25 -pthread")
+      env.Append(CPPFLAGS=" -fno-strict-aliasing -Wno-comment -Wno-sign-compare -funsigned-char -Wno-reorder -fno-gnu-keywords -pthread")
   
   env.Append(LIBS=["OpenMaya", "OpenMayaAnim", "OpenMayaFX", "OpenMayaRender", "OpenMayaUI", "Foundation"])
