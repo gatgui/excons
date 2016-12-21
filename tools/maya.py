@@ -186,17 +186,17 @@ def Require(env):
     # Starting Maya 2017, on osx libc++ is used instead of libstdc++
     # Before this version, and unless explicitely overridden by 'use-c++11=' command line flag, use c++0x and libstdc++
     if Version(asString=False, nice=True) < 2017 and not use_cpp11:
-      env.Append(CCFLAGS=" -std=c++0x -stdlib=libstdc++")
+      env.Append(CXXFLAGS=" -std=c++0x -stdlib=libstdc++")
       env.Append(LINKFLAGS=" -stdlib=libstdc++")
     
     else:
       # if use_cpp11 is True, -std=c++11 will have already been added
       if not use_cpp11:
-        env.Append(CCFLAGS=" -std=c++11")
+        env.Append(CXXFLAGS=" -std=c++11")
       
       # use use_stdcpp is True, -stdlib=libstdc++ will have already been added
       if not use_stdcpp:
-        env.Append(CCFLAGS=" -stdlib=libc++")
+        env.Append(CXXFLAGS=" -stdlib=libc++")
         env.Append(LINKFLAGS=" -stdlib=libc++")
 
   else:

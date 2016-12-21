@@ -174,5 +174,5 @@ def Require(env):
     libdir = "%s/Libraries" % "/".join(hfs.split("/")[:-1])
     linkflags += " -flat_namespace -L %s -l%s" % (libdir, " -l".join(libs))
   
-  env.Append(CCFLAGS=" %s" % ccflags)
+  env.Append(CXXFLAGS=" %s" % ccflags)
   env.Append(LINKFLAGS=" %s" % linkflags)

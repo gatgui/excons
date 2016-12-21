@@ -676,7 +676,7 @@ def MakeBaseEnv(noarch=None):
       if vers[0] > 10 or vers[1] >= 9:
         if GetArgument("use-c++11", 0, int):
           SetArgument("use-c++11", 1)
-          env.Append(CPPFLAGS=" -std=c++11")
+          env.Append(CXXFLAGS=" -std=c++11")
           
           if warnl == "std":
             # remove some more c++11 specific warnings
@@ -687,7 +687,7 @@ def MakeBaseEnv(noarch=None):
         
         if GetArgument("use-stdc++", 0, int):
           SetArgument("use-stdc++", 1)
-          env.Append(CPPFLAGS=" -stdlib=libstdc++")
+          env.Append(CXXFLAGS=" -stdlib=libstdc++")
           env.Append(LINKFLAGS=" -stdlib=libstdc++")
     def symlink(source, target, env):
       srcpath = str(source[0])
