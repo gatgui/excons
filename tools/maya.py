@@ -150,7 +150,7 @@ def Version(asString=True, nice=False):
       if m:
         if nice:
           year = int(m.group(1)[:4])
-          sub = int(m.group(1)[5])
+          sub = int(m.group(1)[4])
           # Maya 2013 and 2016 have a binary incompatible .5 version
           if sub >= 5 and year in (2013, 2016):
             return (year+0.5 if not asString else "%d.5" % year)
