@@ -737,6 +737,27 @@ def OutputBaseDirectory():
   else:
     return os.path.join(out_dir, mode_dir)
 
+def Call(path, **kwargs):
+  s = path + "/SConstruct"
+  if not os.path.isfile(s):
+    s = path + "/SConscript"
+    if not os.path.isfile(s):
+      return
+
+  old_vals = {}
+  
+  for k, v in kwargs.iteritems():
+    old_vals[k] = ARGUMENTS.get(k, None)
+    ARGUMENTS[k] = str(v)
+  
+  SConscript(s)
+
+  for k, v in old_vals.iteritems():
+    if v is None:
+      del(ARGUMENTS[k])
+    else:
+      ARGUMENTS[k] = v
+
 def DeclareTargets(env, prjs):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets
   
@@ -809,9 +830,21 @@ def DeclareTargets(env, prjs):
     if "defs" in settings:
       penv.Append(CPPDEFINES=settings["defs"])
     
+    if "cppflags" in settings:
+      penv.Append(CPPFLAGS=settings["cppflags"])
+
+    if "ccflags" in settings:
+      penv.Append(CCFLAGS=settings["ccflags"])
+
+    if "cxxflags" in settings:
+      penv.Append(CXXFLAGS=settings["cxxflags"])
+
     if "libs" in settings:
       penv.Append(LIBS=settings["libs"])
     
+    if "linkflags" in settings:
+      penv.Append(LINKFLAGS=settings["linkflags"])
+
     if "custom" in settings:
       for customcall in settings["custom"]:
         customcall(penv)
