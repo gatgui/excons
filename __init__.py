@@ -1134,10 +1134,14 @@ def DeclareTargets(env, prjs):
       aliased = all_projs.get(alias, [])
       aliased.extend(pout)
       all_projs[alias] = aliased
-      
+
       # Also keep target name alias
       if alias != prj:
         Alias(prj, pout)
+
+        tgts = all_projs.get(prj, [])
+        tgts.extend(pout)
+        all_projs[prj] = tgts
   
   if not args_no_cache and args_cache:
     args_cache.write()
@@ -1187,6 +1191,14 @@ def ConservativeClean(env, targetname, targets=None):
         for target in targets[tn]:
           for item in GetTargetOutputFiles(env, target):
             env.NoClean(item)
+
+def EcosystemPlatform():
+  if sys.platform == "darwin":
+    return "darwin"
+  elif sys.platform == "win32":
+    return "windows"
+  else:
+    return "linux"
 
 def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=None, defaultdir="eco", dirflag="eco-dir"):
   if targets is None and "EXCONS_TARGETS" in env:
