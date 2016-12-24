@@ -45,6 +45,8 @@ def Require(hl=False, verbose=False):
     if hdf5_lib:
       env.Append(LIBPATH=[hdf5_lib])
     
+    hdf5_static = (excons.GetArgument("hdf5-static", 0, int) != 0)
+
     hdf5_libname = excons.GetArgument("hdf5-libname", None)
     if not hdf5_libname:
       hdf5_libsuffix = excons.GetArgument("hdf5-libsuffix", "")
@@ -55,11 +57,12 @@ def Require(hl=False, verbose=False):
       hdf5hl_libname = hdf5_libname + "_hl"
     
     if hl:
-      env.Append(LIBS=[hdf5hl_libname, hdf5_libname])
-    else:
+      if not hdf5_static or not excons.StaticallyLink(env, hdf5hl_libname):
+        env.Append(LIBS=[hdf5hl_libname])
+    
+    if not hdf5_static or not excons.StaticallyLink(env, hdf5_libname):
       env.Append(LIBS=[hdf5_libname])
     
-    hdf5_static = (excons.GetArgument("hdf5-static", 0, int) != 0)
     hdf5_threadsafe = False
     hdf5_szip = False
     hdf5_zlib = False

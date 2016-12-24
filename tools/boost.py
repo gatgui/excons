@@ -21,14 +21,21 @@ from SCons.Script import *
 import sys
 import excons
 
+def IsStaticallyLinked(lib):
+  static = (excons.GetArgument("boost-static", 0, int) != 0)
+  return (excons.GetArgument("boost-%s-static" % lib, (1 if static else 0), int) != 0)
+
 def Require(libs=[]):
   
   def _RealRequire(env):
-    linklibs = []
-    defs = []
-    
     boost_inc_dir, boost_lib_dir = excons.GetDirs("boost")
     
+    if boost_inc_dir:
+      env.Append(CPPPATH=boost_inc_dir)
+    
+    if boost_lib_dir:
+      env.Append(LIBPATH=boost_lib_dir)
+
     static = (excons.GetArgument("boost-static", 0, int) != 0)
     
     boost_libsuffix = excons.GetArgument("boost-libsuffix", "")
@@ -38,6 +45,8 @@ def Require(libs=[]):
     if sys.platform == "win32":
       useautolink = (excons.GetArgument("boost-autolink", 1, int) != 0)
     
+    defs = []
+
     # All libs but Boost.Python are statically linked by default
     # => use BOOST_PYTHON_STATIC_LIB to enable static linking
     
@@ -88,21 +97,12 @@ def Require(libs=[]):
             defs.append("BOOST_%s_DYN_LINK" % lib.upper())
       
       if not autolinklib:
-        linklibs.append(libname)
-    
-    
+        if not libstatic or not excons.StaticallyLink(env, libname):
+          env.Append(LIBS=[libname])
+
     if sys.platform == "win32" and autolinkcount == 0:
       defs.append("BOOST_ALL_NO_LIB")
     
     env.Append(CPPDEFINES=defs)
-    
-    if boost_inc_dir:
-      env.Append(CPPPATH=boost_inc_dir)
-    
-    if boost_lib_dir:
-      env.Append(LIBPATH=boost_lib_dir)
-    
-    if linklibs:
-      env.Append(LIBS=linklibs)
   
   return _RealRequire

@@ -24,14 +24,16 @@ import excons
 def Require(env):
   glutinc, glutlib = excons.GetDirs("glut")
   
-  glutlibsuffix = excons.GetArgument("glut-libsuffix", "")
-  
   if glutinc:
     env.Append(CPPPATH=[glutinc])
   
   if glutlib:
     env.Append(LIBPATH=[glutlib])
   
+  static = (excons.GetArgument("glut-static", 0, int) != 0)
+
+  glutlibsuffix = excons.GetArgument("glut-libsuffix", "")
+
   if sys.platform == "win32":
     env.Append(CPPDEFINES=["GLUT_NO_LIB_PRAGMA"])
     if excons.Build64():
@@ -44,4 +46,6 @@ def Require(env):
     env.Append(LINKFLAGS=" -framework GLUT")
   
   else:
-    env.Append(LIBS=["glut%s" % glutlibsuffix])
+    libname = "glut%s" % glutlibsuffix
+    if not static or not excons.StaticallyLink(env, libname):
+      env.Append(LIBS=[libname])

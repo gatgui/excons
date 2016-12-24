@@ -46,7 +46,8 @@ def Require(ilmbase=False, zlib=False):
       if openexr_lib:
          env.Append(LIBPATH=[openexr_lib])
 
-      env.Append(LIBS=[openexr_libname])
+      if not openexr_static or not excons.StaticallyLink(env, openexr_libname):
+         env.Append(LIBS=[openexr_libname])
 
       if ilmbase:
          excons.tools.ilmbase.Require()(env)

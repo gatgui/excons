@@ -32,6 +32,7 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
 
       if python is None:
          python = (excons.GetArgument("ilmbase-python", 0, int) != 0)
+   
    else:
       ilmthread = False
       iexmath = False
@@ -59,28 +60,8 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
       
       ilmbase_inc, ilmbase_lib = excons.GetDirs("ilmbase")
       
-      static = (excons.GetArgument("ilmbase-static", 0, int) != 0)
-
       if ilmbase_inc and not ilmbase_inc.endswith("OpenEXR"):
          ilmbase_inc += "/OpenEXR"
-      
-      libs = []
-      if ilmthread:
-         libs.append("IlmThread")
-      if not halfonly:
-         libs.append("Imath")
-      if iexmath:
-         libs.append("IexMath")
-      if not halfonly:
-         libs.append("Iex")
-      libs.append("Half")
-      
-      if ilmbase_libsuffix:
-         libs = map(lambda x: x+ilmbase_libsuffix, libs)
-      
-      if sys.platform == "win32":
-         if not static:
-            env.Append(CPPDEFINES=["OPENEXR_DLL"])
       
       if ilmbase_inc:
          env.Append(CPPPATH=[ilmbase_inc, os.path.dirname(ilmbase_inc)])
@@ -88,6 +69,35 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
       if ilmbase_lib:
          env.Append(LIBPATH=[ilmbase_lib])
       
-      env.Append(LIBS=libs)
+      static = (excons.GetArgument("ilmbase-static", 0, int) != 0)
+
+      if sys.platform == "win32" and not static:
+         env.Append(CPPDEFINES=["OPENEXR_DLL"])
+      
+      if ilmthread:
+         # ilmthread will be False if halfonly is True
+         libname = "IlmThread%s" % ilmbase_libsuffix
+         if not static or not excons.StaticallyLink(env, libname):
+            env.Append(LIBS=[libname])
+      
+      if not halfonly:
+         libname = "Imath%s" % ilmbase_libsuffix
+         if not static or not excons.StaticallyLink(env, libname):
+            env.Append(LIBS=[libname])
+      
+      if iexmath:
+         # iexmath will be False if halfonly is True
+         libname = "IexMath%s" % ilmbase_libsuffix
+         if not static or not excons.StaticallyLink(env, libname):
+            env.Append(LIBS=[libname])
+      
+      if not halfonly:
+         libname = "Iex%s" % ilmbase_libsuffix
+         if not static or not excons.StaticallyLink(env, libname):
+            env.Append(LIBS=[libname])
+      
+      libname = "Half%s" % ilmbase_libsuffix
+      if not static or not excons.StaticallyLink(env, libname):
+         env.Append(LIBS=[libname])
    
    return _RealRequire

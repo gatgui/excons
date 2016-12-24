@@ -37,4 +37,5 @@ def Require(env):
   if not tbblibname:
     tbblibname = "tbb%s" % excons.GetArgument("tbb-libsuffix", "")
   
-  env.Append(LIBS=[tbblibname])
+  if not static or not excons.StaticallyLink(env, tbblibname):
+    env.Append(LIBS=[tbblibname])

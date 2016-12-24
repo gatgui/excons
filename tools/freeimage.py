@@ -29,7 +29,8 @@ def Require(env):
   if filib:
     env.Append(LIBPATH=[filib])
   
-  if excons.GetArgument("freeimage-static", 0, int) != 0:
+  static = (excons.GetArgument("freeimage-static", 0, int) != 0)
+  if static:
     env.Append(CPPDEFINES=["FREEIMAGE_LIB"])
   
   filibname = excons.GetArgument("freeimage-libname", None)
@@ -37,4 +38,5 @@ def Require(env):
     filibsuffix = excons.GetArgument("freeimage-libsuffix", "")
     filibname = "freeimage%s" % filibsuffix
   
-  env.Append(LIBS=[filibname])
+  if not static or not excons.StaticallyLink(env, filibname):
+    env.Append(LIBS=[filibname])

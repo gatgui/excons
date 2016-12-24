@@ -33,8 +33,14 @@ excons.DeclareTargets(env, targets)
 * **libdirs**: List of library files directories.
 * **srcs**: List of source files to compile. *(required)*
 * **deps**: List of target dependencies.
-* **libs**: List of libraries to link.
+* **cppflags**: Preprocessor flags.
+* **ccflags**: Compiler C/C++ flags.
+* **cxxflags**: Compiler C++ flags.
+* **linkflags**: Linker flags.
+* **libs**: List of libraries to link (static or shared).
+* **staticlibs**: List of static libraries to link.
 * **rpaths**: Default library lookup path. *(osx/linux)*
+* **symvis**: Symbols visibility ('default' or 'hidden'). *(osx/linux)*
 * **custom**: List of functions to customize build environment. Such function should take as single argument the current environment object.
 * **post**: List of function to run as post-build steps. (SCons Post Action format)
 * **install**: Install additional files.
@@ -46,7 +52,7 @@ excons.DeclareTargets(env, targets)
 
 ### Type specific keys
 1. program/testprograms
-  * **no-console**: Don't popup windows prompt when running resulting program. *(windows)*
+  * **console**: Show/hide windows prompt when running resulting program. *(windows)*
   * **stacksize**: Setup stack size.
 2. dynamicmodule
   * **ext**: Dynamic module extension. *(dynamicmodule)*
@@ -78,8 +84,8 @@ scons debug=1 ...
 ```
 scons debug=0 with-debug-info=1 ...
 ```
-* **use-c++11**: Use C++11 if compiler supports it. Defaults to 0. *(osx only)*
+* **use-c++11**: Use C++11 if compiler supports it. Defaults to 0. *(unix only)*
 ```
 scons use-c++11=1 ...
 ```
-* **use-stdc++**: Use standard C++ library rather than libc++. Defaults to 0. *(osx only)*
+* **use-stdc++**: Use standard C++ library rather than libc++. Defaults to 0. *(unix only)*

@@ -29,7 +29,9 @@ def Require(env):
   if szip_lib:
     env.Append(LIBPATH=[szip_lib])
   
-  if excons.GetArgument("szip-static", 0, int) == 0:
+  szip_static = (excons.GetArgument("szip-static", 0, int) == 0)
+
+  if szip_static:
     env.Append(CPPDEFINES=["SZ_BUILT_AS_DYNAMIC_LIB"])
   
   szip_libname = excons.GetArgument("szip-libname", None)
@@ -37,4 +39,5 @@ def Require(env):
     szip_libsuffix = excons.GetArgument("szip_libsuffix", "")
     szip_libname = "%s%s" % (("sz" if sys.platform != "win32" else "libszip"), szip_libsuffix)
   
-  env.Append(LIBS=[szip_libname])
+  if not szip_static or not excons.StaticallyLink(env, szip_libname):
+    env.Append(LIBS=[szip_libname])

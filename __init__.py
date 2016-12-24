@@ -491,6 +491,28 @@ def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=
   
   return (inc_dir, lib_dir)
 
+def StaticallyLink(env, lib):
+  if sys.platform == "win32":
+    env.Append(LIBS=[lib])
+    return True
+
+  else:
+    paths = env["LIBPATH"]
+    if not "/usr/local/lib" in paths:
+      paths.append("/usr/local/lib")
+    if not "/usr/lib" in paths:
+      paths.append("/usr/lib")
+
+    for path in paths:
+      libpath = "%s/lib%s.a" % (path, lib)
+      if os.path.isfile(libpath):
+        env.Append(LIBS=[env.File(libpath)])
+        return True
+
+    WarnOnce("Could not find static lib for '%s'" % lib)
+    
+    return False
+
 def MakeBaseEnv(noarch=None):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch
   
@@ -737,7 +759,7 @@ def OutputBaseDirectory():
   else:
     return os.path.join(out_dir, mode_dir)
 
-def Call(path, **kwargs):
+def Call(path, overrides={}):
   s = path + "/SConstruct"
   if not os.path.isfile(s):
     s = path + "/SConscript"
@@ -746,7 +768,7 @@ def Call(path, **kwargs):
 
   old_vals = {}
   
-  for k, v in kwargs.iteritems():
+  for k, v in overrides.iteritems():
     old_vals[k] = ARGUMENTS.get(k, None)
     ARGUMENTS[k] = str(v)
   
@@ -842,6 +864,16 @@ def DeclareTargets(env, prjs):
     if "libs" in settings:
       penv.Append(LIBS=settings["libs"])
     
+    if "staticlibs" in settings:
+      missing = False
+      for item in settings["staticlibs"]:
+        if not StaticallyLink(penv, item):
+          print("[excons] No static library for \"%s\". Project \"%s\" ignored." % (item, prj))
+          missing = True
+          break
+      if missing:
+        continue
+
     if "linkflags" in settings:
       penv.Append(LINKFLAGS=settings["linkflags"])
 
@@ -863,8 +895,12 @@ def DeclareTargets(env, prjs):
     if settings["type"] in ["program", "testprograms", "staticlib"]:
       shared = False
     
-    if str(Platform()) != "win32" and settings["type"] != "sharedlib":
-      penv.Append(CCFLAGS=["-fvisibility=hidden"])
+    if str(Platform()) != "win32":
+      symvis = settings.get("symvis", None)
+      if symvis is None:
+        symvis = ("hidden" if settings["type"] != "sharedlib" else "default")
+      if symvis == "hidden":
+        penv.Append(CCFLAGS=["-fvisibility=hidden"])
     
     objs = []
     for src in settings["srcs"]:

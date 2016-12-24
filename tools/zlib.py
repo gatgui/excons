@@ -29,15 +29,17 @@ def Require(env):
   if zliblib:
     env.Append(LIBPATH=[zliblib])
   
+  static = (excons.GetArgument("zlib-static", 0, int) != 0)
+
   if str(Platform()) != "win32":
     zlib_name = excons.GetArgument("zlib-libname", None)
     if not zlib_name:
       zlib_name = "z%s" % excons.GetArgument("zlib-libsuffix", "")
-    env.Append(LIBS=[zlib_name])
+    
+    if not static or not excons.StaticallyLink(env, zlib_name):
+      env.Append(LIBS=[zlib_name])
   
   else:
-    static = (excons.GetArgument("zlib-static", 0, int) != 0)
-    
     if static:
       zlib_name = excons.GetArgument("zlib-libname", None)
       if not zlib_name:
