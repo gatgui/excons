@@ -1053,7 +1053,9 @@ def DeclareTargets(env, prjs):
       if prefix:
         outlibdir += "/" + prefix
       
-      pout = penv.StaticLibrary(outlibdir + "/" + prj, objs)
+      # It seems that is there's a '.' in prj, SCons fails to add extension
+      # Let's force it
+      pout = penv.StaticLibrary(outlibdir + "/" + prj + penv["LIBSUFFIX"], objs)
       
       add_deps(pout)
     
