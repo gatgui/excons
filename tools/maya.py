@@ -133,6 +133,12 @@ def GetMayaInc(mayadir):
   
   return mayainc
 
+def GetMayaLib(mayadir):
+  if sys.platform == "darwin":
+    return "%s/Maya.app/Contents/MacOS" % mayadir
+  else:
+    return "%s/lib" % mayadir
+
 def Version(asString=True, nice=False):
   mayadir = GetMayaRoot(noWarn=True)
   if not mayadir:
