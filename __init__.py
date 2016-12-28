@@ -491,7 +491,7 @@ def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=
   
   return (inc_dir, lib_dir)
 
-def StaticallyLink(env, lib):
+def StaticallyLink(env, lib, silent=False):
   if sys.platform == "win32":
     env.Append(LIBS=[lib])
     return True
@@ -509,7 +509,8 @@ def StaticallyLink(env, lib):
         env.Append(LIBS=[env.File(libpath)])
         return True
 
-    WarnOnce("Could not find static lib for '%s'" % lib)
+    if not silent:
+      WarnOnce("Could not find static lib for '%s'" % lib)
     
     return False
 
@@ -827,21 +828,16 @@ def DeclareTargets(env, prjs):
     penv = env.Clone()
     
     def add_deps(tgt):
-      if "deps" in settings:
-        for dep in settings["deps"]:
-          if dep in all_projs:
-            penv.Depends(tgt, all_projs[dep])
-            # but should not clean all_projs[dep]
-          elif dep in all_targets:
-            penv.Depends(tgt, all_targets[dep])
-      # also check libs
-      if "libs" in settings:
-        for lib in settings["libs"]:
-          if lib in all_projs:
-            penv.Depends(tgt, all_projs[lib])
-            # but should not clean all_projs[lib]
-          elif lib in all_targets:
-            penv.Depends(tgt, all_targets[lib])
+      for k in ("deps", "libs", "staticlibs"):
+        if k in settings:
+          for dep in settings[k]:
+            if dep in all_projs:
+              penv.Depends(tgt, all_projs[dep])
+              # but should not clean all_projs[dep]
+            elif dep in all_targets:
+              penv.Depends(tgt, all_targets[dep])
+            else:
+              print("Can't find dep target '%s'" % dep)
     
     if "libdirs" in settings:
       penv.Append(LIBPATH=settings["libdirs"])
@@ -867,10 +863,15 @@ def DeclareTargets(env, prjs):
     if "staticlibs" in settings:
       missing = False
       for item in settings["staticlibs"]:
-        if not StaticallyLink(penv, item):
-          print("[excons] No static library for \"%s\". Project \"%s\" ignored." % (item, prj))
-          missing = True
-          break
+        if not StaticallyLink(penv, item, silent=True):
+          # Could be another project
+          if not item in all_projs and not item in all_targets:
+            print("[excons] No static library for \"%s\". Project \"%s\" ignored." % (item, prj))
+            missing = True
+            break
+          else:
+            tgts = all_projs.get(item, all_targets.get(item))
+            penv.Append(LIBS=tgts)
       if missing:
         continue
 
