@@ -1239,7 +1239,84 @@ def EcosystemPlatform():
   else:
     return "linux"
 
-def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=None, defaultdir="eco", dirflag="eco-dir"):
+class EcoUtils(object):
+  KeyOrder = ["tool", "version", "platforms", "requires", "environment", "optional"]
+
+  class OKey(object):
+    def __init__(self, name, position):
+      self.name = name
+      self.position = position
+    def __cmp__(self, b):
+      assert isinstance(b, EcoUtils.OKey)
+      return cmp(self.position, b.position)
+    def __repr__(self):
+      return repr(self.name)
+
+  @staticmethod
+  def IsSameValue(v0, v1):
+    v0t = type(v0)
+    if v0t == tuple:
+      v0t = list
+      v0 = v0t(v0)
+
+    v1t = type(v1)
+    if v1t == tuple:
+      v1t = list
+      v1 = v1t(v1)
+
+    if v1t != v0t:
+      return False
+
+    if v0t == list:
+      if len(v0) != len(v1):
+        return False
+      else:
+        for i in xrange(len(v0)):
+          if not EcoUtils.IsSameValue(v0[i], v1[i]):
+            return False
+        return True
+
+    elif v0t == dict:
+      if len(v0) != len(v1):
+        return False
+      else:
+        for key, val0 in v0.iteritems():
+          if not key in v1:
+            return False
+          val1 = v1[key]
+          if not EcoUtils.IsSameValue(val0, val1):
+            return False
+        for key, _ in v1.iteritems():
+          if not key in v0:
+            return False
+        return True
+
+    elif v0t in (str, unicode):
+      return (v0 == v1)
+
+    else:
+      return False
+
+  @staticmethod
+  def SortKeys(item):
+    try:
+      return EcoUtils.KeyOrder.index(item[0])
+    except:
+      return len(korder)
+
+  @staticmethod
+  def SortedDict(d):
+    try:
+      import collections
+      collections.OrderedDict.__repr__ = dict.__repr__
+      items = d.items()
+      items.sort(key=EcoUtils.SortKeys)
+      items = [(EcoUtils.OKey(k, i), v) for i, (k, v) in enumerate(items)]
+      return collections.OrderedDict(items)
+    except:
+      return d
+
+def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=None, defaultdir="eco", dirflag="eco-dir", ecoenv={}):
   if targets is None and "EXCONS_TARGETS" in env:
     targets = env["EXCONS_TARGETS"]
 
@@ -1276,6 +1353,16 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
       ecod["version"] = version
       updenv = True
 
+  for k, v in ecoenv.iteritems():
+    cv = ecod.get(k, None)
+    if cv is None:
+      updenv = True
+      ecod[k] = v
+    else:
+      if not EcoUtils.IsSameValue(v, cv):
+        updenv = True
+        ecod[k] = v
+
   distenv = env.Clone()
 
   distdir = GetArgument(dirflag, defaultdir)
@@ -1284,6 +1371,10 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
   if updenv:
     with open(ecofile+".tmp", "w") as f:
       import pprint
+      try:
+        ecod = EcoUtils.SortedDict(ecod)
+      except:
+        pass
       pprint.pprint(ecod, stream=f, indent=1, width=1)
       f.write("\n")
     Alias("eco", distenv.InstallAs(distdir + "/%s_%s.env" % (name, version.replace(".", "_")), ecofile + ".tmp"))
