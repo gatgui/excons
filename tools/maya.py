@@ -146,6 +146,12 @@ def Version(asString=True, nice=False):
   
   mayainc = GetMayaInc(mayadir)
   
+  mayaspec = excons.GetArgument("with-maya")
+  if mayaspec is not None and not os.path.isdir(mayaspec):
+    wantedver = mayaspec
+  else:
+    wantedver = None
+  
   mtypes = os.path.join(mayainc, "maya", "MTypes.h")
   
   if os.path.isfile(mtypes):
@@ -154,9 +160,13 @@ def Version(asString=True, nice=False):
     for line in f.readlines():
       m = defexp.match(line)
       if m:
+        year = int(m.group(1)[:4])
+        sub = int(m.group(1)[4])
+        if wantedver is not None:
+          usever = "%d.%d" % (year, 5 if sub >= 5 else 0)
+          if usever != wantedver:
+            excons.WarnOnce("Maya headers version (%s) doesn't seem to match requested one (%s).\nMake sure to set or reset devkit path using 'with-mayadevkit=' flag." % (usever, wantedver))
         if nice:
-          year = int(m.group(1)[:4])
-          sub = int(m.group(1)[4])
           # Maya 2013 and 2016 have a binary incompatible .5 version
           if sub >= 5 and year in (2013, 2016):
             return (year+0.5 if not asString else "%d.5" % year)
