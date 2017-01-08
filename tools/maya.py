@@ -163,7 +163,7 @@ def Version(asString=True, nice=False):
         year = int(m.group(1)[:4])
         sub = int(m.group(1)[4])
         if wantedver is not None:
-          usever = "%d.%d" % (year, 5 if sub >= 5 else 0)
+          usever = "%d%s" % (year, ".5" if sub >= 5 else "")
           if usever != wantedver:
             excons.WarnOnce("Maya headers version (%s) doesn't seem to match requested one (%s).\nMake sure to set or reset devkit path using 'with-mayadevkit=' flag." % (usever, wantedver))
         if nice:
@@ -176,6 +176,7 @@ def Version(asString=True, nice=False):
           return (int(m.group(1)) if not asString else m.group(1))
     f.close()
   
+  excons.WarnOnce("Cannot find maya headers (missing with-mayadevkit= ?).")
   return None
 
 def Require(env):

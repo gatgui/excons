@@ -837,7 +837,8 @@ def DeclareTargets(env, prjs):
             elif dep in all_targets:
               penv.Depends(tgt, all_targets[dep])
             else:
-              print("Can't find dep target '%s'" % dep)
+              if k == "deps":
+                excons.WarnOnce("Can't find dependent target '%s'" % dep)
     
     if "libdirs" in settings:
       penv.Append(LIBPATH=settings["libdirs"])
