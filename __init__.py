@@ -750,6 +750,33 @@ def MakeBaseEnv(noarch=None):
   env["TARGET_ARCH"] = arch_dir
   env["TARGET_MODE"] = mode_dir
   
+  try:
+    from colorama import init
+    init()
+    from colorama import Fore, Back, Style
+    CComp = Fore.GREEN # + Style.BRIGHT
+    CLink = Fore.MAGENTA # + Style.BRIGHT
+    CReset = Fore.RESET + Back.RESET + Style.RESET_ALL
+  except Exception, e:
+    PrintOnce("Install 'colorama' python module for colored output ('pip install colorama').")
+    CComp = ""
+    CLink = ""
+    CReset = ""
+  env["CCCOMSTR"] = CComp + "Compiling (static) $SOURCE ..." + CReset
+  env["SHCCCOMSTR"] = CComp + "Compiling (shared) $SOURCE ..." + CReset
+  env["CXXCOMSTR"] = CComp + "Compiling (static) $SOURCE ..." + CReset
+  env["SHCXXCOMSTR"] = CComp + "Compiling (shared) $SOURCE ..." + CReset
+  env["LINKCOMSTR"] = CLink + "Linking $TARGET..." + CReset
+  env["SHLINKCOMSTR"] = CLink + "Linking $TARGET..." + CReset
+  env["LDMODULECOMSTR"] = CLink + "Linking $TARGET..." + CReset
+  env["ARCOMSTR"] = CLink + "Archiving $TARGET ..." + CReset
+  env["RANLIBCOMSTR"] = CLink + "Indexing $TARGET ..." + CReset
+  if int(ARGUMENTS.get("show-cmds", "0")) != 0:
+    for k in ["CCCOMSTR", "SHCCCOMSTR", "CXXCOMSTR", "SHCXXCOMSTR", "LINKCOMSTR", "SHLINKCOMSTR", "LDMODULECOMSTR", "ARCOMSTR", "RANLIBCOMSTR"]:
+      cmd = env.get(k[:-3], None)
+      if cmd:
+        env[k] += "\n%s" % cmd
+
   return env
 
 def OutputBaseDirectory():
