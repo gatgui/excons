@@ -761,7 +761,7 @@ def MakeBaseEnv(noarch=None):
     if e is None:
       return
     
-    n = str(node)
+    n = os.path.abspath(str(node))
     
     for i in xrange(len(all_progress)):
       name, nodes, cnt = all_progress[i]
@@ -966,7 +966,7 @@ def DeclareTargets(env, prjs):
       else:
         objs.append(penv.StaticObject(os.path.join(odir, bn), src))
       
-    progress_nodes = set(map(lambda x: str(x[0]), objs))
+    progress_nodes = set(map(lambda x: os.path.abspath(str(x[0])), objs))
     
     if settings["type"] == "sharedlib":
       sout = []
@@ -1063,7 +1063,7 @@ def DeclareTargets(env, prjs):
         for symlink in symlinks:
           sout.extend(penv.Symlink(symlink, pout))
       
-      progress_nodes.add(str(pout[0]))
+      progress_nodes.add(os.path.abspath(str(pout[0])))
       
       add_deps(pout)
       
@@ -1095,7 +1095,7 @@ def DeclareTargets(env, prjs):
       
       pout = penv.Program(outbn, objs)
       
-      progress_nodes.add(str(pout[0]))
+      progress_nodes.add(os.path.abspath(str(pout[0])))
       
       add_deps(pout)
       
@@ -1119,7 +1119,7 @@ def DeclareTargets(env, prjs):
       # Let's force it
       pout = penv.StaticLibrary(outlibdir + "/" + prj + penv["LIBSUFFIX"], objs)
       
-      progress_nodes.add(str(pout[0]))
+      progress_nodes.add(os.path.abspath(str(pout[0])))
       
       add_deps(pout)
     
@@ -1151,7 +1151,7 @@ def DeclareTargets(env, prjs):
         
         prg = penv.Program(outbn, obj)
         
-        progress_nodes.add(str(prg[0]))
+        progress_nodes.add(os.path.abspath(str(prg[0])))
         
         add_deps(prg)
         
@@ -1206,7 +1206,7 @@ def DeclareTargets(env, prjs):
         
         pout = penv.LoadableModule(outmoddir + "/" + prj, objs)
       
-      progress_nodes.add(str(pout[0]))
+      progress_nodes.add(os.path.abspath(str(pout[0])))
       
       add_deps(pout)
     
