@@ -39,6 +39,7 @@ warnl = "all"
 issued_warnings = set()
 printed_messages = set()
 all_targets = {}
+all_progress = []
 
 
 def InitGlobals(output_dir="."):
@@ -752,15 +753,15 @@ def MakeBaseEnv(noarch=None):
   
   # Progress
   env["PROGRESS"] = ""
-  env["EXCONS_PROGRESS"] = {}
   
   def BuildProgress(node):
+    global all_progress
+    
     e = node.env
     if e is None:
       return
     
     n = str(node)
-    all_progress = env["EXCONS_PROGRESS"]
     
     for i in xrange(len(all_progress)):
       name, nodes, cnt = all_progress[i]
@@ -770,7 +771,6 @@ def MakeBaseEnv(noarch=None):
         e["PROGRESS"] = "[ %s / %s%% ]" % (name, progress)
         
         all_progress[i] = (name, nodes, cnt)
-        env["EXCONS_PROGRESS"] = all_progress
         
         break
   
@@ -836,10 +836,9 @@ def Call(path, overrides={}):
       ARGUMENTS[k] = v
 
 def DeclareTargets(env, prjs):
-  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets, all_progress
   
   all_projs = {}
-  all_progress = []
   
   for settings in prjs:
     
@@ -1263,8 +1262,6 @@ def DeclareTargets(env, prjs):
       all_targets[alias] = targets
   
   env["EXCONS_TARGETS"] = all_projs
-  
-  env["EXCONS_PROGRESS"] = all_progress
   
   return all_projs
 
