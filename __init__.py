@@ -750,6 +750,33 @@ def MakeBaseEnv(noarch=None):
   env["TARGET_ARCH"] = arch_dir
   env["TARGET_MODE"] = mode_dir
   
+  # Progress
+  env["PROGRESS"] = ""
+  env["EXCONS_PROGRESS"] = {}
+  
+  def BuildProgress(node):
+    e = node.env
+    if e is None:
+      return
+    
+    n = str(node)
+    all_progress = env["EXCONS_PROGRESS"]
+    
+    for i in xrange(len(all_progress)):
+      name, nodes, cnt = all_progress[i]
+      if n in nodes:
+        cnt += 1
+        progress = "%d" % int(100 * (float(cnt) / len(nodes)))
+        e["PROGRESS"] = "[ %s / %s%% ]" % (name, progress)
+        
+        all_progress[i] = (name, nodes, cnt)
+        env["EXCONS_PROGRESS"] = all_progress
+        
+        break
+  
+  Progress(BuildProgress)
+  
+  # Build output
   try:
     from colorama import init
     init()
@@ -762,15 +789,15 @@ def MakeBaseEnv(noarch=None):
     CComp = ""
     CLink = ""
     CReset = ""
-  env["CCCOMSTR"] = CComp + "Compiling (static) $SOURCE ..." + CReset
-  env["SHCCCOMSTR"] = CComp + "Compiling (shared) $SOURCE ..." + CReset
-  env["CXXCOMSTR"] = CComp + "Compiling (static) $SOURCE ..." + CReset
-  env["SHCXXCOMSTR"] = CComp + "Compiling (shared) $SOURCE ..." + CReset
-  env["LINKCOMSTR"] = CLink + "Linking $TARGET ..." + CReset
-  env["SHLINKCOMSTR"] = CLink + "Linking $TARGET ..." + CReset
-  env["LDMODULECOMSTR"] = CLink + "Linking $TARGET ..." + CReset
-  env["ARCOMSTR"] = CLink + "Archiving $TARGET ..." + CReset
-  env["RANLIBCOMSTR"] = CLink + "Indexing $TARGET ..." + CReset
+  env["CCCOMSTR"] = CComp + "$PROGRESS Compiling (static) $SOURCE ..." + CReset
+  env["SHCCCOMSTR"] = CComp + "$PROGRESS Compiling (shared) $SOURCE ..." + CReset
+  env["CXXCOMSTR"] = CComp + "$PROGRESS Compiling (static) $SOURCE ..." + CReset
+  env["SHCXXCOMSTR"] = CComp + "$PROGRESS Compiling (shared) $SOURCE ..." + CReset
+  env["LINKCOMSTR"] = CLink + "$PROGRESS Linking $TARGET ..." + CReset
+  env["SHLINKCOMSTR"] = CLink + "$PROGRESS Linking $TARGET ..." + CReset
+  env["LDMODULECOMSTR"] = CLink + "$PROGRESS Linking $TARGET ..." + CReset
+  env["ARCOMSTR"] = CLink + "$PROGRESS Archiving $TARGET ..." + CReset
+  env["RANLIBCOMSTR"] = CLink + "$PROGRESS Indexing $TARGET ..." + CReset
   if GetArgument("show-cmds", 0, int) != 0:
     for k in ["CCCOMSTR", "SHCCCOMSTR", "CXXCOMSTR", "SHCXXCOMSTR", "LINKCOMSTR", "SHLINKCOMSTR", "LDMODULECOMSTR", "ARCOMSTR", "RANLIBCOMSTR"]:
       cmd = env.get(k[:-3], None)
@@ -812,6 +839,7 @@ def DeclareTargets(env, prjs):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets
   
   all_projs = {}
+  all_progress = []
   
   for settings in prjs:
     
@@ -938,6 +966,8 @@ def DeclareTargets(env, prjs):
         objs.append(penv.SharedObject(os.path.join(odir, bn), src))
       else:
         objs.append(penv.StaticObject(os.path.join(odir, bn), src))
+      
+    progress_nodes = set(map(lambda x: str(x[0]), objs))
     
     if settings["type"] == "sharedlib":
       sout = []
@@ -1034,6 +1064,8 @@ def DeclareTargets(env, prjs):
         for symlink in symlinks:
           sout.extend(penv.Symlink(symlink, pout))
       
+      progress_nodes.add(str(pout[0]))
+      
       add_deps(pout)
       
       if sout:
@@ -1064,6 +1096,8 @@ def DeclareTargets(env, prjs):
       
       pout = penv.Program(outbn, objs)
       
+      progress_nodes.add(str(pout[0]))
+      
       add_deps(pout)
       
       # Cleanup
@@ -1085,6 +1119,8 @@ def DeclareTargets(env, prjs):
       # It seems that is there's a '.' in prj, SCons fails to add extension
       # Let's force it
       pout = penv.StaticLibrary(outlibdir + "/" + prj + penv["LIBSUFFIX"], objs)
+      
+      progress_nodes.add(str(pout[0]))
       
       add_deps(pout)
     
@@ -1115,6 +1151,8 @@ def DeclareTargets(env, prjs):
         outbn = outbindir + "/" + name
         
         prg = penv.Program(outbn, obj)
+        
+        progress_nodes.add(str(prg[0]))
         
         add_deps(prg)
         
@@ -1169,6 +1207,8 @@ def DeclareTargets(env, prjs):
         
         pout = penv.LoadableModule(outmoddir + "/" + prj, objs)
       
+      progress_nodes.add(str(pout[0]))
+      
       add_deps(pout)
     
     else:
@@ -1198,6 +1238,8 @@ def DeclareTargets(env, prjs):
           for f in files:
             install_file(dst, f)
       
+      all_progress.append((prj, progress_nodes, 0))
+      
       aliased = all_projs.get(alias, [])
       aliased.extend(pout)
       all_projs[alias] = aliased
@@ -1221,7 +1263,9 @@ def DeclareTargets(env, prjs):
       all_targets[alias] = targets
   
   env["EXCONS_TARGETS"] = all_projs
-
+  
+  env["EXCONS_PROGRESS"] = all_progress
+  
   return all_projs
 
 def GetTargetOutputFiles(env, target, builders=None, verbose=False):
