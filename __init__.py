@@ -766,12 +766,12 @@ def MakeBaseEnv(noarch=None):
   env["SHCCCOMSTR"] = CComp + "Compiling (shared) $SOURCE ..." + CReset
   env["CXXCOMSTR"] = CComp + "Compiling (static) $SOURCE ..." + CReset
   env["SHCXXCOMSTR"] = CComp + "Compiling (shared) $SOURCE ..." + CReset
-  env["LINKCOMSTR"] = CLink + "Linking $TARGET..." + CReset
-  env["SHLINKCOMSTR"] = CLink + "Linking $TARGET..." + CReset
-  env["LDMODULECOMSTR"] = CLink + "Linking $TARGET..." + CReset
+  env["LINKCOMSTR"] = CLink + "Linking $TARGET ..." + CReset
+  env["SHLINKCOMSTR"] = CLink + "Linking $TARGET ..." + CReset
+  env["LDMODULECOMSTR"] = CLink + "Linking $TARGET ..." + CReset
   env["ARCOMSTR"] = CLink + "Archiving $TARGET ..." + CReset
   env["RANLIBCOMSTR"] = CLink + "Indexing $TARGET ..." + CReset
-  if int(ARGUMENTS.get("show-cmds", "0")) != 0:
+  if GetArgument("show-cmds", 0, int) != 0:
     for k in ["CCCOMSTR", "SHCCCOMSTR", "CXXCOMSTR", "SHCXXCOMSTR", "LINKCOMSTR", "SHLINKCOMSTR", "LDMODULECOMSTR", "ARCOMSTR", "RANLIBCOMSTR"]:
       cmd = env.get(k[:-3], None)
       if cmd:
