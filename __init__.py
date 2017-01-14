@@ -798,7 +798,7 @@ def MakeBaseEnv(noarch=None):
   env["LDMODULECOMSTR"] = CLink + "$PROGRESS Linking $TARGET ..." + CReset
   env["ARCOMSTR"] = CLink + "$PROGRESS Archiving $TARGET ..." + CReset
   env["RANLIBCOMSTR"] = CLink + "$PROGRESS Indexing $TARGET ..." + CReset
-  if GetArgument("show-cmds", 0, int) != 0:
+  if int(ARGUMENTS.get("show-cmds", "0")) != 0:
     for k in ["CCCOMSTR", "SHCCCOMSTR", "CXXCOMSTR", "SHCXXCOMSTR", "LINKCOMSTR", "SHLINKCOMSTR", "LDMODULECOMSTR", "ARCOMSTR", "RANLIBCOMSTR"]:
       cmd = env.get(k[:-3], None)
       if cmd:
