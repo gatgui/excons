@@ -792,20 +792,35 @@ def MakeBaseEnv(noarch=None):
     CComp = ""
     CLink = ""
     CReset = ""
-  env["CCCOMSTR"] = CComp + "$PROGRESS Compiling (static) $SOURCE ..." + CReset
-  env["SHCCCOMSTR"] = CComp + "$PROGRESS Compiling (shared) $SOURCE ..." + CReset
-  env["CXXCOMSTR"] = CComp + "$PROGRESS Compiling (static) $SOURCE ..." + CReset
-  env["SHCXXCOMSTR"] = CComp + "$PROGRESS Compiling (shared) $SOURCE ..." + CReset
-  env["LINKCOMSTR"] = CLink + "$PROGRESS Linking $TARGET ..." + CReset
-  env["SHLINKCOMSTR"] = CLink + "$PROGRESS Linking $TARGET ..." + CReset
-  env["LDMODULECOMSTR"] = CLink + "$PROGRESS Linking $TARGET ..." + CReset
-  env["ARCOMSTR"] = CLink + "$PROGRESS Archiving $TARGET ..." + CReset
-  env["RANLIBCOMSTR"] = CLink + "$PROGRESS Indexing $TARGET ..." + CReset
-  if int(ARGUMENTS.get("show-cmds", "0")) != 0:
-    for k in ["CCCOMSTR", "SHCCCOMSTR", "CXXCOMSTR", "SHCXXCOMSTR", "LINKCOMSTR", "SHLINKCOMSTR", "LDMODULECOMSTR", "ARCOMSTR", "RANLIBCOMSTR"]:
-      cmd = env.get(k[:-3], None)
-      if cmd:
-        env[k] += "\n%s" % cmd
+  newstrs = {}
+  newstrs["CCCOMSTR"] = CComp + "$PROGRESS Compiling (static) $SOURCE ..." + CReset
+  newstrs["SHCCCOMSTR"] = CComp + "$PROGRESS Compiling (shared) $SOURCE ..." + CReset
+  newstrs["CXXCOMSTR"] = CComp + "$PROGRESS Compiling (static) $SOURCE ..." + CReset
+  newstrs["SHCXXCOMSTR"] = CComp + "$PROGRESS Compiling (shared) $SOURCE ..." + CReset
+  newstrs["LINKCOMSTR"] = CLink + "$PROGRESS Linking $TARGET ..." + CReset
+  newstrs["SHLINKCOMSTR"] = CLink + "$PROGRESS Linking $TARGET ..." + CReset
+  newstrs["LDMODULECOMSTR"] = CLink + "$PROGRESS Linking $TARGET ..." + CReset
+  newstrs["ARCOMSTR"] = CLink + "$PROGRESS Archiving $TARGET ..." + CReset
+  newstrs["RANLIBCOMSTR"] = CLink + "$PROGRESS Indexing $TARGET ..." + CReset
+  show_cmds = (int(ARGUMENTS.get("show-cmds", "0")) != 0)
+  
+  # For some reason, when outputting the build commands (show-cmds=1)
+  #   there are "$(" and "$)" characters poping up around include paths
+  # Filter those out using a custom print function
+  e = re.compile(r"\B\$[\(\)]\B")
+  def PrintCmd(s, target, source, env):
+    sys.stdout.write("%s\n" % e.sub("", s))
+  env["PRINT_CMD_LINE_FUNC"] = PrintCmd
+
+  for k, v in newstrs.iteritems():
+    if not show_cmds:
+      env[k] = v
+    else:
+      if env.get(k[:-3], None) is None:
+        #print("$%s not defined in env" % k[:-3])
+        env[k] = v
+      else:
+        env[k] = "%s\n$%s" % (v, k[:-3])
 
   return env
 
