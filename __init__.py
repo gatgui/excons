@@ -980,7 +980,7 @@ def DeclareTargets(env, prjs):
     
     objs = []
     for src in settings["srcs"]:
-      bn = os.path.splitext(os.path.basename(src))[0]
+      bn = os.path.splitext(os.path.basename(str(src)))[0]
       if shared:
         objs.append(penv.SharedObject(os.path.join(odir, bn), src))
       else:
