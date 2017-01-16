@@ -632,7 +632,7 @@ def MakeBaseEnv(noarch=None):
     mscver = GetArgument("mscver", "10.0")
     if GetArgument("use-c++11", 0, int) != 0:
       if float(mscver) < 14.0:
-        excons.WarnOnce("Specified compiler version doesn't fully cover C++11. Use mscver=14.0 at least.")
+        WarnOnce("Specified compiler version doesn't fully cover C++11. Use mscver=14.0 at least.")
     msvsarch = "amd64" if arch_dir == "x64" else "x86"
     env = Environment(MSVC_VERSION=mscver, MSVS_VERSION=mscver, MSVS_ARCH=msvsarch, TARGET_ARCH=msvsarch)
     # XP:    _WIN32_WINNT=0x0500
@@ -930,7 +930,7 @@ def DeclareTargets(env, prjs):
               penv.Depends(tgt, all_targets[dep])
             else:
               if k == "deps":
-                excons.WarnOnce("Can't find dependent target '%s'" % dep)
+                WarnOnce("Can't find dependent target '%s'" % dep)
     
     if "libdirs" in settings:
       penv.Append(LIBPATH=settings["libdirs"])
