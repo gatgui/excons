@@ -804,12 +804,8 @@ def MakeBaseEnv(noarch=None):
   newstrs["RANLIBCOMSTR"] = CLink + "$PROGRESS Indexing $TARGET ..." + CReset
   show_cmds = (int(ARGUMENTS.get("show-cmds", "0")) != 0)
   
-  # For some reason, when outputting the build commands (show-cmds=1)
-  #   there are "$(" and "$)" characters poping up around include paths
-  # Filter those out using a custom print function
-  e = re.compile(r"\B\$[\(\)]\B")
   def PrintCmd(s, target, source, env):
-    sys.stdout.write("%s\n" % e.sub("", s))
+    sys.stdout.write("%s\n" % env.subst(s))
   env["PRINT_CMD_LINE_FUNC"] = PrintCmd
 
   for k, v in newstrs.iteritems():
@@ -817,7 +813,6 @@ def MakeBaseEnv(noarch=None):
       env[k] = v
     else:
       if env.get(k[:-3], None) is None:
-        #print("$%s not defined in env" % k[:-3])
         env[k] = v
       else:
         env[k] = "%s\n$%s" % (v, k[:-3])
