@@ -853,7 +853,9 @@ def GetOptionsString():
   no-cache=0|1                   : Ignore excons flag cache    [0]
   debug=0|1                      : Build in debug mode         [0]
   with-debug-info=0|1            : Build with debug info       [0]
-  stack-size=<int>               : Setup stack size in bytes   [system default]
+  stack-size=<str>               : Setup stack size in bytes   [system default]
+                                   Letters 'k', and 'm' can be used
+                                   to specify kilobytes and megabytes
   warnings=none|std|all          : Warning level               [all]
   warnings-as-errors=0|1         : Treat warnings as errors    [0]
   libdir-arch=none|subdir|suffix : Modify behaviour of the library folder name use by default

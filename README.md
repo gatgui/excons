@@ -53,7 +53,7 @@ excons.DeclareTargets(env, targets)
 ### Type specific keys
 1. program/testprograms
   * **console**: Show/hide windows prompt when running resulting program. *(windows)*
-  * **stacksize**: Setup stack size.
+  * **stacksize**: Setup stack size in bytes.
 2. dynamicmodule
   * **ext**: Dynamic module extension. *(dynamicmodule)*
 3. sharedlib
@@ -64,9 +64,40 @@ excons.DeclareTargets(env, targets)
   * **soname**: Library name as seen from dependents. *(linux, sharedlib)*
 
 ## Command line flags
+libdir-arch=none|subdir|suffix : Modify behaviour of the library folder name use by default
+                                   for 'with-<name>=<prefix>' flag    [none]
+                                   When set to 'subdir', use '<prefix>/lib/x86' or '<prefix>/lib/x64'
+                                   When set to 'suffix', use '<prefix>/lib' or '<prefix>/lib64'
+
+* **no-cache**: Disable excons command line flag caching.
+```
+scons no-cache=1 ...
+```
+* **show-cmds**: Show compiler commands.
+```
+scons show-cmds=1 ...
+```
+* **stack-size**: Set default stack size in bytes ('k' and 'm' can be used for kilo and mega bytes)
+```
+scons stacksize=4m ...
+```
+* **strip**: Strip dead code by default. *(linux/osx only)*
+```
+scons strip=1 ...
+```
+* **libdir-arch**: Setup default library subdirectory used in dependency requirements (with-xxx=)
+```
+scons libdir-arch=none ...   => '/lib')
+scons libdir-arch=subdir ... => '/lib/x86' or '/lib/x64'
+scons libdir-arch=suffix ... => '/lib' or '/lib64'
+```
 * **mscver**: Microsoft windows compiler version *(windows only)*
 ```
 scons mscver=9.0 ...
+```
+* **no-console**: Build programs for windows subsystem by default. *(windows only)*
+```
+scons no-console=1 ...
 ```
 * **warnings**: One if 'none', 'std' or 'all'. Defaults to 'all'.
 ```
@@ -84,8 +115,8 @@ scons debug=1 ...
 ```
 scons debug=0 with-debug-info=1 ...
 ```
-* **use-c++11**: Use C++11 if compiler supports it. Defaults to 0. *(unix only)*
+* **use-c++11**: Use C++11 if compiler supports it. Defaults to 0. *(linux/osx only)*
 ```
 scons use-c++11=1 ...
 ```
-* **use-stdc++**: Use standard C++ library rather than libc++. Defaults to 0. *(unix only)*
+* **use-stdc++**: Use standard C++ library rather than libc++. Defaults to 0. *(linux/osx only)*
