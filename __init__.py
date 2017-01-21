@@ -849,24 +849,30 @@ def Call(path, overrides={}):
       ARGUMENTS[k] = v
 
 def GetOptionsString():
-  return """OPTIONS
-  no-cache=0|1           : Ignore excons flag cache    [0]
-  debug=0|1              : Build in debug mode         [0]
-  with-debug-info=0|1    : Build with debug info       [0] 
-  stack-size=<int>       : Setup stack size in bytes   [system default]
-  warnings=none|std|all  : Warning level               [all]
-  warnings-as-errors=0|1 : Treat warnings as errors    [0]
-  show-cmds=0|1          : Show build commands         [0]
-  mscver=<str>           : Visual C runtime version    [10.0] (windows)
-  no-console=0|1         : Use window subsystem        [0]    (windows)
-  strip=0|1              : Strip dead code             [0]    (osx/linux)
-  use-c++11=0|1          : Compile code as C++ 11      [0]    (osx/linux)
-  use-stdc++=0|1         : Use libstdc++ for C++ 11    [0]    (osx)
+  return """GENERIC OPTIONS
+  no-cache=0|1                   : Ignore excons flag cache    [0]
+  debug=0|1                      : Build in debug mode         [0]
+  with-debug-info=0|1            : Build with debug info       [0]
+  stack-size=<int>               : Setup stack size in bytes   [system default]
+  warnings=none|std|all          : Warning level               [all]
+  warnings-as-errors=0|1         : Treat warnings as errors    [0]
+  libdir-arch=none|subdir|suffix : Modify behaviour of the library folder name use by default
+                                   for 'with-<name>=<prefix>' flag    [none]
+                                   When set to 'subdir', use '<prefix>/lib/x86' or '<prefix>/lib/x64'
+                                   When set to 'suffix', use '<prefix>/lib' or '<prefix>/lib64'
+  show-cmds=0|1                  : Show build commands         [0]
+  mscver=<float>                 : Visual C runtime version    [10.0] (windows)
+  no-console=0|1                 : Use window subsystem        [0]    (windows)
+  strip=0|1                      : Strip dead code             [0]    (osx/linux)
+  use-c++11=0|1                  : Compile code as C++ 11      [0]    (osx/linux)
+  use-stdc++=0|1                 : Use libstdc++ for C++ 11    [0]    (osx)
 
 DEPRECATED OPTIONS
-  no-arch=0|1            : Don't create arch directory [1]
-  x64=0|1                : Build 64bits binaries       [1]
-  x86=0|1                : Build 32bits binaries       [0]"""
+  no-arch=0|1                    : Don't create arch directory [1]
+                                   When enabled, a 'x86' or 'x64' sub-directory
+                                   will be added to build output structure
+  x64=0|1                        : Build 64bits binaries       [1]
+  x86=0|1                        : Build 32bits binaries       [0]"""
 
 def DeclareTargets(env, prjs):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets, all_progress
