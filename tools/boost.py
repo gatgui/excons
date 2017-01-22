@@ -21,6 +21,28 @@ from SCons.Script import *
 import sys
 import excons
 
+def GetOptionsString():
+  return """BOOST OPTIONS
+  with-boost=<str>      : Boost prefix.
+  with-boost-inc=<str>  : Boost default headers directory.   [<prefix>/include]
+  with-boost-lib=<str>  : Boost default libraries directory. [<prefix>/lib]
+  boost-static=0|1      : Link boost static libraries.       [0]
+  boost-libsuffix=<str> : Default boost library suffix.      ['']
+  boost-autolink=0|1    : Disable boost auto linking         [1]
+                                 (windows only)
+
+  Additionally each boost library LIBNAME can have its overrides
+
+    with-boost-LIBNAME=<path>     : Boost LIBNAME prefix                [inherit from boost]
+    with-boost-LIBNAME-inc=<path> : Boost LIBNAME headers directory     [inherit from boost]
+    with-boost-LIBNAME-lib=<path> : Boost LIBNAME libraries directory   [inherit from boost]
+    boost-LIBNAME-static=0|1      : Link boost LIBNAME statically       [inherit from boost]
+    boost-LIBNAME-libname=<str>   : Override boost LIBNAME library name []
+    boost-LIBNAME-libsuffix=<str> : Boost LIBNAME library suffix        [inherit from boost]
+                                    (ignore when boost-LIBNAME-libname is set)
+    boost-LIBNAME-autolink=0|1    : Disable boost LIBNAME auto linking  [inherit from boost]
+"""
+
 def IsStaticallyLinked(lib):
   static = (excons.GetArgument("boost-static", 0, int) != 0)
   return (excons.GetArgument("boost-%s-static" % lib, (1 if static else 0), int) != 0)

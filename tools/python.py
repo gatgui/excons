@@ -26,6 +26,11 @@ import subprocess
 import excons
 from distutils import sysconfig
 
+def GetOptionsString():
+  return """PYTHON OPTIONS
+  with-python=<str> : Python version or prefix [current interpreter]
+"""
+
 def _GetPythonVersionOSX(pythonPath):
   # On osx, pythonPath must be the path to the python framework
   # i.e.  with-python=/System/Library/Frameworks/Python.framework

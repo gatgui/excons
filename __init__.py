@@ -40,6 +40,7 @@ issued_warnings = set()
 printed_messages = set()
 all_targets = {}
 all_progress = []
+ignore_help = False
 
 
 def InitGlobals(output_dir="."):
@@ -828,6 +829,11 @@ def OutputBaseDirectory():
     return os.path.join(out_dir, mode_dir)
 
 def Call(path, overrides={}):
+  global ignore_help
+
+  cur_ignore_help = ignore_help
+  ignore_help = True
+
   s = path + "/SConstruct"
   if not os.path.isfile(s):
     s = path + "/SConscript"
@@ -847,6 +853,8 @@ def Call(path, overrides={}):
       del(ARGUMENTS[k])
     else:
       ARGUMENTS[k] = v
+
+  ignore_help = cur_ignore_help
 
 def GetOptionsString():
   return """GENERIC OPTIONS
@@ -875,6 +883,15 @@ DEPRECATED OPTIONS
                                    will be added to build output structure
   x64=0|1                        : Build 64bits binaries       [1]
   x86=0|1                        : Build 32bits binaries       [0]"""
+
+def IgnoreHelp():
+  global ignore_help
+  ignore_help = True
+
+def SetHelp(str):
+  global ignore_help
+  if not ignore_help:
+    Help(str)
 
 def DeclareTargets(env, prjs):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets, all_progress

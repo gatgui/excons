@@ -20,6 +20,17 @@
 from SCons.Script import *
 import excons
 
+def GetOptionsString():
+  return """TBB OPTIONS
+  with-tbb=<path>     : TBB prefix
+  with-tbb-inc=<path> : TBB headers directory     [<prefix>/include]
+  with-tbb-lib=<path> : TBB libraries directory   [<prefix>/lib]
+  tbb-static=0|1      : Link static library       [0]
+  tbb-libname=<str>   : Override TBB library name []
+  tbb-libsuffix=<str> : TBB library suffix        ['']
+                        (ignored when tbb-libname is set)
+"""
+
 def Require(env):
   tbbinc, tbblib = excons.GetDirs("tbb")
   
