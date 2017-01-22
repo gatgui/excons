@@ -31,6 +31,11 @@ _maya_mscver = {"2013": "9.0",
                 "2016.5": "11.0",
                 "2017": "11.0"}
 
+def GetOptionsString():
+  return """MAYA OPTIONS
+  with-maya=<str>        : Version or Maya install directory []
+  with-mayadevkit=<path> : Maya platform devkit path         []"""
+
 def SetupMscver():
   if sys.platform == "win32":
     mscver = ARGUMENTS.get("mscver", None)
@@ -68,7 +73,8 @@ def GetMayaRoot(noWarn=False):
   
   if not mayaspec:
     if not noWarn:
-      excons.WarnOnce("Please set Maya version or directory using with-maya=", tool="maya")
+      #excons.WarnOnce("Please set Maya version or directory using with-maya=", tool="maya")
+      excons.WarnConfig()
     return None
   
   if not os.path.isdir(mayaspec):
@@ -180,6 +186,8 @@ def Version(asString=True, nice=False):
   return None
 
 def Require(env):
+  excons.AddHelpOptions(maya=GetOptionsString())
+  
   mayadir = GetMayaRoot()
   if not mayadir:
     return

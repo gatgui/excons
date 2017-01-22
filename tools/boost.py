@@ -31,17 +31,16 @@ def GetOptionsString():
   boost-autolink=0|1    : Disable boost auto linking         [1]
                                  (windows only)
 
-  Additionally each boost library LIBNAME can have its overrides
+  Additionally each boost library LIBNAME can have its overrides:
 
-    with-boost-LIBNAME=<path>     : Boost LIBNAME prefix                [inherit from boost]
-    with-boost-LIBNAME-inc=<path> : Boost LIBNAME headers directory     [inherit from boost]
-    with-boost-LIBNAME-lib=<path> : Boost LIBNAME libraries directory   [inherit from boost]
-    boost-LIBNAME-static=0|1      : Link boost LIBNAME statically       [inherit from boost]
-    boost-LIBNAME-libname=<str>   : Override boost LIBNAME library name []
-    boost-LIBNAME-libsuffix=<str> : Boost LIBNAME library suffix        [inherit from boost]
-                                    (ignore when boost-LIBNAME-libname is set)
-    boost-LIBNAME-autolink=0|1    : Disable boost LIBNAME auto linking  [inherit from boost]
-"""
+  with-boost-LIBNAME=<path>     : Boost LIBNAME prefix                [inherit from boost]
+  with-boost-LIBNAME-inc=<path> : Boost LIBNAME headers directory     [inherit from boost]
+  with-boost-LIBNAME-lib=<path> : Boost LIBNAME libraries directory   [inherit from boost]
+  boost-LIBNAME-static=0|1      : Link boost LIBNAME statically       [inherit from boost]
+  boost-LIBNAME-libname=<str>   : Override boost LIBNAME library name []
+  boost-LIBNAME-libsuffix=<str> : Boost LIBNAME library suffix        [inherit from boost]
+                                  (ignore when boost-LIBNAME-libname is set)
+  boost-LIBNAME-autolink=0|1    : Disable boost LIBNAME auto linking  [inherit from boost]"""
 
 def IsStaticallyLinked(lib):
   static = (excons.GetArgument("boost-static", 0, int) != 0)
@@ -126,5 +125,7 @@ def Require(libs=[]):
       defs.append("BOOST_ALL_NO_LIB")
     
     env.Append(CPPDEFINES=defs)
+    
+    excons.AddHelpOptions(boost=GetOptionsString())
   
   return _RealRequire

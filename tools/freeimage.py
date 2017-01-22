@@ -20,6 +20,16 @@
 from SCons.Script import *
 import excons
 
+def GetOptionsString():
+  return """FREEIMAGE OPTIONS
+  with-freeimage=<path>     : FreeImage prefix                []
+  with-freeimage-inc=<path> : FreeImage headers directory     [<prefix>/include]
+  with-freeimage-lib=<path> : FreeImage libraries directory   [<prefix>/lib]
+  freeimage-static=0|1      : Link FreeImage static lib       [0]
+  freeimage-libname=<str>   : Override FreeImage library name []
+  freeimage-libsuffix=<str> : FreeImage library suffix        ['']
+                              (ignored when freeimage-libname is set)"""
+
 def Require(env):
   fiinc, filib = excons.GetDirs("freeimage")
   
@@ -40,3 +50,5 @@ def Require(env):
   
   if not static or not excons.StaticallyLink(env, filibname):
     env.Append(LIBS=[filibname])
+  
+  excons.AddHelpOptions(freeimage=GetOptionsString())

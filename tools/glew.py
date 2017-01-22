@@ -20,6 +20,21 @@
 from SCons.Script import *
 import excons
 
+def GetOptionsString():
+  return """GLEW OPTIONS
+  with-glew=<path>     : GLEW prefix                []
+  with-glew-inc=<path> : GLEW headers directory     [<prefix>/include]
+  with-glew-lib=<path> : GLEW libraries directory   [<prefix>/lib]
+  glew-libname=<str>   : Override GLEW library name []
+  glew-libsuffix=<str> : GLEW library suffix        ['']
+                         (ignored when glew-libname is set)
+                         (default library name is glew32 on windows, GLEW on osx/linux)
+  glew-static=0|1      : Use GLEW static library    [1]
+                         (additional 's' suffix to library name unless glew-libname is set)
+  glew-noglu=0|1       : Don't use GLU              [1]
+  glew-mx=0|1          : Use GLEW MX variant        [0]
+                         (additional 'mx' suffix to library name unless glew-libname is set)"""
+
 def Require(env):
   glew_inc, glew_lib = excons.GetDirs("glew")
   glew_static = (excons.GetArgument("glew-static", 1, int) != 0)
@@ -59,3 +74,5 @@ def Require(env):
 
   if not static or not excons.StaticallyLink(env, glew_libname):
     env.Append(LIBS=[glew_libname])
+  
+  excons.AddHelpOptions(glew=GetOptionsString())

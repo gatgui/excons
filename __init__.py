@@ -41,6 +41,8 @@ printed_messages = set()
 all_targets = {}
 all_progress = []
 ignore_help = False
+help_targets = {}
+help_options = {}
 
 
 def InitGlobals(output_dir="."):
@@ -326,10 +328,10 @@ def WarnOnce(msg, tool=None):
     first = True
     for line in msg.split("\n"):
       if first:
-        print("[excons]%s Warning! %s" % (hdr, line))
+        print("[excons]%s ! %s" % (hdr, line))
         first = False
       else:
-        print("[excons]%s          %s" % (hdr, line))
+        print("[excons]%s   %s" % (hdr, line))
     issued_warnings.add(msg)
 
 def PrintOnce(msg, tool=None):
@@ -343,6 +345,9 @@ def PrintOnce(msg, tool=None):
     for line in msg.split("\n"):
       print("[excons]%s %s" % (hdr, line))
     printed_messages.add(msg)
+
+def WarnConfig():
+  WarnOnce("Build configuration may be incomplete (use 'scons -h' to list available options)")
 
 def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc=True, silent=False):
   global arch_dir
@@ -460,13 +465,15 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
       WarnOnce(msg)
   
   if inc is None or lib is None:
-    msg = "provide %s include and/or library path by using one of:\n  %s=\n  %s=\n  %s=\nflags, or set %s and/or %s environment variables." % (name, prefixflag, incflag, libflag, incvar, libvar)
-    if noexc:
-      if not silent:
-        msg = "You may need to %s" % msg
-        WarnOnce(msg)
-    else:
-      raise Exception("Please %s" % msg)
+    if not silent:
+      WarnConfig()
+    # msg = "provide %s include and/or library path by using one of:\n  %s=\n  %s=\n  %s=\nflags, or set %s and/or %s environment variables." % (name, prefixflag, incflag, libflag, incvar, libvar)
+    # if noexc:
+    #   if not silent:
+    #     msg = "You may need to %s" % msg
+    #     WarnOnce(msg)
+    # else:
+    #   raise Exception("Please %s" % msg)
   if inc and incsrc != "environment":
     SetArgument(incflag, inc)
   if lib and libsrc != "environment":
@@ -484,12 +491,14 @@ def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=
     lib_dir = libdirdef
   
   if inc_dir is None or lib_dir is None:
-    msg = "%s directories not set.\nUse with-%s=, with-%s-inc=, with-%s-lib= flags." % (name, name, name, name)
-    if noexc:
-      if not silent:
-        WarnOnce(msg)
-    else:
-      raise Exception(msg)
+    if not silent:
+      WarnConfig()
+    # msg = "%s directories not set.\nUse with-%s=, with-%s-inc=, with-%s-lib= flags." % (name, name, name, name)
+    # if noexc:
+    #   if not silent:
+    #     WarnOnce(msg)
+    # else:
+    #   raise Exception(msg)
   
   return (inc_dir, lib_dir)
 
@@ -888,10 +897,58 @@ def IgnoreHelp():
   global ignore_help
   ignore_help = True
 
-def SetHelp(str):
+def AddHelpTargets(tgts={}, **kwargs):
+  global help_targets
+
+  for name, desc in tgts.iteritems():
+    help_targets[name] = desc
+
+  for name, desc in kwargs.iteritems():
+    help_targets[name] = desc
+
+def AddHelpOptions(opts={}, **kwargs):
+  global help_options
+
+  for name, desc in opts.iteritems():
+    help_options[name] = desc
+
+  for name, desc in kwargs.iteritems():
+    help_options[name] = desc
+
+def GetHelpString():
+  global help_targets, help_options
+
+  help = """USAGE
+  scons [OPTIONS] TARGET
+
+AVAILABLE TARGETS\n"""
+
+  maxlen = 0
+  for name, _ in help_targets.iteritems():
+    if len(name) > maxlen:
+      maxlen = len(name)
+
+  names = help_targets.keys()
+  names.sort()
+  for name in names:
+    desc = help_targets[name]
+    padding = "" if len(name) >= maxlen else " " * (maxlen - len(name))
+    help += "  %s%s : %s\n" % (name, padding, desc)
+
+  names = help_options.keys()
+  names.sort()
+  for name in names:
+    desc = help_options[name]
+    help += "\n%s\n" % desc
+
+  help += "\n%s\n" % GetOptionsString()
+
+  return help
+
+def SetHelp(help):
   global ignore_help
   if not ignore_help:
-    Help(str)
+    Help(help)
 
 def DeclareTargets(env, prjs):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets, all_progress
@@ -907,6 +964,7 @@ def DeclareTargets(env, prjs):
       continue
     
     prj = settings["name"]
+    desc = settings.get("desc", "")
     prefix = settings.get("prefix", None)
     
     if not "srcs" in settings:
@@ -1026,7 +1084,17 @@ def DeclareTargets(env, prjs):
       
     progress_nodes = set(map(lambda x: os.path.abspath(str(x[0])), objs))
     
+    if alias != prj:
+      global help_targets
+      val = help_targets.get(alias, "")
+      if val:
+        val += ", "
+      val += prj
+      help_targets[alias] = val
+    
     if settings["type"] == "sharedlib":
+      AddHelpTargets({prj: "Shared library" if not desc else desc})
+      
       sout = []
       
       if str(Platform()) == "win32":
@@ -1130,6 +1198,8 @@ def DeclareTargets(env, prjs):
         pout = sout
     
     elif settings["type"] == "program":
+      AddHelpTargets({prj: "Program" if not desc else desc})
+      
       outbindir = os.path.join(out_dir, mode_dir).replace("\\", "/")
       if not no_arch:
         outbindir += "/" + arch_dir
@@ -1166,6 +1236,8 @@ def DeclareTargets(env, prjs):
           penv.Clean(pout, outbn+".pdb")
     
     elif settings["type"] == "staticlib":
+      AddHelpTargets({prj: "Static library" if not desc else desc})
+      
       outlibdir = os.path.join(out_dir, mode_dir).replace("\\", "/")
       if not no_arch:
         outlibdir += "/" + arch_dir
@@ -1182,6 +1254,8 @@ def DeclareTargets(env, prjs):
       add_deps(pout)
     
     elif settings["type"] == "testprograms":
+      AddHelpTargets({prj: "Programs" if not desc else desc})
+      
       pout = []
       
       outbindir = os.path.join(out_dir, mode_dir).replace("\\", "/")
@@ -1224,6 +1298,8 @@ def DeclareTargets(env, prjs):
             penv.Clean(prg, outbn+".pdb")
     
     elif settings["type"] == "dynamicmodule":
+      AddHelpTargets({prj: "Dynamic module" if not desc else desc})
+      
       outmoddir = os.path.join(out_dir, mode_dir)
       if not no_arch:
         outmoddir += "/" + arch_dir
@@ -1320,7 +1396,9 @@ def DeclareTargets(env, prjs):
       all_targets[alias] = targets
   
   env["EXCONS_TARGETS"] = all_projs
-  
+
+  SetHelp(GetHelpString())
+
   return all_projs
 
 def GetTargetOutputFiles(env, target, builders=None, verbose=False):

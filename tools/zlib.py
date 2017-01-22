@@ -29,8 +29,7 @@ def GetOptionsString():
   zlib-libname=<str>   : Override Zlib library name.       []
   zlib-libsuffix=<str> : Default Zlib library name suffix. []
                          (ignored when zlib-libname is set)
-                         (default name is 'z' on osx and linux, 'zlib' (static) or 'zdll' (shared) on windows)
-"""
+                         (default name is 'z' on osx and linux, 'zlib' (static) or 'zdll' (shared) on windows)"""
 
 def Require(env):
   zlibinc, zliblib = excons.GetDirs("zlib")
@@ -66,3 +65,5 @@ def Require(env):
       
       env.Append(CPPDEFINES=["ZLIB_DLL"])
       env.Append(LIBS=[zlib_name])
+  
+  excons.AddHelpOptions(zlib=GetOptionsString())

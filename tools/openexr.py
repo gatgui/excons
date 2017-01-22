@@ -31,8 +31,7 @@ def GetOptionsString():
   openexr-static=0|1      : Link static libraries         [0]
   openexr-libname=<str>   : Override OpenEXR library name []
   openexr-libsuffix=<str> : OpenEXR library suffix        ['']
-                            (ignored when openexr-libname is set)
-"""
+                            (ignored when openexr-libname is set)"""
 
 def Require(ilmbase=False, zlib=False):
    
@@ -65,5 +64,7 @@ def Require(ilmbase=False, zlib=False):
 
       if zlib:
          excons.tools.zlib.Require(env)
+
+      excons.AddHelpOptions(openexr=GetOptionsString())
 
    return _RequireOpenEXR

@@ -21,6 +21,19 @@ from SCons.Script import *
 import sys
 import excons
 
+def GetOptionsString():
+  return """GLUT OPTIONS
+  with-glut=<path>     : GLUT prefix                []
+  with-glut-inc=<path> : GLUT headers directory     [<prefix>/include]
+  with-glut-lib=<path> : GLUT libraries directory   [<prefix>/lib]
+  glut-libsuffix=<str> : GLUT library suffix        ['']
+                         (ignored when glut-libname is set)
+                         (default library name is glut32/glut64 on windows, glut on linux)
+  glut-static=0|1      : Use GLUT static library    [1]
+                         (additional 's' suffix to library name unless glut-libname is set)
+
+  On OSX, library related options are ignored as the GLUT framework is used"""
+
 def Require(env):
   glutinc, glutlib = excons.GetDirs("glut")
   
@@ -40,7 +53,7 @@ def Require(env):
       env.Append(LIBS=["glut64%s" % glutlibsuffix])
       
     else:
-      env.Append(LIBS=["glut32"])
+      env.Append(LIBS=["glut32%s" % glutlibsuffix])
   
   elif sys.platform == "darwin":
     env.Append(LINKFLAGS=" -framework GLUT")
@@ -49,3 +62,5 @@ def Require(env):
     libname = "glut%s" % glutlibsuffix
     if not static or not excons.StaticallyLink(env, libname):
       env.Append(LIBS=[libname])
+  
+  excons.AddHelpOptions(glut=GetOptionsString())

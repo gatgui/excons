@@ -23,6 +23,12 @@ import sys
 import re
 import os
 
+def GetOptionsString():
+  return """ARNOLD OPTIONS
+  with-arnold=<path>     : Arnold prefix              []
+  with-arnold-inc=<path> : Arnold headers directory   [<prefix>/include]
+  with-arnold-lib=<path> : Arnold libraries directory [<prefix>/bin or <prefix>/lib]"""
+
 def PluginExt():
   if str(Platform()) == "darwin":
     return ".dylib"
@@ -73,3 +79,5 @@ def Require(env):
     env.Append(LIBPATH=[arnoldlib])
   
   env.Append(LIBS=["ai"])
+  
+  excons.AddHelpOptions(arnold=GetOptionsString())

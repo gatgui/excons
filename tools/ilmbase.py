@@ -24,16 +24,15 @@ import os
 def GetOptionsString():
    return """ILMBASE OPTIONS
   with-ilmbase=<path>     : IlmBase prefix
-  with-ilmbase-inc=<path> : IlmBase headers directory     [<prefix>/include]
-  with-ilmbase-lib=<path> : IlmBase libraries directory   [<prefix>/lib]
-  ilmbase-static=0|1      : Link static libraries         [0]
-  ilmbase-libsuffix=<str> : IlmBase library suffix        ['']
+  with-ilmbase-inc=<path> : IlmBase headers directory   [<prefix>/include]
+  with-ilmbase-lib=<path> : IlmBase libraries directory [<prefix>/lib]
+  ilmbase-static=0|1      : Link static libraries       [0]
+  ilmbase-libsuffix=<str> : IlmBase library suffix      ['']
 
   with-ilmbase-python=<path>     : PyIlmBase prefix
   with-ilmbase-python-inc=<path> : PyIlmBase headers directory   [<prefix>/include]
   with-ilmbase-python-lib=<path> : PyIlmBase libraries directory [<prefix>/lib]
-  ilmbase-python-libsuffix=<str> : PyIlmBase library suffix      ['']
-"""
+  ilmbase-python-libsuffix=<str> : PyIlmBase library suffix      ['']"""
 
 def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
    
@@ -113,5 +112,7 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
       libname = "Half%s" % ilmbase_libsuffix
       if not static or not excons.StaticallyLink(env, libname):
          env.Append(LIBS=[libname])
+      
+      excons.AddHelpOptions(ilmbase=GetOptionsString())
    
    return _RealRequire

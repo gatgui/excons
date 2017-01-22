@@ -28,8 +28,7 @@ def GetOptionsString():
   tbb-static=0|1      : Link static library       [0]
   tbb-libname=<str>   : Override TBB library name []
   tbb-libsuffix=<str> : TBB library suffix        ['']
-                        (ignored when tbb-libname is set)
-"""
+                        (ignored when tbb-libname is set)"""
 
 def Require(env):
   tbbinc, tbblib = excons.GetDirs("tbb")
@@ -50,3 +49,5 @@ def Require(env):
   
   if not static or not excons.StaticallyLink(env, tbblibname):
     env.Append(LIBS=[tbblibname])
+
+  excons.AddHelpOptions(tbb=GetOptionsString())

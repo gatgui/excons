@@ -28,8 +28,7 @@ from distutils import sysconfig
 
 def GetOptionsString():
   return """PYTHON OPTIONS
-  with-python=<str> : Python version or prefix [current interpreter]
-"""
+  with-python=<str> : Python version or prefix [current interpreter]"""
 
 def _GetPythonVersionOSX(pythonPath):
   # On osx, pythonPath must be the path to the python framework
@@ -265,6 +264,8 @@ def Require(e, ignoreLinkFlags=False):
       if not ignoreLinkFlags:
         e.Append(LINKFLAGS=" %s" % sysconfig.get_config_var("LINKFORSHARED"))
         e.Append(LIBS=["python%s" % pyver])
+  
+  excons.AddHelpOptions(python=GetOptionsString())
 
 def SoftRequire(e):
   if str(Platform()) == "darwin":
