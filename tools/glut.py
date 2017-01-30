@@ -26,6 +26,7 @@ def GetOptionsString():
   with-glut=<path>     : GLUT prefix                []
   with-glut-inc=<path> : GLUT headers directory     [<prefix>/include]
   with-glut-lib=<path> : GLUT libraries directory   [<prefix>/lib]
+  glut-libname=<str>   : Override GLUT library name []
   glut-libsuffix=<str> : GLUT library suffix        ['']
                          (ignored when glut-libname is set)
                          (default library name is glut32/glut64 on windows, glut on linux)
@@ -45,21 +46,22 @@ def Require(env):
   
   static = (excons.GetArgument("glut-static", 0, int) != 0)
 
-  glutlibsuffix = excons.GetArgument("glut-libsuffix", "")
+  libname = excons.GetArgument("glut-libname", "")
+  if not libname:
+    libsuffix = excons.GetArgument("glut-libsuffix", "")
+    if sys.platform == "win32":
+      libname = ("glut64" if excons.Build64() else "glut32") + libsuffix
+    else:
+      libname = "glut%s" % libsuffix
 
   if sys.platform == "win32":
     env.Append(CPPDEFINES=["GLUT_NO_LIB_PRAGMA"])
-    if excons.Build64():
-      env.Append(LIBS=["glut64%s" % glutlibsuffix])
-      
-    else:
-      env.Append(LIBS=["glut32%s" % glutlibsuffix])
+    env.Append(LIBS=[libname])
   
   elif sys.platform == "darwin":
     env.Append(LINKFLAGS=" -framework GLUT")
   
   else:
-    libname = "glut%s" % glutlibsuffix
     if not static or not excons.StaticallyLink(env, libname):
       env.Append(LIBS=[libname])
   
