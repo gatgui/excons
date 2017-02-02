@@ -1391,7 +1391,8 @@ def DeclareTargets(env, prjs):
   for alias, targets in all_projs.iteritems():
     Alias(alias, targets)
     if alias in all_targets:
-      PrintOnce("Target '%s' already declared in another SCons script.")
+      PrintOnce("Target '%s' already declared in another SCons script. Merging." % alias)
+      all_targets[alias].extend(targets)
     else:
       all_targets[alias] = targets
   
