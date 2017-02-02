@@ -526,7 +526,7 @@ def StaticallyLink(env, lib, silent=False):
     return False
 
 def MakeBaseEnv(noarch=None):
-  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, warnl
   
   if int(ARGUMENTS.get("shared-build", "1")) == 0:
     InitGlobals()
