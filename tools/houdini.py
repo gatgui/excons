@@ -28,6 +28,10 @@ _hou_mscver = {"15.0": "11.0",
                "15.5": "14.0",
                "16.0": "14.0"}
 
+def GetOptionsString():
+  return """HOUDINI OPTIONS
+  with-houdini=<str> : Houdini version or install directory []"""
+
 def SetupMscver():
   if sys.platform == "win32":
     mscver = ARGUMENTS.get("mscver", None)
@@ -123,6 +127,8 @@ def GetVersionAndDirectory(noexc=False):
   return (ver, hfs)
 
 def Require(env):
+  excons.AddHelpOptions(houdini=GetOptionsString())
+
   ver, hfs = GetVersionAndDirectory(noexc=True)
   if not ver or not hfs:
     return
