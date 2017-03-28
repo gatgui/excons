@@ -23,6 +23,11 @@ import excons
 import re
 import os
 
+
+def GetOptionsString():
+  return """NUKE OPTIONS
+  with-nuke=<str> : Nuke version or install directory []"""
+
 def PluginExt():
   if str(Platform()) == "darwin":
     return ".dylib"
@@ -32,6 +37,8 @@ def PluginExt():
     return ".so"
 
 def Require(env):
+  excons.AddHelpOptions(nuke=GetOptionsString())
+
   nukespec = excons.GetArgument("with-nuke")
   
   if nukespec is None:

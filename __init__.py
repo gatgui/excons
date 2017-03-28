@@ -526,7 +526,7 @@ def StaticallyLink(env, lib, silent=False):
     return False
 
 def MakeBaseEnv(noarch=None):
-  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, warnl
   
   if int(ARGUMENTS.get("shared-build", "1")) == 0:
     InitGlobals()
@@ -1391,7 +1391,8 @@ def DeclareTargets(env, prjs):
   for alias, targets in all_projs.iteritems():
     Alias(alias, targets)
     if alias in all_targets:
-      PrintOnce("Target '%s' already declared in another SCons script.")
+      PrintOnce("Target '%s' already declared in another SCons script. Merging." % alias)
+      all_targets[alias].extend(targets)
     else:
       all_targets[alias] = targets
   
