@@ -1041,7 +1041,7 @@ def DeclareTargets(env, prjs):
             missing = True
             break
           else:
-            tgts = all_projs.get(item, all_targets.get(item))
+            tgts = filter(lambda x: os.path.splitext(str(x))[1].lower() not in (".so", ".dll", ".dylib"), all_projs.get(item, all_targets.get(item)))
             penv.Append(LIBS=tgts)
       if missing:
         continue
