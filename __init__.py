@@ -27,7 +27,7 @@ from SCons.Script import *
 
 args_cache_path = os.path.abspath("./excons.cache")
 args_cache = None
-args_cache_echo = True
+args_cache_echo = False
 args_no_cache = False
 bld_dir = os.path.abspath("./.build")
 out_dir = os.path.abspath(".")
@@ -87,9 +87,9 @@ class Cache(dict):
     if self.updated:
       import pprint
       
-      print("[excons] Write excons.cache: %s" % args_cache_path)
+      if args_cache_echo:
+        print("[excons] Write excons.cache: %s" % args_cache_path)
       f = open(args_cache_path, "w")
-      #f.write("%s\n" % str(self))
       pprint.pprint(self, f)
       f.write("\n")
       f.close()
@@ -97,9 +97,12 @@ class Cache(dict):
       self.updated = False
   
   def __setitem__(self, k, v):
+    global args_cache_echo
+
     pd = super(Cache, self).__getitem__(sys.platform)
     if pd.get(k, None) != v:
-      print("[excons] Update cache: %s = %s" % (k, v))
+      if args_cache_echo:
+        print("[excons] Update cache: %s = %s" % (k, v))
       pd[k] = v
       self.updated = True
   
@@ -150,11 +153,10 @@ def GetArgument(key, default=None, convert=None):
         try:
           d = ast.literal_eval(cc)
           for k, v in d.iteritems():
-            if args_cache_echo and k == sys.platform:
+            if k == sys.platform:
               for k2, v2 in v.iteritems():
                 print("[excons]  %s = %s" % (k2, v2))
             args_cache.rawset(k, copy.deepcopy(v))
-          args_cache_echo = False
         except Exception, e:
           print(e)
           args_cache.clear()
@@ -837,8 +839,8 @@ def OutputBaseDirectory():
   else:
     return os.path.join(out_dir, mode_dir)
 
-def Call(path, overrides={}):
-  global ignore_help
+def Call(path, overrides={}, imp=[]):
+  global ignore_help, args_no_cache, args_cache
 
   cur_ignore_help = ignore_help
   ignore_help = True
@@ -850,11 +852,15 @@ def Call(path, overrides={}):
       return
 
   old_vals = {}
-  
+  old_cached_vals = {}
+  check_cache = (not args_no_cache and args_cache is not None)
+
   for k, v in overrides.iteritems():
     old_vals[k] = ARGUMENTS.get(k, None)
     ARGUMENTS[k] = str(v)
-  
+    if check_cache:
+      old_cached_vals[k] = args_cache.get(k, None)
+
   SConscript(s)
 
   for k, v in old_vals.iteritems():
@@ -862,6 +868,14 @@ def Call(path, overrides={}):
       del(ARGUMENTS[k])
     else:
       ARGUMENTS[k] = v
+  for k, v in old_cached_vals.iteritems():
+    if v is None:
+      args_cache.remove(k)
+    else:
+      args_cache.rawset(k, v)
+
+  for name in imp:
+    Import(name)
 
   ignore_help = cur_ignore_help
 
