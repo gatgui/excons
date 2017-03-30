@@ -22,6 +22,7 @@ import glob
 import platform
 import re
 import sys
+import imp
 import subprocess
 from SCons.Script import *
 
@@ -829,6 +830,19 @@ def MakeBaseEnv(noarch=None):
       else:
         env[k] = "%s\n$%s" % (v, k[:-3])
 
+  for item in glob.glob(os.path.dirname(__file__) + "/envext/*.py"):
+    bn = os.path.basename(item)
+    if bn == "__init__.py":
+      continue
+    try:
+      mod = imp.load_source(os.path.splitext(os.path.basename(item))[0], item)
+      if not hasattr(mod, "SetupEnvironment"):
+        print("Missing 'SetupEnvironment' function in '%s'" % item)
+      else:
+        mod.SetupEnvironment(env)
+    except Exception, e:
+      print("Failed to load '%s': %s" % (item, e))
+
   return env
 
 def OutputBaseDirectory():
@@ -838,6 +852,11 @@ def OutputBaseDirectory():
     return os.path.join(out_dir, mode_dir, arch_dir)
   else:
     return os.path.join(out_dir, mode_dir)
+
+def BuildBaseDirectory():
+  global bld_dir, mode_dir, arch_dir
+
+  return os.path.join(bld_dir, mode_dir, sys.platform, arch_dir)
 
 def Call(path, overrides={}, imp=[]):
   global ignore_help, args_no_cache, args_cache
