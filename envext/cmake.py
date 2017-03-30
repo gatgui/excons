@@ -100,6 +100,7 @@ def Inputs(env, dirs=[], patterns=[], exclude=[]):
       lst = filter(lambda x: x not in excl, NormalizedRelativePaths(lst, "."))
       with open(cif, "w") as f:
          f.write("\n".join(lst))
+   lst.append(NormalizedRelativePath(BuildDir(name) + "/CMakeCache.txt", "."))
    return lst
 
 def Configure(env, name, opts={}, internal=False):
