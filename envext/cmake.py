@@ -111,9 +111,10 @@ def Configure(env, name, opts={}, internal=False):
    if GetOption("clean"):
       return
 
+   cwd = os.path.abspath(".")
    buildDir = BuildDir(name)
 
-   relpath = os.path.relpath(".", buildDir)
+   relpath = os.path.relpath(cwd, buildDir)
    if not os.path.isdir(buildDir):
       try:
          os.makedirs(buildDir)
@@ -129,7 +130,8 @@ def Configure(env, name, opts={}, internal=False):
                os.remove(cif)
          else:
             return True
-   
+
+   excons.Print("Change Directory: '%s'" % buildDir, tool="cmake")
    os.chdir(buildDir)
 
    cmd = "cmake "
@@ -147,7 +149,7 @@ def Configure(env, name, opts={}, internal=False):
          elif mscver == 14.0:
             cmd += "-G \"Visual Studio 14 2015 Win64\" "
          else:
-            print("Unsupported visual studio version %s" % mscver)
+            excons.Print("Unsupported visual studio version %s" % mscver, tool="cmake")
             return False
       except:
          return False
@@ -155,11 +157,12 @@ def Configure(env, name, opts={}, internal=False):
       cmd += "-D%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
    cmd += "-DCMAKE_INSTALL_PREFIX=\"%s\" "  % excons.OutputBaseDirectory()
    cmd += relpath
-   print("Run Command: %s" % cmd)
+   excons.Print("Run Command: %s" % cmd, tool="cmake")
    p = subprocess.Popen(cmd, shell=True)
    p.communicate()
 
-   os.chdir(relpath)
+   excons.Print("Change Directory: '%s'" % cwd, tool="cmake")
+   os.chdir(cwd)
 
    return (p.returncode == 0)
 
@@ -172,6 +175,7 @@ def Build(env, name, config=None, target=None, opts={}):
    cof = OutputsCachePath(name)
    cwd = os.path.abspath(".")
 
+   excons.Print("Change Directory: '%s'" % buildDir, tool="cmake")
    os.chdir(buildDir)
 
    if config is None:
@@ -179,7 +183,7 @@ def Build(env, name, config=None, target=None, opts={}):
    if target is None:
       target = "install"
    cmd = "cmake --build . --config %s --target %s" % (config, target)
-   print("Run Command: %s" % cmd)
+   excons.Print("Run Command: %s" % cmd, tool="cmake")
    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
    e = re.compile(r"^--\s+(Installing|Up-to-date):\s+([^\s].*)$")
    buf = ""
@@ -190,16 +194,17 @@ def Build(env, name, config=None, target=None, opts={}):
       lines = buf.split("\n")
       if len(lines) > 1:
          for i in xrange(len(lines)-1):
-            print(lines[i])
+            excons.Print(lines[i], tool="cmake")
             m = e.match(lines[i].strip())
             if m is not None:
                outfiles.append(m.group(2))
          buf = lines[-1]
-   print(buf)
+   excons.Print(buf, tool="cmake")
 
    with open(cof, "w") as f:
       f.write("\n".join(NormalizedRelativePaths(outfiles, cwd)))
 
+   excons.Print("Change Directory: '%s'" % cwd, tool="cmake")
    os.chdir(cwd)
 
    return (p.returncode == 0)
@@ -212,7 +217,7 @@ def Clean(env):
       buildDir = BuildDir(name)
       if os.path.isdir(buildDir):
          shutil.rmtree(buildDir)
-         print("Removed %s" % NormalizedRelativePath(buildDir, "."))
+         excons.Print("Removed: '%s'" % NormalizedRelativePath(buildDir, "."), tool="cmake")
 
 
 # === Setup environment ===
