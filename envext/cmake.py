@@ -63,7 +63,7 @@ def BuildDir(name):
    return buildDir
 
 def OutputsCachePath(name):
-   return os.path.abspath("./%s.cmake.outputs" % name)
+   return os.path.abspath(excons.out_dir + "/%s.cmake.outputs" % name)
 
 def Outputs(env, exclude=[]):
    name = env["CMAKE_PROJECT"]
@@ -78,7 +78,7 @@ def Outputs(env, exclude=[]):
    return lst
 
 def InputsCachePath(name):
-   return os.path.abspath("./%s.cmake.inputs" % name)
+   return os.path.abspath(excons.out_dir + "/%s.cmake.inputs" % name)
 
 def Inputs(env, dirs=[], patterns=[], exclude=[]):
    name = env["CMAKE_PROJECT"]
@@ -96,7 +96,7 @@ def Inputs(env, dirs=[], patterns=[], exclude=[]):
       for d in dirs:
          lst += CollectFiles(d, "CMakeLists.txt", recursive=rec)
          for pattern in patterns:
-            lst += CollectFiles(".", pattern, recursive=rec)
+            lst += CollectFiles(d, pattern, recursive=rec)
       lst = filter(lambda x: x not in excl, NormalizedRelativePaths(lst, "."))
       with open(cif, "w") as f:
          f.write("\n".join(lst))
@@ -123,7 +123,7 @@ def Configure(env, name, opts={}, internal=False):
    else:
       CMakeCache = buildDir + "/CMakeCache.txt"
       if os.path.isfile(CMakeCache):
-         if not internal and excons.GetArgument("cmake-reconfigure", 0, int) != 0:
+         if not internal and int(ARGUMENTS.get("cmake-reconfigure", "0")) != 0:
             os.remove(CMakeCache)
             cif = InputsCachePath(name)
             if os.path.isfile(cif):
@@ -240,6 +240,55 @@ def SetupEnvironment(env):
       Build(env, name, config=config, target=target, opts=opts)
       return None
 
+   IncludeCommentPattern = re.compile(r"(//.*$|/\*|\*/)|(^\s*#\s*include\s+([\"<])([^\"<>]+)[>\"])", re.MULTILINE)
+
+   # Custom C/C++ file scanner
+   def CScanner(node, env, path):
+      searchpath = map(str, path)
+      rv = []
+      try:
+         cmtlvl = 0
+         cmtlin = 0
+         posoff = 0
+         linoff = 0
+         nd = os.path.dirname(str(node))
+         with open(str(node), "r") as f:
+            content = f.read()
+            m = IncludeCommentPattern.search(content)
+            while m is not None:
+               if m.group(1):
+                  cmt = m.group(1)
+                  if not cmt.startswith("//"):
+                     if cmt == "/*":
+                        cmtlvl += 1
+                     else:
+                        cmtlvl -= 1
+                        if cmtlvl < 0:
+                           raise Exception("Comment Block Mismatch")
+               else:
+                  if cmtlvl == 0:
+                     f = m.group(4)
+                     ignore = False
+                     if m.group(3) == "\"":
+                        ignore = os.path.isfile(nd + "/" + f)
+                     if not ignore:
+                        for p in searchpath:
+                           if os.path.isfile(p + "/" + f):
+                              ignore = True
+                              break
+                     if not ignore:
+                        rv.append(f)
+               content = content[m.end():]
+               m = IncludeCommentPattern.search(content)
+         return rv
+      except Exception, e:
+         print("CScanner Failed on '%s': %s" % (str(node), e))
+         return []
+
+   # Dummy Scanner
+   def DummyScanner(node, env, path):
+      return []
+
    # Required
    #   env["CMAKE_PROJECT"] = <name>
    # Optional
@@ -255,4 +304,8 @@ def SetupEnvironment(env):
 
    env["BUILDERS"]["CMake"] = Builder(action=Action(BuildAction, "Build using CMake ..."))
    env["BUILDERS"]["CMakeGenerated"] = Builder(action=Action(GeneratedAction, "Generate $TARGET using CMake ..."))
+
+   # Override default C/C++ file scanner to avoid SCons begin to nosy
+   cexts = [".c", ".h", ".cc", ".hh", ".cpp", ".hpp", ".cxx", ".hxx"]
+   env.Prepend(SCANNERS=Scanner(function=DummyScanner, skeys=cexts))
 
