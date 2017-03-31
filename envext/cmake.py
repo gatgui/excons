@@ -183,6 +183,12 @@ def Build(env, name, config=None, target=None, opts={}):
    if target is None:
       target = "install"
    cmd = "cmake --build . --config %s --target %s" % (config, target)
+   njobs = GetOption("num_jobs")
+   if njobs > 1:
+      if sys.platform == "win32":
+         cmd += " -- /m:%d" % njobs
+      else:
+         cmd += " -- -j %d" % njobs
    excons.Print("Run Command: %s" % cmd, tool="cmake")
    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
    e = re.compile(r"^--\s+(Installing|Up-to-date):\s+([^\s].*)$")
