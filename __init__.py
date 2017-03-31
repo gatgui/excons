@@ -337,6 +337,11 @@ def WarnOnce(msg, tool=None):
         print("[excons]%s   %s" % (hdr, line))
     issued_warnings.add(msg)
 
+def Print(msg, tool=None):
+  hdr = ("" if tool is None else "[%s]" % tool)
+  for line in msg.split("\n"):
+    print("[excons]%s %s" % (hdr, line))
+
 def PrintOnce(msg, tool=None):
   global printed_messages
   
