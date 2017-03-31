@@ -191,7 +191,7 @@ def Build(env, name, config=None, target=None, opts={}):
       if len(lines) > 1:
          for i in xrange(len(lines)-1):
             print(lines[i])
-            m = e.match(lines[i])
+            m = e.match(lines[i].strip())
             if m is not None:
                outfiles.append(m.group(2))
          buf = lines[-1]
