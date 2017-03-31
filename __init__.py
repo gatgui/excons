@@ -988,6 +988,12 @@ def SetHelp(help):
   if not ignore_help:
     Help(help)
 
+def SyncCache():
+  global args_no_cache, args_cache
+
+  if not args_no_cache and args_cache:
+    args_cache.write()
+
 def DeclareTargets(env, prjs):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets, all_progress
   
@@ -1423,8 +1429,7 @@ def DeclareTargets(env, prjs):
         tgts.extend(pout)
         all_projs[prj] = tgts
   
-  if not args_no_cache and args_cache:
-    args_cache.write()
+  SyncCache()
   
   for alias, targets in all_projs.iteritems():
     Alias(alias, targets)
