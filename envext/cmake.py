@@ -156,6 +156,11 @@ def Configure(env, name, opts={}, internal=False):
    for k, v in opts.iteritems():
       cmd += "-D%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
    cmd += "-DCMAKE_INSTALL_PREFIX=\"%s\" "  % excons.OutputBaseDirectory()
+   cmd += "-DCMAKE_SKIP_BUILD_RPATH=0 "
+   cmd += "-DCMAKE_BUILD_WITH_INSTALL_RPATH=0 "
+   cmd += "-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=0 "
+   if sys.platform == "darwin":
+      cmd += "-DCMAKE_MACOSX_RPATH=1 "
    cmd += relpath
    excons.Print("Run Command: %s" % cmd, tool="cmake")
    p = subprocess.Popen(cmd, shell=True)
