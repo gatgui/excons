@@ -55,6 +55,12 @@ def InitGlobals(output_dir="."):
   if not output_dir:
     output_dir = "."
   
+  if not os.path.isdir(output_dir):
+    try:
+      os.makedirs(output_dir)
+    except:
+      sys.exit(1)
+  
   cache_path = os.path.abspath("%s/excons.cache" % output_dir)
   
   if cache_path != args_cache_path:
@@ -533,12 +539,20 @@ def StaticallyLink(env, lib, silent=False):
     
     return False
 
-def MakeBaseEnv(noarch=None):
+def MakeBaseEnv(noarch=None, output_dir="."):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, warnl
   
   if int(ARGUMENTS.get("shared-build", "1")) == 0:
-    InitGlobals()
-  
+    InitGlobals(output_dir)
+  elif output_dir != ".":
+    bld_dir = os.path.abspath("%s/.build" % output_dir)
+    out_dir = os.path.abspath(output_dir)
+    if not os.path.isdir(out_dir):
+      try:
+        os.makedirs(out_dir)
+      except:
+        sys.exit(1)
+
   no_arch = (GetArgument("no-arch", 1, int) == 1)
   
   warnl = GetArgument("warnings", "all")
