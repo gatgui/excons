@@ -109,7 +109,7 @@ def Configure(env, name, opts={}, internal=False):
       env["CMAKE_OPTIONS"] = opts
    
    if GetOption("clean"):
-      return
+      return True
 
    cwd = os.path.abspath(".")
    buildDir = BuildDir(name)
