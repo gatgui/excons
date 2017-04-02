@@ -99,6 +99,7 @@ def Inputs(env, dirs=[], patterns=[], exclude=[]):
             lst += CollectFiles(d, pattern, recursive=rec)
       lst = filter(lambda x: x not in excl, NormalizedRelativePaths(lst, "."))
       with open(cif, "w") as f:
+         lst.sort()
          f.write("\n".join(lst))
    lst.append(NormalizedRelativePath(BuildDir(name) + "/CMakeCache.txt", "."))
    return lst
@@ -213,6 +214,7 @@ def Build(env, name, config=None, target=None, opts={}):
    excons.Print(buf, tool="cmake")
 
    with open(cof, "w") as f:
+      outfiles.sort()
       f.write("\n".join(NormalizedRelativePaths(outfiles, cwd)))
 
    excons.Print("Change Directory: '%s'" % cwd, tool="cmake")
