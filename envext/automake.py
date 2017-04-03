@@ -56,6 +56,12 @@ def NormalizedRelativePath(f, basedir):
 def NormalizedRelativePaths(files, basedir):
    return map(lambda x: NormalizedRelativePath(x, basedir), files)
 
+def BuildDir(name):
+   buildDir = excons.BuildBaseDirectory() + "/" + name
+   if sys.platform == "win32":
+      buildDir += "/msvc-%s" % excons.GetArgument("mscver", "10.0")
+   return buildDir
+
 def OutputsCachePath(name):
    return os.path.abspath(excons.out_dir + "/%s.automake.outputs" % name)
 
@@ -110,13 +116,25 @@ def Configure(env, name, opts={}, internal=False):
    if GetOption("clean"):
       return True
 
-   if not os.path.isfile("./configure"):
-      p = subprocess.Popen("autoreconf -vif", shell=True)
-      p.communicate()
-      if p.returncode != 0 or not os.path.isfile("./configure"):
+   cwd = os.path.abspath(".")
+   buildDir = BuildDir(name)
+   relpath = os.path.relpath(cwd, buildDir)
+   if not os.path.isdir(buildDir):
+      try:
+         os.makedirs(buildDir)
+      except:
          return False
 
-   if os.path.isfile("./Makefile"):
+   configure = "%s/configure" % cwd
+   Makefile = "%s/Makefile" % buildDir
+
+   if not os.path.isfile(configure):
+      p = subprocess.Popen("autoreconf -vif", shell=True)
+      p.communicate()
+      if p.returncode != 0 or not os.path.isfile(configure):
+         return False
+
+   if os.path.isfile(Makefile):
       if not internal and int(ARGUMENTS.get("automake-reconfigure", "0")) != 0:
          # Configure cache?
          cif = InputsCachePath(name)
@@ -125,7 +143,10 @@ def Configure(env, name, opts={}, internal=False):
       else:
          return True
 
-   cmd = "./configure "
+   excons.Print("Change Directory: '%s'" % buildDir, tool="cmake")
+   os.chdir(buildDir)
+
+   cmd = "%s/configure " % relpath
    for k, v in opts.iteritems():
       if type(v) == bool:
          if v:
@@ -137,13 +158,21 @@ def Configure(env, name, opts={}, internal=False):
    p = subprocess.Popen(cmd, shell=True)
    p.communicate()
 
-   return (p.returncode == 0 and os.path.isfile("./Makefile"))
+   excons.Print("Change Directory: '%s'" % cwd, tool="automake")
+   os.chdir(cwd)
+
+   return (p.returncode == 0 and os.path.isfile(Makefile))
 
 def Build(env, name, target=None, opts={}):
    if not Configure(env, name, opts, internal=True):
       return False
 
    cof = OutputsCachePath(name)
+   cwd = os.path.abspath(".")
+   buildDir = BuildDir(name)
+
+   excons.Print("Change Directory: '%s'" % buildDir, tool="automake")
+   os.chdir(buildDir)
 
    if target is None:
       target = "install"
@@ -176,8 +205,10 @@ def Build(env, name, target=None, opts={}):
                   for item in items:
                      o = f + "/" + os.path.basename(item)
                      outfiles.add(o)
+                     #print("ADD - %s" % o)
                else:
                   outfiles.add(f)
+                  #print("ADD - %s" % f)
             else:
                m = le.search(lines[i].strip())
                if m:
@@ -187,7 +218,10 @@ def Build(env, name, target=None, opts={}):
                      mid = count / 2
                      src = " ".join(srcdst[:mid])
                      dst = " ".join(srcdst[mid:])
-                     symlinks[src] = dst
+                     lst = symlinks.get(src, [])
+                     lst.append(dst)
+                     symlinks[src] = lst
+                     #print("SYMLINK - %s -> %s" % (src, dst))
          buf = lines[-1]
    excons.Print(buf, tool="automake")
 
@@ -199,11 +233,16 @@ def Build(env, name, target=None, opts={}):
          bn = os.path.basename(lst[i])
          if bn in symlinks:
             dn = os.path.dirname(lst[i])
-            sln = dn + "/" + symlinks[bn]
-            if not sln in lst:
-               lst.append(sln)
+            for l in symlinks[bn]:
+               sln = dn + "/" + l
+               if not sln in lst:
+                  lst.append(sln)
+                  #print("ADD - %s" % sln)
       lst.sort()
-      f.write("\n".join(NormalizedRelativePaths(lst, ".")))
+      f.write("\n".join(NormalizedRelativePaths(lst, cwd)))
+
+   excons.Print("Change Directory: '%s'" % cwd, tool="automake")
+   os.chdir(cwd)
 
    return (p.returncode == 0)
 
@@ -212,7 +251,16 @@ def Clean(env):
    if not GetOption("clean"):
       return
    if len(COMMAND_LINE_TARGETS) == 0 or name in COMMAND_LINE_TARGETS:
-      subprocess.Popen("make distclean", shell=True).communicate()
+      cwd = os.path.abspath(".")
+      buildDir = BuildDir(name)
+      if os.path.isdir(buildDir):
+         # Make clean
+         os.chdir(buildDir)
+         subprocess.Popen("make distclean", shell=True).communicate()
+         os.chdir(cwd)
+         # Remove directory
+         shutil.rmtree(buildDir)
+         excons.Print("Removed: '%s'" % NormalizedRelativePath(buildDir, "."), tool="automake")
 
 
 # === Setup environment ===
