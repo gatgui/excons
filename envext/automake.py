@@ -27,6 +27,26 @@ import excons
 from SCons.Script import *
 
 
+class SafeChdir(object):
+   def __init__(self, to, cur=None):
+      super(SafeChdir, self).__init__()
+      self.old = (os.getcwd() if cur is None else os.path.abspath(cur))
+      self.new = os.path.abspath(to)
+      self.changed = False
+
+   def __enter__(self):
+      if os.path.isdir(self.new):
+         excons.Print("Change Directory: '%s'" % self.new, tool="automake")
+         os.chdir(self.new)
+         self.changed = True
+      return self
+
+   def __exit__(self, type, value, traceback):
+      if self.changed:
+         excons.Print("Change Directory: '%s'" % self.old, tool="automake")
+         os.chdir(self.old)
+
+
 def CollectFiles(d, pattern, recursive=True, rdirs=None):
    allfiles = None
    rv = []
@@ -143,25 +163,23 @@ def Configure(env, name, opts={}, internal=False):
       else:
          return True
 
-   excons.Print("Change Directory: '%s'" % buildDir, tool="cmake")
-   os.chdir(buildDir)
+   success = False
 
-   cmd = "%s/configure " % relpath
-   for k, v in opts.iteritems():
-      if type(v) == bool:
-         if v:
-            cmd += "%s " % k
-      else:
-         cmd += "%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
-   cmd += "--prefix=\"%s\""  % excons.OutputBaseDirectory()
-   excons.Print("Run Command: %s" % cmd, tool="automake")
-   p = subprocess.Popen(cmd, shell=True)
-   p.communicate()
+   with SafeChdir(buildDir, cur=cwd):
+      cmd = "%s/configure " % relpath
+      for k, v in opts.iteritems():
+         if type(v) == bool:
+            if v:
+               cmd += "%s " % k
+         else:
+            cmd += "%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
+      cmd += "--prefix=\"%s\""  % excons.OutputBaseDirectory()
+      excons.Print("Run Command: %s" % cmd, tool="automake")
+      p = subprocess.Popen(cmd, shell=True)
+      p.communicate()
+      success = (p.returncode == 0)
 
-   excons.Print("Change Directory: '%s'" % cwd, tool="automake")
-   os.chdir(cwd)
-
-   return (p.returncode == 0 and os.path.isfile(Makefile))
+   return (success and os.path.isfile(Makefile))
 
 def Build(env, name, target=None, opts={}):
    if not Configure(env, name, opts, internal=True):
@@ -170,81 +188,79 @@ def Build(env, name, target=None, opts={}):
    cof = OutputsCachePath(name)
    cwd = os.path.abspath(".")
    buildDir = BuildDir(name)
+   success = False
 
-   excons.Print("Change Directory: '%s'" % buildDir, tool="automake")
-   os.chdir(buildDir)
+   with SafeChdir(buildDir, cur=cwd):
+      if target is None:
+         target = "install"
+      njobs = GetOption("num_jobs")
 
-   if target is None:
-      target = "install"
-   njobs = GetOption("num_jobs")
+      cmd = "make"
+      if njobs > 1:
+         cmd += " -j %d" % njobs
+      cmd += " %s" % target
 
-   cmd = "make"
-   if njobs > 1:
-      cmd += " -j %d" % njobs
-   cmd += " %s" % target
-
-   excons.Print("Run Command: %s" % cmd, tool="automake")
-   p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-   e = re.compile(r"^.*?bin/install\s+((-c|-d|(-m\s+\d{3}))\s+)*(.*?)((['\"]?)(%s.*)\6)$" % os.path.abspath(excons.OutputBaseDirectory()))
-   le = re.compile(r"ln\s+((-s|-f)\s+)*([^|&}{;]*)")
-   buf = ""
-   outfiles = set()
-   symlinks = {}
-   while p.poll() is None:
-      r = p.stdout.readline(512)
-      buf += r
-      lines = buf.split("\n")
-      if len(lines) > 1:
-         for i in xrange(len(lines)-1):
-            excons.Print(lines[i], tool="automake")
-            m = e.match(lines[i].strip())
-            if m is not None:
-               f = m.group(7)
-               if os.path.isdir(f):
-                  items = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), m.group(4).split(" ")))
-                  for item in items:
-                     o = f + "/" + os.path.basename(item)
-                     outfiles.add(o)
-                     #print("ADD - %s" % o)
+      excons.Print("Run Command: %s" % cmd, tool="automake")
+      p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+      e = re.compile(r"^.*?bin/install\s+((-c|-d|(-m\s+\d{3}))\s+)*(.*?)((['\"]?)(%s.*)\6)$" % os.path.abspath(excons.OutputBaseDirectory()))
+      le = re.compile(r"ln\s+((-s|-f)\s+)*([^|&}{;]*)")
+      buf = ""
+      outfiles = set()
+      symlinks = {}
+      while p.poll() is None:
+         r = p.stdout.readline(512)
+         buf += r
+         lines = buf.split("\n")
+         if len(lines) > 1:
+            for i in xrange(len(lines)-1):
+               excons.Print(lines[i], tool="automake")
+               m = e.match(lines[i].strip())
+               if m is not None:
+                  f = m.group(7)
+                  if os.path.isdir(f):
+                     items = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), m.group(4).split(" ")))
+                     for item in items:
+                        o = f + "/" + os.path.basename(item)
+                        outfiles.add(o)
+                        #print("ADD - %s" % o)
+                  else:
+                     outfiles.add(f)
+                     #print("ADD - %s" % f)
                else:
-                  outfiles.add(f)
-                  #print("ADD - %s" % f)
-            else:
-               m = le.search(lines[i].strip())
-               if m:
-                  srcdst = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), m.group(3).split(" ")))
-                  count = len(srcdst)
-                  if count % 2 == 0:
-                     mid = count / 2
-                     src = " ".join(srcdst[:mid])
-                     dst = " ".join(srcdst[mid:])
-                     lst = symlinks.get(src, [])
-                     lst.append(dst)
-                     symlinks[src] = lst
-                     #print("SYMLINK - %s -> %s" % (src, dst))
-         buf = lines[-1]
-   excons.Print(buf, tool="automake")
+                  m = le.search(lines[i].strip())
+                  if m:
+                     srcdst = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), m.group(3).split(" ")))
+                     count = len(srcdst)
+                     if count % 2 == 0:
+                        mid = count / 2
+                        src = " ".join(srcdst[:mid])
+                        dst = " ".join(srcdst[mid:])
+                        lst = symlinks.get(src, [])
+                        lst.append(dst)
+                        symlinks[src] = lst
+                        #print("SYMLINK - %s -> %s" % (src, dst))
+            buf = lines[-1]
+      excons.Print(buf, tool="automake")
 
-   with open(cof, "w") as f:
-      lst = list(outfiles)
-      # Add symlinks
-      ll = len(lst)
-      for i in xrange(ll):
-         bn = os.path.basename(lst[i])
-         if bn in symlinks:
-            dn = os.path.dirname(lst[i])
-            for l in symlinks[bn]:
-               sln = dn + "/" + l
-               if not sln in lst:
-                  lst.append(sln)
-                  #print("ADD - %s" % sln)
-      lst.sort()
-      f.write("\n".join(NormalizedRelativePaths(lst, cwd)))
+      success = (p.returncode == 0)
 
-   excons.Print("Change Directory: '%s'" % cwd, tool="automake")
-   os.chdir(cwd)
+      with open(cof, "w") as f:
+         lst = list(outfiles)
+         # Add symlinks
+         ll = len(lst)
+         for i in xrange(ll):
+            bn = os.path.basename(lst[i])
+            if bn in symlinks:
+               dn = os.path.dirname(lst[i])
+               for l in symlinks[bn]:
+                  sln = dn + "/" + l
+                  if not sln in lst:
+                     lst.append(sln)
+                     #print("ADD - %s" % sln)
+         lst.sort()
+         f.write("\n".join(NormalizedRelativePaths(lst, cwd)))
 
-   return (p.returncode == 0)
+   return success
 
 def Clean(env):
    name = env["AUTOMAKE_PROJECT"]
@@ -254,10 +270,9 @@ def Clean(env):
       cwd = os.path.abspath(".")
       buildDir = BuildDir(name)
       if os.path.isdir(buildDir):
-         # Make clean
-         os.chdir(buildDir)
-         subprocess.Popen("make distclean", shell=True).communicate()
-         os.chdir(cwd)
+         with SafeChdir(buildDir):
+            # Make clean
+            subprocess.Popen("make distclean", shell=True).communicate()
          # Remove directory
          shutil.rmtree(buildDir)
          excons.Print("Removed: '%s'" % NormalizedRelativePath(buildDir, "."), tool="automake")

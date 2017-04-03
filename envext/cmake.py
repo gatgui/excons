@@ -27,6 +27,26 @@ import excons
 from SCons.Script import *
 
 
+class SafeChdir(object):
+   def __init__(self, to, cur=None):
+      super(SafeChdir, self).__init__()
+      self.old = (os.getcwd() if cur is None else os.path.abspath(cur))
+      self.new = os.path.abspath(to)
+      self.changed = False
+
+   def __enter__(self):
+      if os.path.isdir(self.new):
+         excons.Print("Change Directory: '%s'" % self.new, tool="cmake")
+         os.chdir(self.new)
+         self.changed = True
+      return self
+
+   def __exit__(self, type, value, traceback):
+      if self.changed:
+         excons.Print("Change Directory: '%s'" % self.old, tool="cmake")
+         os.chdir(self.old)
+
+
 def CollectFiles(d, pattern, recursive=True, rdirs=None):
    allfiles = None
    rv = []
@@ -132,45 +152,43 @@ def Configure(env, name, opts={}, internal=False):
          else:
             return True
 
-   excons.Print("Change Directory: '%s'" % buildDir, tool="cmake")
-   os.chdir(buildDir)
+   success = False
 
-   cmd = "cmake "
-   if sys.platform == "win32":
-      try:
-         mscver = float(excons.GetArgument("mscver", "10.0"))
-         if mscver == 9.0:
-            cmd += "-G \"Visual Studio 9 2008 Win64\" "
-         elif mscver == 10.0:
-            cmd += "-G \"Visual Studio 10 2010 Win64\" "
-         elif mscver == 11.0:
-            cmd += "-G \"Visual Studio 11 2012 Win64\" "
-         elif mscver == 12.0:
-            cmd += "-G \"Visual Studio 12 2013 Win64\" "
-         elif mscver == 14.0:
-            cmd += "-G \"Visual Studio 14 2015 Win64\" "
-         else:
-            excons.Print("Unsupported visual studio version %s" % mscver, tool="cmake")
+   with SafeChdir(buildDir, cur=cwd):
+      cmd = "cmake "
+      if sys.platform == "win32":
+         try:
+            mscver = float(excons.GetArgument("mscver", "10.0"))
+            if mscver == 9.0:
+               cmd += "-G \"Visual Studio 9 2008 Win64\" "
+            elif mscver == 10.0:
+               cmd += "-G \"Visual Studio 10 2010 Win64\" "
+            elif mscver == 11.0:
+               cmd += "-G \"Visual Studio 11 2012 Win64\" "
+            elif mscver == 12.0:
+               cmd += "-G \"Visual Studio 12 2013 Win64\" "
+            elif mscver == 14.0:
+               cmd += "-G \"Visual Studio 14 2015 Win64\" "
+            else:
+               excons.Print("Unsupported visual studio version %s" % mscver, tool="cmake")
+               return False
+         except:
             return False
-      except:
-         return False
-   for k, v in opts.iteritems():
-      cmd += "-D%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
-   cmd += "-DCMAKE_INSTALL_PREFIX=\"%s\" "  % excons.OutputBaseDirectory()
-   cmd += "-DCMAKE_SKIP_BUILD_RPATH=0 "
-   cmd += "-DCMAKE_BUILD_WITH_INSTALL_RPATH=0 "
-   cmd += "-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=0 "
-   if sys.platform == "darwin":
-      cmd += "-DCMAKE_MACOSX_RPATH=1 "
-   cmd += relpath
-   excons.Print("Run Command: %s" % cmd, tool="cmake")
-   p = subprocess.Popen(cmd, shell=True)
-   p.communicate()
+      for k, v in opts.iteritems():
+         cmd += "-D%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
+      cmd += "-DCMAKE_INSTALL_PREFIX=\"%s\" "  % excons.OutputBaseDirectory()
+      cmd += "-DCMAKE_SKIP_BUILD_RPATH=0 "
+      cmd += "-DCMAKE_BUILD_WITH_INSTALL_RPATH=0 "
+      cmd += "-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=0 "
+      if sys.platform == "darwin":
+         cmd += "-DCMAKE_MACOSX_RPATH=1 "
+      cmd += relpath
+      excons.Print("Run Command: %s" % cmd, tool="cmake")
+      p = subprocess.Popen(cmd, shell=True)
+      p.communicate()
+      success = (p.returncode == 0)
 
-   excons.Print("Change Directory: '%s'" % cwd, tool="cmake")
-   os.chdir(cwd)
-
-   return (p.returncode == 0)
+   return success
 
 def Build(env, name, config=None, target=None, opts={}):
    buildDir = BuildDir(name)
@@ -180,47 +198,45 @@ def Build(env, name, config=None, target=None, opts={}):
 
    cof = OutputsCachePath(name)
    cwd = os.path.abspath(".")
+   success = False
 
-   excons.Print("Change Directory: '%s'" % buildDir, tool="cmake")
-   os.chdir(buildDir)
+   with SafeChdir(buildDir, cur=cwd):
+      if config is None:
+         config = excons.mode_dir
+      if target is None:
+         target = "install"
+      cmd = "cmake --build . --config %s --target %s" % (config, target)
+      njobs = GetOption("num_jobs")
+      if njobs > 1:
+         if sys.platform == "win32":
+            cmd += " -- /m:%d" % njobs
+         else:
+            cmd += " -- -j %d" % njobs
+      excons.Print("Run Command: %s" % cmd, tool="cmake")
+      p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+      e = re.compile(r"^--\s+(Installing|Up-to-date):\s+([^\s].*)$")
+      buf = ""
+      outfiles = []
+      while p.poll() is None:
+         r = p.stdout.readline(512)
+         buf += r
+         lines = buf.split("\n")
+         if len(lines) > 1:
+            for i in xrange(len(lines)-1):
+               excons.Print(lines[i], tool="cmake")
+               m = e.match(lines[i].strip())
+               if m is not None:
+                  outfiles.append(m.group(2))
+            buf = lines[-1]
+      excons.Print(buf, tool="cmake")
 
-   if config is None:
-      config = excons.mode_dir
-   if target is None:
-      target = "install"
-   cmd = "cmake --build . --config %s --target %s" % (config, target)
-   njobs = GetOption("num_jobs")
-   if njobs > 1:
-      if sys.platform == "win32":
-         cmd += " -- /m:%d" % njobs
-      else:
-         cmd += " -- -j %d" % njobs
-   excons.Print("Run Command: %s" % cmd, tool="cmake")
-   p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-   e = re.compile(r"^--\s+(Installing|Up-to-date):\s+([^\s].*)$")
-   buf = ""
-   outfiles = []
-   while p.poll() is None:
-      r = p.stdout.readline(512)
-      buf += r
-      lines = buf.split("\n")
-      if len(lines) > 1:
-         for i in xrange(len(lines)-1):
-            excons.Print(lines[i], tool="cmake")
-            m = e.match(lines[i].strip())
-            if m is not None:
-               outfiles.append(m.group(2))
-         buf = lines[-1]
-   excons.Print(buf, tool="cmake")
+      success = (p.returncode == 0)
 
-   with open(cof, "w") as f:
-      outfiles.sort()
-      f.write("\n".join(NormalizedRelativePaths(outfiles, cwd)))
+      with open(cof, "w") as f:
+         outfiles.sort()
+         f.write("\n".join(NormalizedRelativePaths(outfiles, cwd)))
 
-   excons.Print("Change Directory: '%s'" % cwd, tool="cmake")
-   os.chdir(cwd)
-
-   return (p.returncode == 0)
+   return success
 
 def Clean(env):
    name = env["CMAKE_PROJECT"]
