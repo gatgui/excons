@@ -26,14 +26,14 @@ import imp
 import subprocess
 from SCons.Script import *
 
-args_cache_path = os.path.abspath("./excons.cache")
+args_cache_path = None
 args_cache = None
 args_cache_echo = False
 args_no_cache = False
-bld_dir = os.path.abspath("./.build")
-out_dir = os.path.abspath(".")
+bld_dir = None
+out_dir = None
 mode_dir = None
-arch_dir = "x64"
+arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
 mscver = None
 no_arch = False
 warnl = "all"
@@ -46,40 +46,52 @@ help_targets = {}
 help_options = {}
 
 
-def InitGlobals(output_dir="."):
+def InitGlobals(output_dir=".", force=False):
   global args_cache, args_cache_path, args_no_cache
   global bld_dir, out_dir, mode_dir, arch_dir
   global mscver, no_arch, warnl, issued_warnings
-  global all_targets
+  global all_targets, all_progress
+  global ignore_help, help_targets, help_options
+
+  if bld_dir is None or force:
+    bld_dir = os.path.abspath("./.build")
+
+  if out_dir is None or force:
+    if not output_dir:
+      output_dir = "."
   
-  if not output_dir:
-    output_dir = "."
+    if not os.path.isdir(output_dir):
+      try:
+        os.makedirs(output_dir)
+      except:
+        sys.exit(1)
+
+    out_dir = os.path.abspath(output_dir)
+
+  if args_cache_path is None or force:
+    cache_path = os.path.abspath("./excons.cache")
   
-  if not os.path.isdir(output_dir):
-    try:
-      os.makedirs(output_dir)
-    except:
-      sys.exit(1)
-  
-  cache_path = os.path.abspath("%s/excons.cache" % output_dir)
-  
-  if cache_path != args_cache_path:
-    if args_cache and not args_no_cache:
-      args_cache.write()
+    if cache_path != args_cache_path:
+      if args_cache and not args_no_cache:
+        args_cache.write()
     
-    args_cache_path = cache_path
-    args_cache = None
-    args_no_cache = False
-    
-  bld_dir = os.path.abspath("%s/.build" % output_dir)
-  out_dir = os.path.abspath(output_dir)
-  mode_dir = None
-  arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
-  mscver = None
-  no_arch = False  # Whether or not to create architecture in output directory
-  warnl = "all"  # Warning level
-  issued_warnings = set()
-  all_targets = {}
+      args_cache_path = cache_path
+      args_cache = None
+      args_no_cache = False
+  
+  if force:
+    mode_dir = None
+    arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
+    mscver = None
+    no_arch = False  # Whether or not to create architecture in output directory
+    warnl = "all"  # Warning level
+    issued_warnings = set()
+    printed_messages = set()
+    all_targets = {}
+    all_progress = []
+    ignore_help = False
+    help_targets = {}
+    help_options = {}
 
 
 class Cache(dict):
@@ -542,16 +554,7 @@ def StaticallyLink(env, lib, silent=False):
 def MakeBaseEnv(noarch=None, output_dir="."):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, warnl
   
-  if int(ARGUMENTS.get("shared-build", "1")) == 0:
-    InitGlobals(output_dir)
-  elif output_dir != ".":
-    bld_dir = os.path.abspath("%s/.build" % output_dir)
-    out_dir = os.path.abspath(output_dir)
-    if not os.path.isdir(out_dir):
-      try:
-        os.makedirs(out_dir)
-      except:
-        sys.exit(1)
+  InitGlobals(output_dir, force=(int(ARGUMENTS.get("shared-build", "1")) == 0))
 
   no_arch = (GetArgument("no-arch", 1, int) == 1)
   
