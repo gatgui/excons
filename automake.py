@@ -22,6 +22,7 @@ import re
 import sys
 import glob
 import shutil
+import pprint
 import subprocess
 import excons
 from SCons.Script import *
@@ -142,8 +143,8 @@ def Configure(name, opts={}):
       return False
 
 def Build(name, target=None):
-   if not Configure(env, name, opts, internal=True):
-      return False
+   if GetOption("clean"):
+      return True
 
    ccf = ConfigCachePath(name)
    cof = OutputsCachePath(name)
