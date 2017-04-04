@@ -32,7 +32,7 @@ def SetupEnvironment(env, settings):
 
    cmake.Configure(name, opts=settings.get("cmake-opts", {}))
 
-   cmake.Clean()
+   cmake.CleanOne(name)
 
    return env.CMake(outputs, srcs)
 

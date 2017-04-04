@@ -31,7 +31,7 @@ def SetupEnvironment(env, settings):
 
    automake.Configure(name, opts=settings.get("automake-opts", {}))
 
-   automake.Clean()
+   automake.CleanOne(name)
 
    return env.Automake(outputs, srcs)
 
