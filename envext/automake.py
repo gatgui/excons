@@ -19,14 +19,12 @@ def SetupEnvironment(env, settings):
    env.Prepend(SCANNERS=Scanner(function=DummyScanner, skeys=cexts))
 
    def BuildAction(target, source, env):
-      print("Calling 'Automake'")
       automake.Build(env["AUTOMAKE_PROJECT"], target=env["AUTOMAKE_TARGET"])
       return None
 
    env["BUILDERS"]["Automake"] = Builder(action=Action(BuildAction, "Build using Automake ..."))
 
    srcs = settings.get("automake-srcs", [])
-   srcs.extend(excons.CollectFiles(".", patterns=["*.ac", "*.am"], recursive=True))
    srcs.append(automake.ConfigCachePath(name))
 
    outputs = automake.Outputs(name) + [automake.OutputsCachePath(name)]

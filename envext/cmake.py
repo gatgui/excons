@@ -20,14 +20,12 @@ def SetupEnvironment(env, settings):
    env.Prepend(SCANNERS=Scanner(function=DummyScanner, skeys=cexts))
 
    def BuildAction(target, source, env):
-      print("Calling 'CMake'")
       cmake.Build(env["CMAKE_PROJECT"], config=env["CMAKE_CONFIG"], target=env["CMAKE_TARGET"])
       return None
 
    env["BUILDERS"]["CMake"] = Builder(action=Action(BuildAction, "Build using CMake ..."))
 
    srcs = settings.get("cmake-srcs", [])
-   srcs.extend(excons.CollectFiles(".", patterns=["CMakeLists.txt"], recursive=True))
    srcs.append(cmake.ConfigCachePath(name))
 
    outputs = cmake.Outputs(name) + [cmake.OutputsCachePath(name)]

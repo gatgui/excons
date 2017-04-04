@@ -536,12 +536,19 @@ def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=
   return (inc_dir, lib_dir)
 
 def StaticallyLink(env, lib, silent=False):
+  global arch_dir
+
   if sys.platform == "win32":
     env.Append(LIBS=[lib])
     return True
 
   else:
     paths = env["LIBPATH"]
+    if arch_dir == "x64":
+      if not "/usr/local/lib64" in paths:
+        paths.append("/usr/local/lib64")
+      if not "/usr/lib64" in paths:
+        paths.append("/usr/lib64")
     if not "/usr/local/lib" in paths:
       paths.append("/usr/local/lib")
     if not "/usr/lib" in paths:
@@ -604,7 +611,7 @@ def CollectFiles(directory, patterns, recursive=True, exclude=[]):
       if allfiles is None:
         allfiles = glob.glob(directory + "/*")
       for subdir in filter(os.path.isdir, allfiles):
-        dn = os.path.dirname(subdir)
+        dn = os.path.basename(subdir)
         if dn in VCD or dn in exclude:
           continue
         rv += CollectFiles(subdir, patterns, recursive=True, exclude=exclude)
