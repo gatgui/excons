@@ -213,24 +213,26 @@ def CleanOne(name):
 
    # Remove output files
    for path in Outputs(name):
-      os.remove(path)
-      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, "."), tool="cmake")
+      path = excons.out_dir + "/" + path
+      if os.path.isfile(path):
+         os.remove(path)
+         excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, excons.out_dir), tool="cmake")
 
    # Remove build temporary files      
    buildDir = BuildDir(name)
    if os.path.isdir(buildDir):
       shutil.rmtree(buildDir)
-      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(buildDir, "."), tool="cmake")
+      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(buildDir, excons.out_dir), tool="cmake")
 
    path = ConfigCachePath(name)
    if os.path.isfile(path):
       os.remove(path)
-      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, "."), tool="cmake")
+      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, excons.out_dir), tool="cmake")
 
    path = OutputsCachePath(name)
    if os.path.isfile(path):
       os.remove(path)
-      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, "."), tool="cmake")
+      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, excons.out_dir), tool="cmake")
 
 def Clean():
    if not GetOption("clean"):

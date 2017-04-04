@@ -26,6 +26,10 @@ import imp
 import subprocess
 from SCons.Script import *
 
+
+VCD = set([".git", ".hg", ".svn"])
+
+
 args_cache_path = None
 args_cache = None
 args_cache_echo = False
@@ -574,24 +578,36 @@ class SafeChdir(object):
       Print("Change Directory: '%s'" % self.old, tool=self.tool)
       os.chdir(self.old)
 
-def CollectFiles(directory, patterns, recursive=True):
+
+
+def CollectFiles(directory, patterns, recursive=True, exclude=[]):
+  global VCD
+
   allfiles = None
   rv = []
 
-  for pattern in patterns:
-     if type(pattern) in (str, unicode):
-       items = glob.glob(directory + "/" + pattern)
-       for item in items:
-         rv.append(item)
-     else:
-       allfiles = glob.glob(directory + "/*")
-       rv.extend(filter(lambda x: pattern.match(x) is not None, allfiles))
+  if type(directory) in (list, tuple, set):
+    for d in directory:
+      rv.extend(CollectFiles(d, patterns, recursive=recursive, exclude=exclude))
 
-  if recursive:
-    if allfiles is None:
-      allfiles = glob.glob(directory + "/*")
-    for subdir in filter(os.path.isdir, allfiles):
-      rv += CollectFiles(subdir, patterns, recursive=True)
+  else:
+    for pattern in patterns:
+      if type(pattern) in (str, unicode):
+        items = glob.glob(directory + "/" + pattern)
+        for item in items:
+          rv.append(item)
+      else:
+        allfiles = glob.glob(directory + "/*")
+        rv.extend(filter(lambda x: pattern.match(x) is not None, allfiles))
+
+    if recursive:
+      if allfiles is None:
+        allfiles = glob.glob(directory + "/*")
+      for subdir in filter(os.path.isdir, allfiles):
+        dn = os.path.dirname(subdir)
+        if dn in VCD or dn in exclude:
+          continue
+        rv += CollectFiles(subdir, patterns, recursive=True, exclude=exclude)
 
   return rv
 
@@ -1085,6 +1101,11 @@ def DeclareTargets(env, prjs):
     if not "type" in settings:
       print("[excons] Project \"%s\" missing \"type\"" % prj)
       continue
+    elif settings["type"] not in ext_types and not "srcs" in settings:
+      print("[excons] Project \"%s\" missing \"srcs\"" % prj)
+      continue
+
+    penv = env.Clone()
 
     def add_deps(tgt):
       for k in ("deps", "libs", "staticlibs"):
@@ -1100,15 +1121,11 @@ def DeclareTargets(env, prjs):
                 WarnOnce("Can't find dependent target '%s'" % dep)
 
     if settings["type"] in ext_types:
-      pout = ext_types[settings["type"]](env, settings)
+      pout = ext_types[settings["type"]](penv, settings)
       if pout:
         add_deps(pout)
 
     else:
-      if not "srcs" in settings:
-        print("[excons] Project \"%s\" missing \"srcs\"" % prj)
-        continue
-      
       if "/" in prj.replace("\\", "/"):
         print("[excons] Invalid target name '%s'. Please use 'prefix' instead." % prj)
         spl = prj.split("/")
@@ -1126,8 +1143,6 @@ def DeclareTargets(env, prjs):
         if prefix.endswith("/"):
           prefix = prefix[:-1]
         settings["prefix"] = prefix
-      
-      penv = env.Clone()
       
       if "libdirs" in settings:
         penv.Append(LIBPATH=settings["libdirs"])

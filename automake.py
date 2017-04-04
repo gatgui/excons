@@ -231,8 +231,10 @@ def CleanOne(name):
 
    # Remove output files
    for path in Outputs(name):
-      os.remove(path)
-      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, "."), tool="automake")
+      path = excons.out_dir + "/" + path
+      if os.path.isfile(path):
+         os.remove(path)
+         excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, excons.out_dir), tool="automake")
 
    # Remove build temporary files      
    buildDir = BuildDir(name)
@@ -240,17 +242,17 @@ def CleanOne(name):
       with excons.SafeChdir(buildDir, tool="automake"):
          subprocess.Popen("make distclean", shell=True).communicate()
       shutil.rmtree(buildDir)
-      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(buildDir, "."), tool="automake")
+      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(buildDir, excons.out_dir), tool="automake")
 
    path = ConfigCachePath(name)
    if os.path.isfile(path):
       os.remove(path)
-      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, "."), tool="automake")
+      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, excons.out_dir), tool="automake")
 
    path = OutputsCachePath(name)
    if os.path.isfile(path):
       os.remove(path)
-      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, "."), tool="automake")
+      excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, excons.out_dir), tool="automake")
 
 def Clean():
    if not GetOption("clean"):
