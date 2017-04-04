@@ -44,6 +44,7 @@ all_progress = []
 ignore_help = False
 help_targets = {}
 help_options = {}
+ext_types = {}
 
 
 def InitGlobals(output_dir=".", force=False):
@@ -52,6 +53,7 @@ def InitGlobals(output_dir=".", force=False):
   global mscver, no_arch, warnl, issued_warnings
   global all_targets, all_progress
   global ignore_help, help_targets, help_options
+  global ext_types
 
   if bld_dir is None or force:
     bld_dir = os.path.abspath("./.build")
@@ -92,6 +94,7 @@ def InitGlobals(output_dir=".", force=False):
     ignore_help = False
     help_targets = {}
     help_options = {}
+    ext_types = {}
 
 
 class Cache(dict):
@@ -551,8 +554,55 @@ def StaticallyLink(env, lib, silent=False):
     
     return False
 
+class SafeChdir(object):
+  def __init__(self, to, cur=None, tool=None):
+    super(SafeChdir, self).__init__()
+    self.old = (os.getcwd() if cur is None else os.path.abspath(cur))
+    self.new = os.path.abspath(to)
+    self.tool = tool
+    self.changed = False
+
+  def __enter__(self):
+    if os.path.isdir(self.new):
+      Print("Change Directory: '%s'" % self.new, tool=self.tool)
+      os.chdir(self.new)
+      self.changed = True
+    return self
+
+  def __exit__(self, type, value, traceback):
+    if self.changed:
+      Print("Change Directory: '%s'" % self.old, tool=self.tool)
+      os.chdir(self.old)
+
+def CollectFiles(directory, patterns, recursive=True):
+  allfiles = None
+  rv = []
+
+  for pattern in patterns:
+     if type(pattern) in (str, unicode):
+       items = glob.glob(directory + "/" + pattern)
+       for item in items:
+         rv.append(item)
+     else:
+       allfiles = glob.glob(directory + "/*")
+       rv.extend(filter(lambda x: pattern.match(x) is not None, allfiles))
+
+  if recursive:
+    if allfiles is None:
+      allfiles = glob.glob(directory + "/*")
+    for subdir in filter(os.path.isdir, allfiles):
+      rv += CollectFiles(subdir, patterns, recursive=True)
+
+  return rv
+
+def NormalizedRelativePath(path, baseDirectory):
+  return os.path.relpath(path, baseDirectory).replace("\\", "/")
+
+def NormalizedRelativePaths(paths, baseDirectory):
+  return map(lambda x: NormalizedRelativePath(x, baseDirectory), paths)
+
 def MakeBaseEnv(noarch=None, output_dir="."):
-  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, warnl
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, warnl, ext_types
   
   InitGlobals(output_dir, force=(int(ARGUMENTS.get("shared-build", "1")) == 0))
 
@@ -857,11 +907,13 @@ def MakeBaseEnv(noarch=None, output_dir="."):
     if bn == "__init__.py":
       continue
     try:
-      mod = imp.load_source(os.path.splitext(os.path.basename(item))[0], item)
+      extname = os.path.splitext(os.path.basename(item))[0]
+      mod = imp.load_source(extname, item)
       if not hasattr(mod, "SetupEnvironment"):
         print("Missing 'SetupEnvironment' function in '%s'" % item)
       else:
-        mod.SetupEnvironment(env)
+        #mod.SetupEnvironment(env)
+        ext_types[extname] = mod.SetupEnvironment
     except Exception, e:
       print("Failed to load '%s': %s" % (item, e))
 
@@ -1012,7 +1064,7 @@ def SyncCache():
     args_cache.write()
 
 def DeclareTargets(env, prjs):
-  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets, all_progress
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets, all_progress, ext_types
   
   all_projs = {}
   
@@ -1025,39 +1077,15 @@ def DeclareTargets(env, prjs):
       continue
     
     prj = settings["name"]
+    alias = settings.get("alias", prj)
     desc = settings.get("desc", "")
     prefix = settings.get("prefix", None)
-    
-    if not "srcs" in settings:
-      print("[excons] Project \"%s\" missing \"src\"" % prj)
-      continue
-    
+    progress_nodes = set()
+
     if not "type" in settings:
       print("[excons] Project \"%s\" missing \"type\"" % prj)
       continue
-    
-    if "/" in prj.replace("\\", "/"):
-      print("[excons] Invalid target name '%s'. Please use 'prefix' instead." % prj)
-      spl = prj.split("/")
-      spl = prj.split("/")
-      prj = spl[-1]
-      subdir = "/".join(spl[:-1])
-      prefix = ("%s/%s" % (prefix, subdir) if prefix else subdir)
-      settings["name"] = prj
-      settings["prefix"] = prefix
-      print("[excons] => Update: name='%s', prefix='%s'" % (prj, prefix))
-    
-    if prefix:
-      if prefix.startswith("/"):
-        prefix = prefix[1:]
-      if prefix.endswith("/"):
-        prefix = prefix[:-1]
-      settings["prefix"] = prefix
-    
-    alias = settings.get("alias", prj)
-    
-    penv = env.Clone()
-    
+
     def add_deps(tgt):
       for k in ("deps", "libs", "staticlibs"):
         if k in settings:
@@ -1070,136 +1098,264 @@ def DeclareTargets(env, prjs):
             else:
               if k == "deps":
                 WarnOnce("Can't find dependent target '%s'" % dep)
-    
-    if "libdirs" in settings:
-      penv.Append(LIBPATH=settings["libdirs"])
-    
-    if "incdirs" in settings:
-      penv.Append(CPPPATH=settings["incdirs"])
-    
-    if "defs" in settings:
-      penv.Append(CPPDEFINES=settings["defs"])
-    
-    if "cppflags" in settings:
-      penv.Append(CPPFLAGS=settings["cppflags"])
 
-    if "ccflags" in settings:
-      penv.Append(CCFLAGS=settings["ccflags"])
+    if settings["type"] in ext_types:
+      pout = ext_types[settings["type"]](env, settings)
+      if pout:
+        add_deps(pout)
 
-    if "cxxflags" in settings:
-      penv.Append(CXXFLAGS=settings["cxxflags"])
-
-    if "libs" in settings:
-      penv.Append(LIBS=settings["libs"])
-    
-    if "staticlibs" in settings:
-      missing = False
-      for item in settings["staticlibs"]:
-        if not StaticallyLink(penv, item, silent=True):
-          # Could be another project
-          if not item in all_projs and not item in all_targets:
-            print("[excons] No static library for \"%s\". Project \"%s\" ignored." % (item, prj))
-            missing = True
-            break
-          else:
-            tgts = filter(lambda x: os.path.splitext(str(x))[1].lower() not in (".so", ".dll", ".dylib"), all_projs.get(item, all_targets.get(item)))
-            penv.Append(LIBS=tgts)
-      if missing:
+    else:
+      if not "srcs" in settings:
+        print("[excons] Project \"%s\" missing \"srcs\"" % prj)
         continue
+      
+      if "/" in prj.replace("\\", "/"):
+        print("[excons] Invalid target name '%s'. Please use 'prefix' instead." % prj)
+        spl = prj.split("/")
+        spl = prj.split("/")
+        prj = spl[-1]
+        subdir = "/".join(spl[:-1])
+        prefix = ("%s/%s" % (prefix, subdir) if prefix else subdir)
+        settings["name"] = prj
+        settings["prefix"] = prefix
+        print("[excons] => Update: name='%s', prefix='%s'" % (prj, prefix))
+      
+      if prefix:
+        if prefix.startswith("/"):
+          prefix = prefix[1:]
+        if prefix.endswith("/"):
+          prefix = prefix[:-1]
+        settings["prefix"] = prefix
+      
+      penv = env.Clone()
+      
+      if "libdirs" in settings:
+        penv.Append(LIBPATH=settings["libdirs"])
+      
+      if "incdirs" in settings:
+        penv.Append(CPPPATH=settings["incdirs"])
+      
+      if "defs" in settings:
+        penv.Append(CPPDEFINES=settings["defs"])
+      
+      if "cppflags" in settings:
+        penv.Append(CPPFLAGS=settings["cppflags"])
 
-    if "linkflags" in settings:
-      penv.Append(LINKFLAGS=settings["linkflags"])
+      if "ccflags" in settings:
+        penv.Append(CCFLAGS=settings["ccflags"])
 
-    if "custom" in settings:
-      for customcall in settings["custom"]:
-        customcall(penv)
-    
-    odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, prj)
-    
-    # On windows, also msvc-9.0
-    if str(Platform()) == "win32":
-      msvcver = env.get("MSVC_VERSION", None)
-      if msvcver:
-        odir = os.path.join(odir, "msvc-%s" % msvcver)
-    if "bldprefix" in settings:
-      odir = os.path.join(odir, settings["bldprefix"])
-    
-    shared = True
-    if settings["type"] in ["program", "testprograms", "staticlib"]:
-      shared = False
-    
-    if str(Platform()) != "win32":
-      symvis = settings.get("symvis", None)
-      if symvis is None:
-        symvis = ("hidden" if settings["type"] != "sharedlib" else "default")
-      if symvis == "hidden":
-        penv.Append(CCFLAGS=["-fvisibility=hidden"])
-    
-    objs = []
-    for src in settings["srcs"]:
-      bn = os.path.splitext(os.path.basename(str(src)))[0]
-      if shared:
-        objs.append(penv.SharedObject(os.path.join(odir, bn), src))
-      else:
-        objs.append(penv.StaticObject(os.path.join(odir, bn), src))
+      if "cxxflags" in settings:
+        penv.Append(CXXFLAGS=settings["cxxflags"])
+
+      if "libs" in settings:
+        penv.Append(LIBS=settings["libs"])
       
-    progress_nodes = set(map(lambda x: os.path.abspath(str(x[0])), objs))
-    
-    if alias != prj:
-      global help_targets
-      val = help_targets.get(alias, "")
-      if val:
-        val += ", "
-      val += prj
-      help_targets[alias] = val
-    
-    if settings["type"] == "sharedlib":
-      AddHelpTargets({prj: "Shared library" if not desc else desc})
+      if "staticlibs" in settings:
+        missing = False
+        for item in settings["staticlibs"]:
+          if not StaticallyLink(penv, item, silent=True):
+            # Could be another project
+            if not item in all_projs and not item in all_targets:
+              print("[excons] No static library for \"%s\". Project \"%s\" ignored." % (item, prj))
+              missing = True
+              break
+            else:
+              tgts = filter(lambda x: os.path.splitext(str(x))[1].lower() not in (".so", ".dll", ".dylib"), all_projs.get(item, all_targets.get(item)))
+              penv.Append(LIBS=tgts)
+        if missing:
+          continue
+
+      if "linkflags" in settings:
+        penv.Append(LINKFLAGS=settings["linkflags"])
+
+      if "custom" in settings:
+        for customcall in settings["custom"]:
+          customcall(penv)
       
-      sout = []
+      odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, prj)
       
+      # On windows, also msvc-9.0
       if str(Platform()) == "win32":
-        if settings.get("win_separate_dll_and_lib", True):
-          if no_arch:
-            outbn = os.path.join(out_dir, mode_dir, "bin", prj)
-            impbn = os.path.join(out_dir, mode_dir, "lib", prj)
-          else:
-            outbn = os.path.join(out_dir, mode_dir, arch_dir, "bin", prj)
-            impbn = os.path.join(out_dir, mode_dir, arch_dir, "lib", prj)
+        msvcver = env.get("MSVC_VERSION", None)
+        if msvcver:
+          odir = os.path.join(odir, "msvc-%s" % msvcver)
+      if "bldprefix" in settings:
+        odir = os.path.join(odir, settings["bldprefix"])
+      
+      shared = True
+      if settings["type"] in ["program", "testprograms", "staticlib"]:
+        shared = False
+      
+      if str(Platform()) != "win32":
+        symvis = settings.get("symvis", None)
+        if symvis is None:
+          symvis = ("hidden" if settings["type"] != "sharedlib" else "default")
+        if symvis == "hidden":
+          penv.Append(CCFLAGS=["-fvisibility=hidden"])
+      
+      objs = []
+      for src in settings["srcs"]:
+        bn = os.path.splitext(os.path.basename(str(src)))[0]
+        if shared:
+          objs.append(penv.SharedObject(os.path.join(odir, bn), src))
         else:
-          if no_arch:
-            impbn = os.path.join(out_dir, mode_dir, "lib", prj)
-          else:
-            impbn = os.path.join(out_dir, mode_dir, arch_dir, "lib", prj)
-          outbn = impbn
-            
-        try:
-          os.makedirs(os.path.dirname(impbn))
-        except:
-          pass
+          objs.append(penv.StaticObject(os.path.join(odir, bn), src))
         
-        penv['no_import_lib'] = 1
-        penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
-        pout = penv.SharedLibrary(outbn, objs)
+      progress_nodes = set(map(lambda x: os.path.abspath(str(x[0])), objs))
+      
+      if alias != prj:
+        global help_targets
+        val = help_targets.get(alias, "")
+        if val:
+          val += ", "
+        val += prj
+        help_targets[alias] = val
+      
+      if settings["type"] == "sharedlib":
+        AddHelpTargets({prj: "Shared library" if not desc else desc})
+        
+        sout = []
+        
+        if str(Platform()) == "win32":
+          if settings.get("win_separate_dll_and_lib", True):
+            if no_arch:
+              outbn = os.path.join(out_dir, mode_dir, "bin", prj)
+              impbn = os.path.join(out_dir, mode_dir, "lib", prj)
+            else:
+              outbn = os.path.join(out_dir, mode_dir, arch_dir, "bin", prj)
+              impbn = os.path.join(out_dir, mode_dir, arch_dir, "lib", prj)
+          else:
+            if no_arch:
+              impbn = os.path.join(out_dir, mode_dir, "lib", prj)
+            else:
+              impbn = os.path.join(out_dir, mode_dir, arch_dir, "lib", prj)
+            outbn = impbn
+              
+          try:
+            os.makedirs(os.path.dirname(impbn))
+          except:
+            pass
+          
+          penv['no_import_lib'] = 1
+          penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
+          pout = penv.SharedLibrary(outbn, objs)
+          
+          # Cleanup
+          penv.Clean(pout, impbn+".lib")
+          penv.Clean(pout, impbn+".exp")
+          if float(mscver) > 7.1 and float(mscver) < 10.0:
+            penv.Clean(pout, outbn+".dll.manifest")
+          if GetArgument("debug", 0, int):
+            penv.Clean(pout, outbn+".ilk")
+            penv.Clean(pout, outbn+".pdb")
+        
+        else:
+          relpath = None
+          if prefix:
+            relpath = "/".join([".."] * (1 + prefix.count("/")))
+          
+          symlinks = set()
+          
+          penv["SHLIBPREFIX"] = ""
+          penv["SHLIBSUFFIX"] = ""
+          
+          outlibdir = os.path.join(out_dir, mode_dir).replace("\\", "/")
+          if not no_arch:
+            outlibdir += "/" + arch_dir
+          outlibdir += "/lib"
+          if prefix:
+            outlibdir += "/" + prefix
+          
+          outlibname = "lib%s" % prj
+          
+          version = settings.get("version", None)
+          if version:
+            if sys.platform == "darwin":
+              outlibname += ".%s.dylib" % version
+              symlinks.add("%s/lib%s.dylib" % (outlibdir, prj))
+            else:
+              outlibname += ".so.%s" % version
+              symlinks.add("%s/lib%s.so" % (outlibdir, prj))
+          else:
+            outlibname += (".dylib" if sys.platform == "darwin" else ".so")
+          
+          # Setup rpath
+          SetRPath(penv, settings, relpath=relpath)
+          
+          # Setup library name
+          if sys.platform == "darwin":
+            libname = settings.get("install_name", "lib%s.dylib" % prj)
+            if not ".dylib" in libname:
+              libname += ".dylib"
+            if libname != outlibname:
+              symlinks.add("%s/%s" % (outlibdir, libname))
+            if not libname.startswith("@rpath"):
+              libname = "@rpath/%s" % libname
+            penv.Append(LINKFLAGS=" -Wl,-install_name,%s" % libname)
+          
+          else:
+            libname = settings.get("soname", "lib%s.so" % prj)
+            if not ".so" in libname:
+              libname += ".so"
+            if libname != outlibname:
+              symlinks.add("%s/%s" % (outlibdir, libname))
+            penv.Append(LINKFLAGS=" -Wl,-soname,%s" % libname)
+          
+          # Declare library target
+          pout = penv.SharedLibrary(outlibdir + "/" + outlibname, objs)
+          
+          # create symlinks
+          for symlink in symlinks:
+            sout.extend(penv.Symlink(symlink, pout))
+        
+        progress_nodes.add(os.path.abspath(str(pout[0])))
+        
+        add_deps(pout)
+        
+        if sout:
+          sout.extend(pout)
+          pout = sout
+      
+      elif settings["type"] == "program":
+        AddHelpTargets({prj: "Program" if not desc else desc})
+        
+        outbindir = os.path.join(out_dir, mode_dir).replace("\\", "/")
+        if not no_arch:
+          outbindir += "/" + arch_dir
+        outbindir += "/bin"
+        if prefix:
+          outbindir += "/" + prefix
+        
+        outbn = outbindir + "/" + prj
+        
+        if GetArgument("no-console", 0, int) or ("console" in settings and settings["console"] is False):
+          NoConsole(penv)
+        
+        SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(GetArgument("stack-size", None))))
+        
+        if prefix:
+          relpath = "/".join([".."] * (1 + prefix.count("/"))) + "/../lib"
+        else:
+          relpath = "../lib"
+        
+        SetRPath(penv, settings, relpath=relpath)
+        
+        pout = penv.Program(outbn, objs)
+        
+        progress_nodes.add(os.path.abspath(str(pout[0])))
+        
+        add_deps(pout)
         
         # Cleanup
-        penv.Clean(pout, impbn+".lib")
-        penv.Clean(pout, impbn+".exp")
-        if float(mscver) > 7.1 and float(mscver) < 10.0:
-          penv.Clean(pout, outbn+".dll.manifest")
-        if GetArgument("debug", 0, int):
-          penv.Clean(pout, outbn+".ilk")
-          penv.Clean(pout, outbn+".pdb")
+        if str(Platform()) == "win32":
+          if float(mscver) > 7.1 and float(mscver) < 10.0:
+            penv.Clean(pout, outbn+".exe.manifest")
+          if GetArgument("debug", 0, int):
+            penv.Clean(pout, outbn+".ilk")
+            penv.Clean(pout, outbn+".pdb")
       
-      else:
-        relpath = None
-        if prefix:
-          relpath = "/".join([".."] * (1 + prefix.count("/")))
-        
-        symlinks = set()
-        
-        penv["SHLIBPREFIX"] = ""
-        penv["SHLIBSUFFIX"] = ""
+      elif settings["type"] == "staticlib":
+        AddHelpTargets({prj: "Static library" if not desc else desc})
         
         outlibdir = os.path.join(out_dir, mode_dir).replace("\\", "/")
         if not no_arch:
@@ -1208,205 +1364,107 @@ def DeclareTargets(env, prjs):
         if prefix:
           outlibdir += "/" + prefix
         
-        outlibname = "lib%s" % prj
+        # It seems that is there's a '.' in prj, SCons fails to add extension
+        # Let's force it
+        pout = penv.StaticLibrary(outlibdir + "/" + prj + penv["LIBSUFFIX"], objs)
         
-        version = settings.get("version", None)
-        if version:
-          if sys.platform == "darwin":
-            outlibname += ".%s.dylib" % version
-            symlinks.add("%s/lib%s.dylib" % (outlibdir, prj))
-          else:
-            outlibname += ".so.%s" % version
-            symlinks.add("%s/lib%s.so" % (outlibdir, prj))
+        progress_nodes.add(os.path.abspath(str(pout[0])))
+        
+        add_deps(pout)
+      
+      elif settings["type"] == "testprograms":
+        AddHelpTargets({prj: "Programs" if not desc else desc})
+        
+        pout = []
+        
+        outbindir = os.path.join(out_dir, mode_dir).replace("\\", "/")
+        if not no_arch:
+          outbindir += "/" + arch_dir
+        outbindir += "/bin"
+        if prefix:
+          outbindir += "/" + prefix
+        
+        if GetArgument("no-console", 0, int) or ("console" in settings and settings["console"] is False):
+          NoConsole(penv)
+        
+        SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(GetArgument("stack-size", None))))
+        
+        if prefix:
+          relpath = "/".join([".."] * (1 + prefix.count("/"))) + "/../lib"
         else:
-          outlibname += (".dylib" if sys.platform == "darwin" else ".so")
-        
-        # Setup rpath
+          relpath = "../lib"
         SetRPath(penv, settings, relpath=relpath)
         
-        # Setup library name
-        if sys.platform == "darwin":
-          libname = settings.get("install_name", "lib%s.dylib" % prj)
-          if not ".dylib" in libname:
-            libname += ".dylib"
-          if libname != outlibname:
-            symlinks.add("%s/%s" % (outlibdir, libname))
-          if not libname.startswith("@rpath"):
-            libname = "@rpath/%s" % libname
-          penv.Append(LINKFLAGS=" -Wl,-install_name,%s" % libname)
+        for obj in objs:
+          name = os.path.splitext(os.path.basename(str(obj)))[0]
+          
+          outbn = outbindir + "/" + name
+          
+          prg = penv.Program(outbn, obj)
+          
+          progress_nodes.add(os.path.abspath(str(prg[0])))
+          
+          add_deps(prg)
+          
+          pout.append(prg)
+          
+          # Cleanup
+          if str(Platform()) == "win32":
+            if float(mscver) > 7.1 and float(mscver) < 10.0:
+              penv.Clean(prg, outbn+".exe.manifest")
+            if GetArgument("debug", 0, int):
+              penv.Clean(prg, outbn+".ilk")
+              penv.Clean(prg, outbn+".pdb")
+      
+      elif settings["type"] == "dynamicmodule":
+        AddHelpTargets({prj: "Dynamic module" if not desc else desc})
         
-        else:
-          libname = settings.get("soname", "lib%s.so" % prj)
-          if not ".so" in libname:
-            libname += ".so"
-          if libname != outlibname:
-            symlinks.add("%s/%s" % (outlibdir, libname))
-          penv.Append(LINKFLAGS=" -Wl,-soname,%s" % libname)
+        outmoddir = os.path.join(out_dir, mode_dir)
+        if not no_arch:
+          outmoddir += "/" + arch_dir
+        if prefix:
+          outmoddir += "/" + prefix
         
-        # Declare library target
-        pout = penv.SharedLibrary(outlibdir + "/" + outlibname, objs)
-        
-        # create symlinks
-        for symlink in symlinks:
-          sout.extend(penv.Symlink(symlink, pout))
-      
-      progress_nodes.add(os.path.abspath(str(pout[0])))
-      
-      add_deps(pout)
-      
-      if sout:
-        sout.extend(pout)
-        pout = sout
-    
-    elif settings["type"] == "program":
-      AddHelpTargets({prj: "Program" if not desc else desc})
-      
-      outbindir = os.path.join(out_dir, mode_dir).replace("\\", "/")
-      if not no_arch:
-        outbindir += "/" + arch_dir
-      outbindir += "/bin"
-      if prefix:
-        outbindir += "/" + prefix
-      
-      outbn = outbindir + "/" + prj
-      
-      if GetArgument("no-console", 0, int) or ("console" in settings and settings["console"] is False):
-        NoConsole(penv)
-      
-      SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(GetArgument("stack-size", None))))
-      
-      if prefix:
-        relpath = "/".join([".."] * (1 + prefix.count("/"))) + "/../lib"
-      else:
-        relpath = "../lib"
-      
-      SetRPath(penv, settings, relpath=relpath)
-      
-      pout = penv.Program(outbn, objs)
-      
-      progress_nodes.add(os.path.abspath(str(pout[0])))
-      
-      add_deps(pout)
-      
-      # Cleanup
-      if str(Platform()) == "win32":
-        if float(mscver) > 7.1 and float(mscver) < 10.0:
-          penv.Clean(pout, outbn+".exe.manifest")
-        if GetArgument("debug", 0, int):
-          penv.Clean(pout, outbn+".ilk")
-          penv.Clean(pout, outbn+".pdb")
-    
-    elif settings["type"] == "staticlib":
-      AddHelpTargets({prj: "Static library" if not desc else desc})
-      
-      outlibdir = os.path.join(out_dir, mode_dir).replace("\\", "/")
-      if not no_arch:
-        outlibdir += "/" + arch_dir
-      outlibdir += "/lib"
-      if prefix:
-        outlibdir += "/" + prefix
-      
-      # It seems that is there's a '.' in prj, SCons fails to add extension
-      # Let's force it
-      pout = penv.StaticLibrary(outlibdir + "/" + prj + penv["LIBSUFFIX"], objs)
-      
-      progress_nodes.add(os.path.abspath(str(pout[0])))
-      
-      add_deps(pout)
-    
-    elif settings["type"] == "testprograms":
-      AddHelpTargets({prj: "Programs" if not desc else desc})
-      
-      pout = []
-      
-      outbindir = os.path.join(out_dir, mode_dir).replace("\\", "/")
-      if not no_arch:
-        outbindir += "/" + arch_dir
-      outbindir += "/bin"
-      if prefix:
-        outbindir += "/" + prefix
-      
-      if GetArgument("no-console", 0, int) or ("console" in settings and settings["console"] is False):
-        NoConsole(penv)
-      
-      SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(GetArgument("stack-size", None))))
-      
-      if prefix:
-        relpath = "/".join([".."] * (1 + prefix.count("/"))) + "/../lib"
-      else:
-        relpath = "../lib"
-      SetRPath(penv, settings, relpath=relpath)
-      
-      for obj in objs:
-        name = os.path.splitext(os.path.basename(str(obj)))[0]
-        
-        outbn = outbindir + "/" + name
-        
-        prg = penv.Program(outbn, obj)
-        
-        progress_nodes.add(os.path.abspath(str(prg[0])))
-        
-        add_deps(prg)
-        
-        pout.append(prg)
-        
-        # Cleanup
         if str(Platform()) == "win32":
+          outbn = outmoddir + "/" + prj
+          penv["SHLIBPREFIX"] = ""
+          if "ext" in settings:
+            penv["SHLIBSUFFIX"] = settings["ext"]
+         
+          # set import lib in build folder
+          impbn = os.path.join(odir, os.path.basename(prj))
+          penv['no_import_lib'] = 1
+          penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
+          pout = penv.SharedLibrary(outbn, objs)
+          
+          # Cleanup
+          penv.Clean(pout, impbn+".lib")
+          penv.Clean(pout, impbn+".exp")
           if float(mscver) > 7.1 and float(mscver) < 10.0:
-            penv.Clean(prg, outbn+".exe.manifest")
+            penv.Clean(pout, outbn+penv["SHLIBSUFFIX"]+".manifest")
+          
           if GetArgument("debug", 0, int):
-            penv.Clean(prg, outbn+".ilk")
-            penv.Clean(prg, outbn+".pdb")
-    
-    elif settings["type"] == "dynamicmodule":
-      AddHelpTargets({prj: "Dynamic module" if not desc else desc})
-      
-      outmoddir = os.path.join(out_dir, mode_dir)
-      if not no_arch:
-        outmoddir += "/" + arch_dir
-      if prefix:
-        outmoddir += "/" + prefix
-      
-      if str(Platform()) == "win32":
-        outbn = outmoddir + "/" + prj
-        penv["SHLIBPREFIX"] = ""
-        if "ext" in settings:
-          penv["SHLIBSUFFIX"] = settings["ext"]
-       
-        # set import lib in build folder
-        impbn = os.path.join(odir, os.path.basename(prj))
-        penv['no_import_lib'] = 1
-        penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
-        pout = penv.SharedLibrary(outbn, objs)
+            penv.Clean(pout, outbn+".ilk")
+            penv.Clean(pout, outbn+".pdb")
         
-        # Cleanup
-        penv.Clean(pout, impbn+".lib")
-        penv.Clean(pout, impbn+".exp")
-        if float(mscver) > 7.1 and float(mscver) < 10.0:
-          penv.Clean(pout, outbn+penv["SHLIBSUFFIX"]+".manifest")
+        else:
+          penv["LDMODULEPREFIX"] = ""
+          if "ext" in settings:
+            penv["LDMODULESUFFIX"] = settings["ext"]
+          else:
+            if str(Platform()) == "darwin":
+              penv["LDMODULESUFFIX"] = ".bundle"
+          
+          SetRPath(penv, settings)
+          
+          pout = penv.LoadableModule(outmoddir + "/" + prj, objs)
         
-        if GetArgument("debug", 0, int):
-          penv.Clean(pout, outbn+".ilk")
-          penv.Clean(pout, outbn+".pdb")
+        progress_nodes.add(os.path.abspath(str(pout[0])))
+        
+        add_deps(pout)
       
       else:
-        penv["LDMODULEPREFIX"] = ""
-        if "ext" in settings:
-          penv["LDMODULESUFFIX"] = settings["ext"]
-        else:
-          if str(Platform()) == "darwin":
-            penv["LDMODULESUFFIX"] = ".bundle"
-        
-        SetRPath(penv, settings)
-        
-        pout = penv.LoadableModule(outmoddir + "/" + prj, objs)
-      
-      progress_nodes.add(os.path.abspath(str(pout[0])))
-      
-      add_deps(pout)
-    
-    else:
-      pout = None
+        pout = None
     
     if pout:
       if "post" in settings:
