@@ -48,7 +48,8 @@ def Outputs(name):
    cof = OutputsCachePath(name)
    if os.path.isfile(cof):
       with open(cof, "r") as f:
-         lst = excons.NormalizedRelativePaths(filter(lambda y: len(y)>0, map(lambda x: x.strip(), f.readlines())), ".")
+         lines = filter(lambda y: len(y)>0, map(lambda x: x.strip(), f.readlines()))
+         lst = map(lambda x: excons.out_dir + "/" + x, lines)
    return lst
 
 def Configure(name, opts={}):
@@ -144,7 +145,6 @@ def Build(name, target=None):
    if not Configure(env, name, opts, internal=True):
       return False
 
-   cwd = os.path.abspath(".")
    ccf = ConfigCachePath(name)
    cof = OutputsCachePath(name)
 
@@ -155,7 +155,7 @@ def Build(name, target=None):
    symlinks = {}
    success = False
 
-   with excons.SafeChdir(BuildDir(name), cur=cwd, tool="automake"):
+   with excons.SafeChdir(BuildDir(name), tool="automake"):
       if target is None:
          target = "install"
       njobs = GetOption("num_jobs")
@@ -220,7 +220,7 @@ def Build(name, target=None):
                   lst.append(sln)
                   #print("ADD - %s" % sln)
       lst.sort()
-      f.write("\n".join(excons.NormalizedRelativePaths(lst, cwd)))
+      f.write("\n".join(excons.NormalizedRelativePaths(lst, excons.out_dir)))
 
    return success
 

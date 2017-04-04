@@ -48,7 +48,8 @@ def Outputs(name):
    cof = OutputsCachePath(name)
    if os.path.isfile(cof):
       with open(cof, "r") as f:
-         lst = excons.NormalizedRelativePaths(filter(lambda y: len(y)>0, map(lambda x: x.strip(), f.readlines())), ".")
+         lines = filter(lambda y: len(y)>0, map(lambda x: x.strip(), f.readlines()))
+         lst = map(lambda x: excons.out_dir + "/" + x, lines)
    return lst
 
 def Configure(name, opts={}):
@@ -75,9 +76,8 @@ def Configure(name, opts={}):
    else:
       doconf = True
 
-   cwd = os.path.abspath(".")
    bld = BuildDir(name)
-   relpath = os.path.relpath(cwd, bld)
+   relpath = os.path.relpath(os.path.abspath("."), bld)
 
    if not os.path.isdir(bld):
       doconf = True
@@ -101,7 +101,7 @@ def Configure(name, opts={}):
 
    success = False
 
-   with excons.SafeChdir(bld, cur=cwd, tool="cmake"):
+   with excons.SafeChdir(bld, tool="cmake"):
       cmd = "cmake "
       if sys.platform == "win32":
          try:
@@ -156,7 +156,6 @@ def Build(name, config=None, target=None):
    if GetOption("clean"):
       return True
 
-   cwd = os.path.abspath(".")
    ccf = ConfigCachePath(name)
    cof = OutputsCachePath(name)
 
@@ -166,7 +165,7 @@ def Build(name, config=None, target=None):
    success = False
    outfiles = []
 
-   with excons.SafeChdir(BuildDir(name), cur=cwd, tool="cmake"):
+   with excons.SafeChdir(BuildDir(name), tool="cmake"):
       if config is None:
          config = excons.mode_dir
 
@@ -203,7 +202,7 @@ def Build(name, config=None, target=None):
    # Write list of outputed files
    with open(cof, "w") as f:
       outfiles.sort()
-      f.write("\n".join(excons.NormalizedRelativePaths(outfiles, cwd)))
+      f.write("\n".join(excons.NormalizedRelativePaths(outfiles, excons.out_dir)))
 
    return success
 
