@@ -1130,6 +1130,7 @@ def DeclareTargets(env, prjs):
     if settings["type"] in ext_types:
       pout = ext_types[settings["type"]](penv, settings)
       if pout:
+        AddHelpTargets({prj: ("Build %s project" % settings["type"]) if not desc else desc})
         add_deps(pout)
 
     else:
