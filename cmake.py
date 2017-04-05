@@ -52,12 +52,15 @@ def Outputs(name):
          lst = map(lambda x: excons.out_dir + "/" + x, lines)
    return lst
 
-def Configure(name, opts={}):
+def Configure(name, topdir=None, opts={}):
    if GetOption("clean"):
       return True
 
+   if topdir is None:
+      topdir = os.path.abspath(".")
+
    bld = BuildDir(name)
-   relpath = os.path.relpath(os.path.abspath("."), bld)
+   relpath = os.path.relpath(topdir, bld)
 
    success = False
 
@@ -100,6 +103,15 @@ def Configure(name, opts={}):
 
    return success
 
+def ParseOutputsInLines(lines, outfiles):
+   for line in lines:
+      excons.Print(line, tool="cmake")
+      m = InstallExp.match(line.strip())
+      if m is not None:
+         f = m.group(2)
+         if not os.path.isdir(f):
+            outfiles.add(f)
+
 def Build(name, config=None, target=None):
    if GetOption("clean"):
       return True
@@ -111,7 +123,7 @@ def Build(name, config=None, target=None):
       return False
 
    success = False
-   outfiles = []
+   outfiles = set()
 
    with excons.SafeChdir(BuildDir(name), tool="cmake"):
       if config is None:
@@ -137,22 +149,18 @@ def Build(name, config=None, target=None):
          buf += r
          lines = buf.split("\n")
          if len(lines) > 1:
-            for i in xrange(len(lines)-1):
-               excons.Print(lines[i], tool="cmake")
-               m = InstallExp.match(lines[i].strip())
-               if m is not None:
-                  f = m.group(2)
-                  if os.path.isfile(f):
-                     outfiles.append(f)
             buf = lines[-1]
+            ParseOutputsInLines(lines[:-1], outfiles)
+      ParseOutputsInLines(buf.split("\n"), outfiles)
       excons.Print(buf, tool="cmake")
 
       success = (p.returncode == 0)
 
    # Write list of outputed files
    with open(cof, "w") as f:
-      outfiles.sort()
-      f.write("\n".join(excons.NormalizedRelativePaths(outfiles, excons.out_dir)))
+      lst = list(outfiles)
+      lst.sort()
+      f.write("\n".join(excons.NormalizedRelativePaths(lst, excons.out_dir)))
 
    return success
 

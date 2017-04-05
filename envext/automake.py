@@ -51,7 +51,7 @@ def AutoconfAction(target, source, env):
    return None
 
 def ConfigureAction(target, source, env):
-   if not automake.Configure(env["AUTOMAKE_PROJECT"], opts=env["AUTOMAKE_OPTIONS"]):
+   if not automake.Configure(env["AUTOMAKE_PROJECT"], topdir=env["AUTOMAKE_TOPDIR"], opts=env["AUTOMAKE_OPTIONS"]):
       if os.path.isfile(env["AUTOMAKE_CONFIG_CACHE"]):
          os.remove(env["AUTOMAKE_CONFIG_CACHE"])
       if os.path.isfile(env["AUTOMAKE_MAKEFILE"]):
@@ -79,6 +79,7 @@ def SetupEnvironment(env, settings):
    # Override default C/C++ file scanner to avoid SCons being too nosy
    env.Prepend(SCANNERS=Scanner(function=DummyScanner, skeys=cexts))
    env["AUTOMAKE_PROJECT"] = name
+   env["AUTOMAKE_TOPDIR"] = os.path.abspath(".")
    env["AUTOMAKE_OPTIONS"] = opts
    env["AUTOMAKE_TARGET"] = settings.get("automakeg-target", "install")
    env["AUTOMAKE_CONFIGURE"] = conff

@@ -8,7 +8,7 @@ def DummyScanner(node, env, path):
    return []
 
 def ConfigureAction(target, source, env):
-   if not cmake.Configure(env["CMAKE_PROJECT"], opts=env["CMAKE_OPTIONS"]):
+   if not cmake.Configure(env["CMAKE_PROJECT"], topdir=env["CMAKE_TOPDIR"], opts=env["CMAKE_OPTIONS"]):
       if os.path.isfile(env["CMAKE_CONFIG_CACHE"]):
          os.remove(env["CMAKE_CONFIG_CACHE"])
       if os.path.isfile(env["CMAKE_CACHE"]):
@@ -32,6 +32,7 @@ def SetupEnvironment(env, settings):
    # Override default C/C++ file scanner to avoid SCons being too nosy
    env.Prepend(SCANNERS=Scanner(function=DummyScanner, skeys=cexts))
    env["CMAKE_PROJECT"] = name
+   env["CMAKE_TOPDIR"] = os.path.abspath(".")
    env["CMAKE_OPTIONS"] = opts
    env["CMAKE_CONFIG"] = settings.get("cmake-config", ("debug" if debug else "release"))
    env["CMAKE_TARGET"] = settings.get("cmake-target", "install")

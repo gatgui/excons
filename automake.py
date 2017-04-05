@@ -53,12 +53,15 @@ def Outputs(name):
          lst = map(lambda x: excons.out_dir + "/" + x, lines)
    return lst
 
-def Configure(name, opts={}):
+def Configure(name, topdir=None, opts={}):
    if GetOption("clean"):
       return True
 
+   if topdir is None:
+      topdir = os.path.abspath(".")
+
    bld = BuildDir(name)
-   relpath = os.path.relpath(os.path.abspath("."), bld)
+   relpath = os.path.relpath(topdir, bld)
 
    success = False
 
@@ -79,6 +82,35 @@ def Configure(name, opts={}):
       success = (p.returncode == 0)
 
    return success
+
+def ParseOutputsInLines(lines, outfiles, symlinks):
+   for line in lines:
+      excons.Print(line, tool="automake")
+      m = InstallExp.match(line.strip())
+      if m is not None:
+         f = m.group(7)
+         if os.path.isdir(f):
+            items = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), m.group(4).split(" ")))
+            for item in items:
+               o = f + "/" + os.path.basename(item)
+               outfiles.add(o)
+               #print("ADD - %s" % o)
+         else:
+            outfiles.add(f)
+            #print("ADD - %s" % f)
+      else:
+         m = SymlinkExp.search(line.strip())
+         if m:
+            srcdst = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), m.group(3).split(" ")))
+            count = len(srcdst)
+            if count % 2 == 0:
+               mid = count / 2
+               src = " ".join(srcdst[:mid])
+               dst = " ".join(srcdst[mid:])
+               lst = symlinks.get(src, [])
+               lst.append(dst)
+               symlinks[src] = lst
+               #print("SYMLINK - %s -> %s" % (src, dst))
 
 def Build(name, target=None):
    if GetOption("clean"):
@@ -113,34 +145,9 @@ def Build(name, target=None):
          buf += r
          lines = buf.split("\n")
          if len(lines) > 1:
-            for i in xrange(len(lines)-1):
-               excons.Print(lines[i], tool="automake")
-               m = InstallExp.match(lines[i].strip())
-               if m is not None:
-                  f = m.group(7)
-                  if os.path.isdir(f):
-                     items = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), m.group(4).split(" ")))
-                     for item in items:
-                        o = f + "/" + os.path.basename(item)
-                        outfiles.add(o)
-                        #print("ADD - %s" % o)
-                  else:
-                     outfiles.add(f)
-                     #print("ADD - %s" % f)
-               else:
-                  m = SymlinkExp.search(lines[i].strip())
-                  if m:
-                     srcdst = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), m.group(3).split(" ")))
-                     count = len(srcdst)
-                     if count % 2 == 0:
-                        mid = count / 2
-                        src = " ".join(srcdst[:mid])
-                        dst = " ".join(srcdst[mid:])
-                        lst = symlinks.get(src, [])
-                        lst.append(dst)
-                        symlinks[src] = lst
-                        #print("SYMLINK - %s -> %s" % (src, dst))
             buf = lines[-1]
+            ParseOutputsInLines(lines[:-1], outfiles, symlinks)
+      ParseOutputsInLines(buf.split("\n"), outfiles, symlinks)
       excons.Print(buf, tool="automake")
 
       success = (p.returncode == 0)
