@@ -23,6 +23,7 @@ import platform
 import re
 import sys
 import imp
+import string
 import subprocess
 from SCons.Script import *
 
@@ -535,6 +536,14 @@ def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=
   
   return (inc_dir, lib_dir)
 
+def SharedLibraryLinkExt():
+  if sys.platform == "win32":
+    return ".lib"
+  elif sys.platform == "darwin":
+    return ".dylib"
+  else:
+    return ".so"
+
 def LibraryFullpath(env, lib, static=False):
   paths = env["LIBPATH"]
 
@@ -547,7 +556,7 @@ def LibraryFullpath(env, lib, static=False):
   else:
     global arch_dir
 
-    basename = "lib%s%s" % (lib, (".a" if static else ".so"))
+    basename = "lib%s%s" % (lib, SharedLibraryLinkExt())
 
     if arch_dir == "x64":
       if not "/usr/local/lib64" in paths:
@@ -1113,6 +1122,73 @@ def SyncCache():
 
   if not args_no_cache and args_cache:
     args_cache.write()
+
+def ExternalLibHelp(name):
+  return string.Template("""EXTERNAL ${uc_name} OPTIONS
+  with-${name}=<path>     : ${name} prefix.
+  with-${name}-inc=<path> : ${name} headers directory.           [<prefix>/include]
+  with-${name}-lib=<path> : ${name} libraries directory.         [<prefix>/lib]
+  ${name}-static=0|1      : Link ${name} statically.             [0]
+  ${name}-libname=<str>   : Override ${name} library name.       []
+  ${name}-libsuffix=<str> : Default ${name} library name suffix. [] (ignored when ${name}-libname is set)""").substitute(uc_name=name.upper(), name=name)
+
+# parameters
+#   libnameFunc: f(static) -> str
+#   definesFunc: f(static) -> []
+#   extraEnvFunc f(env, static) -> g(env)
+def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=None):
+  global arch_dir
+
+  rv = {"require": None,
+        "incdir": None,
+        "libdir": None,
+        "libname": None,
+        "libpath": None,
+        "static": None}
+
+  incdir, libdir = GetDirs(name)
+  if incdir and libdir:
+    libname = GetArgument("%s-libname" % name, None)
+    staticlink = (GetArgument("%s-static" % name, 0, int) != 0)
+
+    if libname is None:
+      libname = (name if libnameFunc is None else libnameFunc(staticlink))
+      libname += GetArgument("%s-libsuffix" % name, "")
+
+    if sys.platform == "win32":
+      libpath = libdir + "/" + libname + ".lib"
+
+    else:
+      #not os.path.isfile(libpath)
+      libext = (".a" if staticlink else SharedLibraryLinkExt())
+      libpath = None
+      if arch_dir == "x64" and not libdir.endswith("64"):
+        libpath = libdir + "64/lib" + libname + libext
+        if not os.path.isfile(libpath):
+          libpath = None
+        else:
+          libdir = libdir + "64"
+      if libpath is None:
+        libpath = libdir + "/lib" + libname + libext
+
+    if os.path.isfile(libpath):
+      def RequireFunc(env):
+        if definesFunc:
+          env.Append(CPPDEFINES=definesFunc(staticlink))
+        env.Append(CPPPATH=[incdir])
+        env.Append(LIBPATH=[libdir])
+        Link(env, libname, static=staticlink, force=True, silent=True)
+        if extraEnvFunc:
+          extraEnvFunc(env, static)
+
+      rv["require"] = RequireFunc
+      rv["incdir"] = incdir
+      rv["libdir"] = libdir
+      rv["libname"] = libname
+      rv["libpath"] = libpath
+      rv["static"] = staticlink
+
+  return rv
 
 def DeclareTargets(env, prjs):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets, all_progress, ext_types

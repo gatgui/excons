@@ -205,3 +205,22 @@ def Clean():
    for name in names:
       CleanOne(name)
 
+def ExternalLibRequire(configOpts, name, libnameFunc=None, definesFunc=None, extraEnvFunc=None, varPrefix=None):
+   rv = excons.ExternalLibRequire(name, libnameFunc=libnameFunc, definesFunc=definesFunc, extraEnvFunc=extraEnvFunc)
+
+   req = rv["require"]
+
+   if req is not None:
+      defines = ("" if definesFunc is None else definesFunc(rv["static"]))
+      if defines:
+         extraflags = " ".join(map(lambda x: "-D%s" % x, defines))
+         configOpts["CMAKE_CPP_FLAGS"] = "%s %s" % (configOpts.get("CMAKE_CPP_FLAGS", ""), extraflags)
+
+      if varPrefix is None:
+         varPrefix = name.upper() + "_"
+         excons.PrintOnce("Use CMake variable prefix '%s' for external dependency '%s'" % (varPrefix, name))
+
+      configOpts["%sINCLUDE_DIR" % varPrefix] = rv["incdir"]
+      configOpts["%sLIBRARY" % varPrefix] = rv["libpath"]
+
+   return req
