@@ -535,15 +535,20 @@ def GetDirsWithDefault(name, incdirname="include", libdirname="lib", libdirarch=
   
   return (inc_dir, lib_dir)
 
-def StaticallyLink(env, lib, silent=False):
-  global arch_dir
+def LibraryFullpath(env, lib, static=False):
+  paths = env["LIBPATH"]
+
+  basename = lib
 
   if sys.platform == "win32":
-    env.Append(LIBS=[lib])
-    return True
+    # Use import library for dlls
+    basename += ".lib"
 
   else:
-    paths = env["LIBPATH"]
+    global arch_dir
+
+    basename = "lib%s%s" % (lib, (".a" if static else ".so"))
+
     if arch_dir == "x64":
       if not "/usr/local/lib64" in paths:
         paths.append("/usr/local/lib64")
@@ -554,16 +559,39 @@ def StaticallyLink(env, lib, silent=False):
     if not "/usr/lib" in paths:
       paths.append("/usr/lib")
 
-    for path in paths:
-      libpath = "%s/lib%s.a" % (path, lib)
-      if os.path.isfile(libpath):
-        env.Append(LIBS=[env.File(libpath)])
-        return True
+  for path in paths:
+    libpath = "%s/%s" % (path, basename)
+    if os.path.isfile(libpath):
+      return libpath
 
+  return None
+
+def StaticallyLink(env, lib, silent=False):
+  if sys.platform == "win32":
+    env.Append(LIBS=[lib])
+    return True
+  else:
+    fullpath = LibraryFullpath(env, lib, static=True)
+    if fullpath is None:
+      if not silent:
+        WarnOnce("Could not find static lib for '%s'" % lib)
+      return False
+    else:
+      env.Append(LIBS=[env.File(fullpath)])
+      return True
+
+def Link(env, lib, static=False, force=True, silent=False):
+  fullpath = LibraryFullpath(env, lib, static=static)
+  if fullpath is None:
     if not silent:
-      WarnOnce("Could not find static lib for '%s'" % lib)
-    
-    return False
+      WarnOnce("Could not find %s lib for '%s'" % ("static" if static else "shared", lib))
+    if force:
+      env.Append(LIBS=[lib])
+  else:
+    if sys.platform == "win32" or not static:
+      env.Append(LIBS=[lib])
+    else:
+      env.Append(LIBS=[env.File(fullpath)])
 
 class SafeChdir(object):
   def __init__(self, to, cur=None, tool=None):
