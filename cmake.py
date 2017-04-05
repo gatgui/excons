@@ -56,48 +56,8 @@ def Configure(name, opts={}):
    if GetOption("clean"):
       return True
 
-   doconf = False
-   ccf = ConfigCachePath(name)
-   if os.path.isfile(ccf):
-      with open(ccf, "r") as f:
-         try:
-            d = eval(f.read())
-            for k, v in d.iteritems():
-               if not k in opts or opts[k] != v:
-                  doconf = True
-                  break
-            if not doconf:
-               for k, v in opts.iteritems():
-                  if not k in d:
-                     doconf = True
-                     break
-         except:
-            doconf = True
-   else:
-      doconf = True
-
    bld = BuildDir(name)
    relpath = os.path.relpath(os.path.abspath("."), bld)
-
-   if not os.path.isdir(bld):
-      doconf = True
-      try:
-         os.makedirs(bld)
-      except:
-         if os.path.isfile(ccf):
-            os.remove(ccf)
-         return False
-   else:
-      CMakeCache = bld + "/CMakeCache.txt"
-      if os.path.isfile(CMakeCache):
-         if int(ARGUMENTS.get("reconfigure", "0")) != 0:
-            os.remove(CMakeCache)
-            doconf = True
-      else:
-         doconf = True
-
-   if not doconf:
-      return True
 
    success = False
 
@@ -118,12 +78,8 @@ def Configure(name, opts={}):
                cmd += "-G \"Visual Studio 14 2015 Win64\" "
             else:
                excons.Print("Unsupported visual studio version %s" % mscver, tool="cmake")
-               if os.path.isfile(ccf):
-                  os.remove(ccf)
                return False
          except:
-            if os.path.isfile(ccf):
-               os.remove(ccf)
             return False
       for k, v in opts.iteritems():
          cmd += "-D%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
@@ -141,14 +97,6 @@ def Configure(name, opts={}):
       p.communicate()
 
       success = (p.returncode == 0)
-
-   # Write out configuration cache
-   if success:
-      with open(ccf, "w") as f:
-         pprint.pprint(opts, stream=f)
-   else:
-      if os.path.isfile(ccf):
-         os.remove(ccf)
 
    return success
 
