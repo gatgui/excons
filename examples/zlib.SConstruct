@@ -1,24 +1,21 @@
 import sys
 import re
 import excons
+import excons.cmake as cmake
 
 
 env = excons.MakeBaseEnv()
 
-#env.CMakeConfigure("zlib", opts={"AMD64": 1})
-env.CMakeConfigure("zlib")
+prjs = [
+   {  "name": "zlib",
+      "type": "cmake",
+      "cmake-opts": {"AMD64": excons.GetArgument("AMD64", 0, int)},
+      "cmake-cfgs": excons.CollectFiles(".", patterns=["CMakeLists.txt", "*.cmakein"], recursive=True),
+      "cmake-srcs": excons.CollectFiles(".", patterns=["*.c", "*.S"], recursive=True)
+   }
+]
 
-out_incdir = excons.OutputBaseDirectory() + "/include"
-out_libdir = excons.OutputBaseDirectory() + "/lib"
+excons.AddHelpOptions(zlib="""CMAKE ZLIB OPTIONS
+  AMD64=0|1 : Enable building amd64 assembly implementation""")
 
-zconf_in = ["zconf.h.in"]
-zconf_out = env.CMakeGenerated(out_incdir + "/zconf.h", zconf_in)
-
-cmake_in = env.CMakeInputs(dirs=["."], patterns=[re.compile(r"^.*\.(cmakein|h|c|S)$")], exclude=zconf_in)
-cmake_out = env.CMakeOutputs(exclude=zconf_out)
-
-target = env.CMake(cmake_out, cmake_in)
-
-env.CMakeClean()
-env.Alias("zlib", target)
-
+excons.DeclareTargets(env, prjs)
