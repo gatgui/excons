@@ -141,7 +141,9 @@ def Build(name, config=None, target=None):
                excons.Print(lines[i], tool="cmake")
                m = InstallExp.match(lines[i].strip())
                if m is not None:
-                  outfiles.append(m.group(2))
+                  f = m.group(2)
+                  if os.path.isfile(f):
+                     outfiles.append(f)
             buf = lines[-1]
       excons.Print(buf, tool="cmake")
 
