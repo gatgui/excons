@@ -76,6 +76,9 @@ def SetupEnvironment(env, settings):
    bins.extend(cout)
    bout = cmake.Outputs(name) + [cmake.OutputsCachePath(name)]
 
+   out = env.CMake(bout, bins)
+
+   # Run clean last
    cmake.CleanOne(name)
 
-   return env.CMake(bout, bins)
+   return out
