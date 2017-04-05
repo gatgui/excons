@@ -54,69 +54,15 @@ def Outputs(name):
    return lst
 
 def Configure(name, opts={}):
-   if sys.platform == "win32":
-      return False
-
    if GetOption("clean"):
       return True
 
-   doconf = False
-   ccf = ConfigCachePath(name)
-   if os.path.isfile(ccf):
-      with open(ccf, "r") as f:
-         try:
-            d = eval(f.read())
-            for k, v in d.iteritems():
-               if not k in opts or opts[k] != v:
-                  doconf = True
-                  break
-            if not doconf:
-               for k, v in opts.iteritems():
-                  if not k in d:
-                     doconf = True
-                     break
-         except:
-            doconf = True
-   else:
-      doconf = True
-
-   cwd = os.path.abspath(".")
    bld = BuildDir(name)
-   relpath = os.path.relpath(cwd, bld)
-   if not os.path.isdir(bld):
-      doconf = True
-      try:
-         os.makedirs(bld)
-      except:
-         if os.path.isfile(ccf):
-            os.remove(ccf)
-         return False
-
-   configure = "%s/configure" % cwd
-   Makefile = "%s/Makefile" % bld
-
-   if not os.path.isfile(configure):
-      p = subprocess.Popen("autoreconf -vif", shell=True)
-      p.communicate()
-      if p.returncode != 0 or not os.path.isfile(configure):
-         return False
-
-   if os.path.isfile(Makefile):
-      if int(ARGUMENTS.get("reconfigure", "0")) != 0:
-         # Configure cache to remove?
-         os.remove(Makefile)
-         doconf = True
-      else:
-         return True
-   else:
-      doconf = True
-
-   if not doconf:
-      return True
+   relpath = os.path.relpath(os.path.abspath("."), bld)
 
    success = False
 
-   with excons.SafeChdir(bld, cur=cwd, tool="automake"):
+   with excons.SafeChdir(bld, tool="automake"):
       cmd = "%s/configure " % relpath
       for k, v in opts.iteritems():
          if type(v) == bool:
@@ -132,15 +78,7 @@ def Configure(name, opts={}):
 
       success = (p.returncode == 0)
 
-   if success and os.path.isfile(Makefile):
-      # Write out configuration cache
-      with open(ccf, "w") as f:
-         pprint.pprint(opts, stream=f)
-      return True
-   else:
-      if os.path.isfile(ccf):
-         os.remove(ccf)
-      return False
+   return success
 
 def Build(name, target=None):
    if GetOption("clean"):

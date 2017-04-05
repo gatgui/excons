@@ -24,7 +24,8 @@ def SetupEnvironment(env, settings):
 
    debug = (excons.GetArgument("debug", 0, int) != 0)
    opts = settings.get("cmake-opts", {})
-   cmakec = cmake.BuildDir(name) + "/CMakeCache.txt"
+   blddir = cmake.BuildDir(name)
+   cmakec = blddir + "/CMakeCache.txt"
    cfgc = cmake.ConfigCachePath(name)
    cexts = [".c", ".h", ".cc", ".hh", ".cpp", ".hpp", ".cxx", ".hxx"]
 
@@ -41,6 +42,12 @@ def SetupEnvironment(env, settings):
 
    # Check if we need to reconfigure
    if not GetOption("clean"):
+      if not os.path.isdir(blddir):
+         try:
+            os.makedirs(blddir)
+         except:
+            return None
+
       doconf = True
       if os.path.isfile(cfgc):
          doconf = False
