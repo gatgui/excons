@@ -21,6 +21,7 @@ import sys
 import excons
 import pprint
 import subprocess
+import excons
 import excons.automake as automake
 from SCons.Script import *
 
@@ -29,24 +30,25 @@ def DummyScanner(node, env, path):
    return []
 
 def AutoconfAction(target, source, env):
-   configure= env["AUTOMAKE_CONFIGURE"]
-   autogen = env["AUTOMAKE_AUTOGEN"]
+   with excons.SafeChdir(env["AUTOMAKE_TOPDIR"], tool="automake"):
+      configure= env["AUTOMAKE_CONFIGURE"]
+      autogen = env["AUTOMAKE_AUTOGEN"]
 
-   if os.path.isfile(autogen):
-      cmd = "sh %s" % autogen
-      excons.Print("Run Command: %s" % cmd, tool="automake")
-      p = subprocess.Popen(cmd, shell=True)
-      p.communicate()
-      if p.returncode != 0 or not os.path.isfile(configure):
-         raise Exception("Failed to generated 'configure' file")
+      if os.path.isfile(autogen):
+         cmd = "sh %s" % autogen
+         excons.Print("Run Command: %s" % cmd, tool="automake")
+         p = subprocess.Popen(cmd, shell=True)
+         p.communicate()
+         if p.returncode != 0 or not os.path.isfile(configure):
+            raise Exception("Failed to generated 'configure' file")
 
-   elif os.path.isfile(configure+".ac"):
-      cmd = "autoreconf -vif"
-      excons.Print("Run Command: %s" % cmd, tool="automake")
-      p = subprocess.Popen(cmd, shell=True)
-      p.communicate()
-      if p.returncode != 0 or not os.path.isfile(configure):
-         raise Exception("Failed to generated 'configure' file")
+      elif os.path.isfile(configure+".ac"):
+         cmd = "autoreconf -vif"
+         excons.Print("Run Command: %s" % cmd, tool="automake")
+         p = subprocess.Popen(cmd, shell=True)
+         p.communicate()
+         if p.returncode != 0 or not os.path.isfile(configure):
+            raise Exception("Failed to generated 'configure' file")
 
    return None
 
