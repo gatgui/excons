@@ -134,6 +134,8 @@ def Build(name, target=None):
       cmd = "make"
       if njobs > 1:
          cmd += " -j %d" % njobs
+      if excons.GetArgument("show-cmds", 0, int):
+         cmd += " V=1"
       cmd += " %s" % target
 
       excons.Print("Run Command: %s" % cmd, tool="automake")

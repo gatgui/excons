@@ -133,12 +133,24 @@ def Build(name, config=None, target=None):
          target = "install"
 
       cmd = "cmake --build . --config %s --target %s" % (config, target)
+
+      extraargs = ""
       njobs = GetOption("num_jobs")
       if njobs > 1:
          if sys.platform == "win32":
-            cmd += " -- /m:%d" % njobs
+            extraargs += " /m:%d" % njobs
          else:
-            cmd += " -- -j %d" % njobs
+            extraargs += " -j %d" % njobs
+      if excons.GetArgument("show-cmds", 0, int):
+         if sys.platform == "win32":
+            extraargs += " /v:n" # normal verbosity
+         else:
+            extraargs += " V=1"
+      else:
+         if sys.platform == "win32":
+            extraargs += " /v:m" # minimal verbosity
+      if extraargs:
+         cmd += " --" + extraargs
 
       excons.Print("Run Command: %s" % cmd, tool="cmake")
       p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
