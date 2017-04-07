@@ -26,12 +26,11 @@ def GetOptionsString():
   with-glut=<path>     : GLUT prefix                []
   with-glut-inc=<path> : GLUT headers directory     [<prefix>/include]
   with-glut-lib=<path> : GLUT libraries directory   [<prefix>/lib]
-  glut-libname=<str>   : Override GLUT library name []
-  glut-libsuffix=<str> : GLUT library suffix        ['']
-                         (ignored when glut-libname is set)
+  glut-name=<str>      : Override GLUT library name []
                          (default library name is glut32/glut64 on windows, glut on linux)
+  glut-suffix=<str>    : GLUT library suffix        ['']
+                         (ignored when glut-name is set)
   glut-static=0|1      : Use GLUT static library    [1]
-                         (additional 's' suffix to library name unless glut-libname is set)
 
   On OSX, library related options are ignored as the GLUT framework is used"""
 
@@ -46,9 +45,9 @@ def Require(env):
   
   static = (excons.GetArgument("glut-static", 0, int) != 0)
 
-  libname = excons.GetArgument("glut-libname", "")
+  libname = excons.GetArgument("glut-name", "")
   if not libname:
-    libsuffix = excons.GetArgument("glut-libsuffix", "")
+    libsuffix = excons.GetArgument("glut-suffix", "")
     if sys.platform == "win32":
       libname = ("glut64" if excons.Build64() else "glut32") + libsuffix
     else:

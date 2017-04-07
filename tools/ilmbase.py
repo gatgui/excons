@@ -27,12 +27,12 @@ def GetOptionsString():
   with-ilmbase-inc=<path> : IlmBase headers directory   [<prefix>/include]
   with-ilmbase-lib=<path> : IlmBase libraries directory [<prefix>/lib]
   ilmbase-static=0|1      : Link static libraries       [0]
-  ilmbase-libsuffix=<str> : IlmBase library suffix      ['']
+  ilmbase-suffix=<str>    : IlmBase library suffix      ['']
 
   with-ilmbase-python=<path>     : PyIlmBase prefix
   with-ilmbase-python-inc=<path> : PyIlmBase headers directory   [<prefix>/include]
   with-ilmbase-python-lib=<path> : PyIlmBase libraries directory [<prefix>/lib]
-  ilmbase-python-libsuffix=<str> : PyIlmBase library suffix      ['']"""
+  ilmbase-python-suffix=<str>    : PyIlmBase library suffix      ['']"""
 
 def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
    
@@ -52,13 +52,13 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
       python = False
 
    def _RealRequire(env):
-      ilmbase_libsuffix = excons.GetArgument("ilmbase-libsuffix", "")
+      ilmbase_libsuffix = excons.GetArgument("ilmbase-suffix", "")
       
       # Add python bindings first
       if python:
          pyilmbase_inc, pyilmbase_lib = excons.GetDirs("ilmbase-python")
          
-         pyilmbase_libsuffix = excons.GetArgument("ilmbase-python-libsuffix", ilmbase_libsuffix)
+         pyilmbase_libsuffix = excons.GetArgument("ilmbase-python-suffix", ilmbase_libsuffix)
          
          if pyilmbase_inc:
             if not pyilmbase_inc.endswith("OpenEXR"):

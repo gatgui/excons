@@ -20,6 +20,17 @@
 from SCons.Script import *
 import excons
 
+def GetOptionsString():
+  return """SZIP OPTIONS
+  with-szip=<path>     : SZIP prefix                []
+  with-szip-inc=<path> : SZIP headers directory     [<prefix>/include]
+  with-szip-lib=<path> : SZIP libraries directory   [<prefix>/lib]
+  szip-name=<str>      : Override SZIP library name []
+                         (default library name is libszip on windows, sz on linux)
+  szip-suffix=<str>    : SZIP library suffix        ['']
+                         (ignored when szip-name is set)
+  szip-static=0|1      : Use SZIP static library    [1]"""
+
 def Require(env):
   szip_inc, szip_lib = excons.GetDirs("szip")
   
@@ -34,9 +45,9 @@ def Require(env):
   if szip_static:
     env.Append(CPPDEFINES=["SZ_BUILT_AS_DYNAMIC_LIB"])
   
-  szip_libname = excons.GetArgument("szip-libname", None)
+  szip_libname = excons.GetArgument("szip-name", None)
   if not szip_libname:
-    szip_libsuffix = excons.GetArgument("szip_libsuffix", "")
+    szip_libsuffix = excons.GetArgument("szip_suffix", "")
     szip_libname = "%s%s" % (("sz" if sys.platform != "win32" else "libszip"), szip_libsuffix)
   
   if not szip_static or not excons.StaticallyLink(env, szip_libname):

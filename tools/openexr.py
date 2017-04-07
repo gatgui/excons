@@ -29,16 +29,16 @@ def GetOptionsString():
   with-openexr-inc=<path> : OpenEXR headers directory     [<prefix>/include]
   with-openexr-lib=<path> : OpenEXR libraries directory   [<prefix>/lib]
   openexr-static=0|1      : Link static libraries         [0]
-  openexr-libname=<str>   : Override OpenEXR library name []
-  openexr-libsuffix=<str> : OpenEXR library suffix        ['']
-                            (ignored when openexr-libname is set)"""
+  openexr-name=<str>      : Override OpenEXR library name []
+  openexr-suffix=<str>    : OpenEXR library suffix        ['']
+                            (ignored when openexr-name is set)"""
 
 def Require(ilmbase=False, zlib=False):
    
    def _RequireOpenEXR(env):
-      openexr_libsuffix = excons.GetArgument("openexr-libsuffix", "")
+      openexr_libsuffix = excons.GetArgument("openexr-suffix", "")
 
-      openexr_libname = excons.GetArgument("openexr-libname", "IlmImf%s" % openexr_libsuffix)
+      openexr_libname = excons.GetArgument("openexr-name", "IlmImf%s" % openexr_libsuffix)
 
       openexr_inc, openexr_lib = excons.GetDirs("openexr")
 

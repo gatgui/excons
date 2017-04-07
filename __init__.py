@@ -1129,8 +1129,8 @@ def ExternalLibHelp(name):
   with-${name}-inc=<path> : ${name} headers directory.           [<prefix>/include]
   with-${name}-lib=<path> : ${name} libraries directory.         [<prefix>/lib]
   ${name}-static=0|1      : Link ${name} statically.             [0]
-  ${name}-libname=<str>   : Override ${name} library name.       []
-  ${name}-libsuffix=<str> : Default ${name} library name suffix. [] (ignored when ${name}-libname is set)""").substitute(uc_name=name.upper(), name=name)
+  ${name}-name=<str>      : Override ${name} library name.       []
+  ${name}-suffix=<str>    : Default ${name} library name suffix. [] (ignored when ${name}-name is set)""").substitute(uc_name=name.upper(), name=name)
 
 # parameters
 #   libnameFunc: f(static) -> str
@@ -1148,12 +1148,12 @@ def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=No
 
   incdir, libdir = GetDirs(name)
   if incdir and libdir:
-    libname = GetArgument("%s-libname" % name, None)
+    libname = GetArgument("%s-name" % name, None)
     staticlink = (GetArgument("%s-static" % name, 0, int) != 0)
 
     if libname is None:
       libname = (name if libnameFunc is None else libnameFunc(staticlink))
-      libname += GetArgument("%s-libsuffix" % name, "")
+      libname += GetArgument("%s-suffix" % name, "")
 
     if sys.platform == "win32":
       libpath = libdir + "/" + libname + ".lib"

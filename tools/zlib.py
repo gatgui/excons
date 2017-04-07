@@ -26,10 +26,11 @@ def GetOptionsString():
   with-zlib-inc=<path> : Zlib headers directory.           [<prefix>/include]
   with-zlib-lib=<path> : Zlib libraries directory.         [<prefix>/lib]
   zlib-static=0|1      : Link Zlib statically.             [0]
-  zlib-libname=<str>   : Override Zlib library name.       []
-  zlib-libsuffix=<str> : Default Zlib library name suffix. []
-                         (ignored when zlib-libname is set)
-                         (default name is 'z' on osx and linux, 'zlib' (static) or 'zdll' (shared) on windows)"""
+  zlib-name=<str>      : Override Zlib library name.       []
+                         (default name is 'z' on osx and linux, 'zlib' (static) or 'zdll' (shared) on windows)
+  zlib-suffix=<str>    : Default Zlib library name suffix. []
+                         (ignored when zlib-name is set)"""
+                         
 
 def Require(env):
   zlibinc, zliblib = excons.GetDirs("zlib")
@@ -43,25 +44,25 @@ def Require(env):
   static = (excons.GetArgument("zlib-static", 0, int) != 0)
 
   if str(Platform()) != "win32":
-    zlib_name = excons.GetArgument("zlib-libname", None)
+    zlib_name = excons.GetArgument("zlib-name", None)
     if not zlib_name:
-      zlib_name = "z%s" % excons.GetArgument("zlib-libsuffix", "")
+      zlib_name = "z%s" % excons.GetArgument("zlib-suffix", "")
     
     if not static or not excons.StaticallyLink(env, zlib_name):
       env.Append(LIBS=[zlib_name])
   
   else:
     if static:
-      zlib_name = excons.GetArgument("zlib-libname", None)
+      zlib_name = excons.GetArgument("zlib-name", None)
       if not zlib_name:
-        zlib_name = "zlib%s" % excons.GetArgument("zlib-libsuffix", "")
+        zlib_name = "zlib%s" % excons.GetArgument("zlib-suffix", "")
       
       env.Append(LIBS=[zlib_name])
     
     else:
-      zlib_name = excons.GetArgument("zlib-libname", None)
+      zlib_name = excons.GetArgument("zlib-name", None)
       if not zlib_name:
-        zlib_name = "zdll%s" % excons.GetArgument("zlib-libsuffix", "")
+        zlib_name = "zdll%s" % excons.GetArgument("zlib-suffix", "")
       
       env.Append(CPPDEFINES=["ZLIB_DLL"])
       env.Append(LIBS=[zlib_name])

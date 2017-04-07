@@ -26,9 +26,9 @@ def GetOptionsString():
   with-freeimage-inc=<path> : FreeImage headers directory     [<prefix>/include]
   with-freeimage-lib=<path> : FreeImage libraries directory   [<prefix>/lib]
   freeimage-static=0|1      : Link FreeImage static lib       [0]
-  freeimage-libname=<str>   : Override FreeImage library name []
-  freeimage-libsuffix=<str> : FreeImage library suffix        ['']
-                              (ignored when freeimage-libname is set)"""
+  freeimage-name=<str>      : Override FreeImage library name []
+  freeimage-suffix=<str>    : FreeImage library suffix        ['']
+                              (ignored when freeimage-name is set)"""
 
 def Require(env):
   fiinc, filib = excons.GetDirs("freeimage")
@@ -43,9 +43,9 @@ def Require(env):
   if static:
     env.Append(CPPDEFINES=["FREEIMAGE_LIB"])
   
-  filibname = excons.GetArgument("freeimage-libname", None)
+  filibname = excons.GetArgument("freeimage-name", None)
   if not filibname:
-    filibsuffix = excons.GetArgument("freeimage-libsuffix", "")
+    filibsuffix = excons.GetArgument("freeimage-suffix", "")
     filibname = "freeimage%s" % filibsuffix
   
   if not static or not excons.StaticallyLink(env, filibname):

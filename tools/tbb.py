@@ -26,9 +26,9 @@ def GetOptionsString():
   with-tbb-inc=<path> : TBB headers directory     [<prefix>/include]
   with-tbb-lib=<path> : TBB libraries directory   [<prefix>/lib]
   tbb-static=0|1      : Link static library       [0]
-  tbb-libname=<str>   : Override TBB library name []
-  tbb-libsuffix=<str> : TBB library suffix        ['']
-                        (ignored when tbb-libname is set)"""
+  tbb-name=<str>      : Override TBB library name []
+  tbb-suffix=<str>    : TBB library suffix        ['']
+                        (ignored when tbb-name is set)"""
 
 def Require(env):
   tbbinc, tbblib = excons.GetDirs("tbb")
@@ -43,9 +43,9 @@ def Require(env):
   # Any specific defines?
   #env.Append(CPPDEFINES=[])
   
-  tbblibname = excons.GetArgument("tbb-libname", None)
+  tbblibname = excons.GetArgument("tbb-name", None)
   if not tbblibname:
-    tbblibname = "tbb%s" % excons.GetArgument("tbb-libsuffix", "")
+    tbblibname = "tbb%s" % excons.GetArgument("tbb-suffix", "")
   
   if not static or not excons.StaticallyLink(env, tbblibname):
     env.Append(LIBS=[tbblibname])

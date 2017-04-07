@@ -25,15 +25,15 @@ def GetOptionsString():
   with-glew=<path>     : GLEW prefix                []
   with-glew-inc=<path> : GLEW headers directory     [<prefix>/include]
   with-glew-lib=<path> : GLEW libraries directory   [<prefix>/lib]
-  glew-libname=<str>   : Override GLEW library name []
-  glew-libsuffix=<str> : GLEW library suffix        ['']
-                         (ignored when glew-libname is set)
+  glew-name=<str>      : Override GLEW library name []
                          (default library name is glew32 on windows, GLEW on osx/linux)
+  glew-suffix=<str>    : GLEW library suffix        ['']
+                         (ignored when glew-name is set)
   glew-static=0|1      : Use GLEW static library    [1]
-                         (additional 's' suffix to library name unless glew-libname is set)
+                         (additional 's' suffix to library name unless glew-name is set)
   glew-noglu=0|1       : Don't use GLU              [1]
   glew-mx=0|1          : Use GLEW MX variant        [0]
-                         (additional 'mx' suffix to library name unless glew-libname is set)"""
+                         (additional 'mx' suffix to library name unless glew-name is set)"""
 
 def Require(env):
   glew_inc, glew_lib = excons.GetDirs("glew")
@@ -60,9 +60,9 @@ def Require(env):
   
   env.Append(CPPDEFINES=defs)
 
-  glew_libname = excons.GetArgument("glew-libname", None)
+  glew_libname = excons.GetArgument("glew-name", None)
   if not glew_libname:
-    glew_libsuffix = excons.GetArgument("glew-libsuffix", "")
+    glew_libsuffix = excons.GetArgument("glew-suffix", "")
     
     glew_libname = ("glew32" if sys.platform == "win32" else "GLEW") + glew_libsuffix
     
