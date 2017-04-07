@@ -1171,22 +1171,23 @@ def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=No
       if libpath is None:
         libpath = libdir + "/lib" + libname + libext
 
-    if os.path.isfile(libpath):
-      def RequireFunc(env):
-        if definesFunc:
-          env.Append(CPPDEFINES=definesFunc(staticlink))
-        env.Append(CPPPATH=[incdir])
-        env.Append(LIBPATH=[libdir])
-        Link(env, libname, static=staticlink, force=True, silent=True)
-        if extraEnvFunc:
-          extraEnvFunc(env, static)
+    # Do not check if library exists to validate setting
 
-      rv["require"] = RequireFunc
-      rv["incdir"] = incdir
-      rv["libdir"] = libdir
-      rv["libname"] = libname
-      rv["libpath"] = libpath
-      rv["static"] = staticlink
+    def RequireFunc(env):
+      if definesFunc:
+        env.Append(CPPDEFINES=definesFunc(staticlink))
+      env.Append(CPPPATH=[incdir])
+      env.Append(LIBPATH=[libdir])
+      Link(env, libname, static=staticlink, force=True, silent=True)
+      if extraEnvFunc:
+        extraEnvFunc(env, static)
+
+    rv["require"] = RequireFunc
+    rv["incdir"] = incdir
+    rv["libdir"] = libdir
+    rv["libname"] = libname
+    rv["libpath"] = libpath
+    rv["static"] = staticlink
 
   return rv
 
