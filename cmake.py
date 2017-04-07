@@ -234,5 +234,8 @@ def ExternalLibRequire(configOpts, name, libnameFunc=None, definesFunc=None, ext
 
       configOpts["%sINCLUDE_DIR" % varPrefix] = rv["incdir"]
       configOpts["%sLIBRARY" % varPrefix] = rv["libpath"]
+      # sometimes LIBRARY is used, sometines LIBRARY_RELEASE / LIBRARY_DEBUG...
+      configOpts["%sLIBRARY_DEBUG" % varPrefix] = rv["libpath"]
+      configOpts["%sLIBRARY_RELEASE" % varPrefix] = rv["libpath"]
 
    return req
