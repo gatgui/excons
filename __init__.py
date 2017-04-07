@@ -556,7 +556,7 @@ def LibraryFullpath(env, lib, static=False):
   else:
     global arch_dir
 
-    basename = "lib%s%s" % (lib, SharedLibraryLinkExt())
+    basename = "lib%s%s" % (lib, ".a" if static else SharedLibraryLinkExt())
 
     if arch_dir == "x64":
       if not "/usr/local/lib64" in paths:
