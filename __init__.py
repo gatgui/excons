@@ -545,7 +545,7 @@ def SharedLibraryLinkExt():
     return ".so"
 
 def LibraryFullpath(env, lib, static=False):
-  paths = env["LIBPATH"]
+  paths = env["LIBPATH"][:]
 
   basename = lib
 
