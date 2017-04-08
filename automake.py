@@ -30,7 +30,19 @@ from SCons.Script import *
 
 InstallExp = re.compile(r"^.*?bin/install\s+((-c|-d|(-m\s+\d{3}))\s+)*(.*?)((['\"]?)(%s.*)\6)$" % os.path.abspath(excons.OutputBaseDirectory()))
 SymlinkExp = re.compile(r"ln\s+((-s|-f)\s+)*([^|&}{;]*)")
+ConfigExtraDeps = {}
 
+def AddConfigureDependencies(name, deps):
+   global ConfigExtraDeps
+
+   lst = ConfigExtraDeps.get(name, [])
+   lst.extend(deps)
+   ConfigExtraDeps[name] = lst
+
+def AdditionalConfigureDependencies(name):
+   global ConfigExtraDeps
+
+   return ConfigExtraDeps.get(name, [])
 
 def BuildDir(name):
    buildDir = excons.BuildBaseDirectory() + "/" + name

@@ -138,6 +138,7 @@ def SetupEnvironment(env, settings):
    cins = settings.get("automake-cfgs", [])
    cins.append(conff)
    cins.append(cfgc)
+   cins.extend(automake.AdditionalConfigureDependencies(name))
    cout = [makef]
 
    env.AutomakeConfigure(cout, cins)

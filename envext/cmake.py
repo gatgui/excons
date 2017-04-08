@@ -78,6 +78,7 @@ def SetupEnvironment(env, settings):
 
    cins = settings.get("cmake-cfgs", [])
    cins.append(cfgc)
+   cins.extend(cmake.AdditionalConfigureDependencies(name))
    cout = [cmakec]
 
    env.CMakeConfigure(cout, cins)

@@ -30,7 +30,19 @@ from SCons.Script import *
 
 InstallExp = re.compile(r"^--\s+(Installing|Up-to-date):\s+([^\s].*)$")
 CmdSep = ("&&" if sys.platform == "win32" else ";")
+ConfigExtraDeps = {}
 
+def AddConfigureDependencies(name, deps):
+   global ConfigExtraDeps
+
+   lst = ConfigExtraDeps.get(name, [])
+   lst.extend(deps)
+   ConfigExtraDeps[name] = lst
+
+def AdditionalConfigureDependencies(name):
+   global ConfigExtraDeps
+
+   return ConfigExtraDeps.get(name, [])
 
 def BuildDir(name):
    buildDir = excons.BuildBaseDirectory() + "/" + name
