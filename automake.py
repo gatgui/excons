@@ -65,23 +65,20 @@ def Configure(name, topdir=None, opts={}):
 
    success = False
 
-   with excons.SafeChdir(bld, tool="automake"):
-      cmd = "%s/configure " % relpath
-      for k, v in opts.iteritems():
-         if type(v) == bool:
-            if v:
-               cmd += "%s " % k
-         else:
-            cmd += "%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
-      cmd += "--prefix=\"%s\""  % excons.OutputBaseDirectory()
+   cmd = "cd \"%s\"; %s/configure " % (bld, relpath)
+   for k, v in opts.iteritems():
+      if type(v) == bool:
+         if v:
+            cmd += "%s " % k
+      else:
+         cmd += "%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
+   cmd += "--prefix=\"%s\""  % excons.OutputBaseDirectory()
 
-      excons.Print("Run Command: %s" % cmd, tool="automake")
-      p = subprocess.Popen(cmd, shell=True)
-      p.communicate()
+   excons.Print("Run Command: %s" % cmd, tool="automake")
+   p = subprocess.Popen(cmd, shell=True)
+   p.communicate()
 
-      success = (p.returncode == 0)
-
-   return success
+   return (p.returncode == 0)
 
 def ParseOutputsInLines(lines, outfiles, symlinks):
    for line in lines:
@@ -126,51 +123,52 @@ def Build(name, target=None):
    symlinks = {}
    success = False
 
-   with excons.SafeChdir(BuildDir(name), tool="automake"):
-      if target is None:
-         target = "install"
-      njobs = GetOption("num_jobs")
+   if target is None:
+      target = "install"
+   njobs = GetOption("num_jobs")
 
-      cmd = "make"
-      if njobs > 1:
-         cmd += " -j %d" % njobs
-      if excons.GetArgument("show-cmds", 0, int):
-         cmd += " V=1"
-      cmd += " %s" % target
+   cmd = "cd \"%s\"; make" % BuildDir(name)
+   if njobs > 1:
+      cmd += " -j %d" % njobs
+   if excons.GetArgument("show-cmds", 0, int):
+      cmd += " V=1"
+   cmd += " %s" % target
 
-      excons.Print("Run Command: %s" % cmd, tool="automake")
-      p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+   excons.Print("Run Command: %s" % cmd, tool="automake")
+   p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-      buf = ""
-      while p.poll() is None:
-         r = p.stdout.readline(512)
-         buf += r
-         lines = buf.split("\n")
-         if len(lines) > 1:
-            buf = lines[-1]
-            ParseOutputsInLines(lines[:-1], outfiles, symlinks)
-      ParseOutputsInLines(buf.split("\n"), outfiles, symlinks)
-      excons.Print(buf, tool="automake")
+   buf = ""
+   while p.poll() is None:
+      r = p.stdout.readline(512)
+      buf += r
+      lines = buf.split("\n")
+      if len(lines) > 1:
+         buf = lines[-1]
+         ParseOutputsInLines(lines[:-1], outfiles, symlinks)
+   ParseOutputsInLines(buf.split("\n"), outfiles, symlinks)
+   excons.Print(buf, tool="automake")
 
-      success = (p.returncode == 0)
-
-   with open(cof, "w") as f:
-      lst = list(outfiles)
-      # Add symlinks
-      ll = len(lst)
-      for i in xrange(ll):
-         bn = os.path.basename(lst[i])
-         if bn in symlinks:
-            dn = os.path.dirname(lst[i])
-            for l in symlinks[bn]:
-               sln = dn + "/" + l
-               if not sln in lst:
-                  lst.append(sln)
-                  #print("ADD - %s" % sln)
-      lst.sort()
-      f.write("\n".join(excons.NormalizedRelativePaths(lst, excons.out_dir)))
-
-   return success
+   if p.returncode == 0:
+      with open(cof, "w") as f:
+         lst = list(outfiles)
+         # Add symlinks
+         ll = len(lst)
+         for i in xrange(ll):
+            bn = os.path.basename(lst[i])
+            if bn in symlinks:
+               dn = os.path.dirname(lst[i])
+               for l in symlinks[bn]:
+                  sln = dn + "/" + l
+                  if not sln in lst:
+                     lst.append(sln)
+                     #print("ADD - %s" % sln)
+         lst.sort()
+         f.write("\n".join(excons.NormalizedRelativePaths(lst, excons.out_dir)))
+      return True
+   else:
+      if os.path.isfile(cof):
+         os.remove(cof)
+      return False
 
 
 def CleanOne(name):
@@ -187,8 +185,7 @@ def CleanOne(name):
    # Remove build temporary files      
    buildDir = BuildDir(name)
    if os.path.isdir(buildDir):
-      with excons.SafeChdir(buildDir, tool="automake"):
-         subprocess.Popen("make distclean", shell=True).communicate()
+      subprocess.Popen("cd \"%s\"; make distclean" % buildDir, shell=True).communicate()
       shutil.rmtree(buildDir)
       excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(buildDir, excons.out_dir), tool="automake")
 

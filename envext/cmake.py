@@ -13,10 +13,12 @@ def ConfigureAction(target, source, env):
          os.remove(env["CMAKE_CONFIG_CACHE"])
       if os.path.isfile(env["CMAKE_CACHE"]):
          os.remove(env["CMAKE_CACHE"])
+      raise Exception("CMake Configure Failed")
    return None
 
 def BuildAction(target, source, env):
-   cmake.Build(env["CMAKE_PROJECT"], config=env["CMAKE_CONFIG"], target=env["CMAKE_TARGET"])
+   if not cmake.Build(env["CMAKE_PROJECT"], config=env["CMAKE_CONFIG"], target=env["CMAKE_TARGET"]):
+      raise Exception("CMake Build Failed")
    return None
 
 def SetupEnvironment(env, settings):

@@ -30,25 +30,22 @@ def DummyScanner(node, env, path):
    return []
 
 def AutoconfAction(target, source, env):
-   with excons.SafeChdir(env["AUTOMAKE_TOPDIR"], tool="automake"):
-      configure= env["AUTOMAKE_CONFIGURE"]
-      autogen = env["AUTOMAKE_AUTOGEN"]
+   configure = env["AUTOMAKE_CONFIGURE"]
+   autogen = env["AUTOMAKE_AUTOGEN"]
 
-      if os.path.isfile(autogen):
-         cmd = "sh %s" % autogen
-         excons.Print("Run Command: %s" % cmd, tool="automake")
-         p = subprocess.Popen(cmd, shell=True)
-         p.communicate()
-         if p.returncode != 0 or not os.path.isfile(configure):
-            raise Exception("Failed to generated 'configure' file")
+   if os.path.isfile(autogen):
+      cmd = "sh %s" % autogen
 
-      elif os.path.isfile(configure+".ac"):
-         cmd = "autoreconf -vif"
-         excons.Print("Run Command: %s" % cmd, tool="automake")
-         p = subprocess.Popen(cmd, shell=True)
-         p.communicate()
-         if p.returncode != 0 or not os.path.isfile(configure):
-            raise Exception("Failed to generated 'configure' file")
+   elif os.path.isfile(configure+".ac"):
+      cmd = "autoreconf -vif"
+
+   if cmd is not None:
+      cmd = "cd \"%s\"; %s" % (env["AUTOMAKE_TOPDIR"], cmd)
+      excons.Print("Run Command: %s" % cmd, tool="automake")
+      p = subprocess.Popen(cmd, shell=True)
+      p.communicate()
+      if p.returncode != 0 or not os.path.isfile(configure):
+         raise Exception("Failed to generate Automake 'configure' file")
 
    return None
 
@@ -58,10 +55,12 @@ def ConfigureAction(target, source, env):
          os.remove(env["AUTOMAKE_CONFIG_CACHE"])
       if os.path.isfile(env["AUTOMAKE_MAKEFILE"]):
          os.remove(env["AUTOMAKE_MAKEFILE"])
+      raise Exception("Automake Configure Failed")
    return None
 
 def BuildAction(target, source, env):
-   automake.Build(env["AUTOMAKE_PROJECT"], target=env["AUTOMAKE_TARGET"])
+   if not automake.Build(env["AUTOMAKE_PROJECT"], target=env["AUTOMAKE_TARGET"]):
+      raise Exception("Automake Build Failed")
    return None
 
 def SetupEnvironment(env, settings):

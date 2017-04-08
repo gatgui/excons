@@ -602,28 +602,6 @@ def Link(env, lib, static=False, force=True, silent=False):
     else:
       env.Append(LIBS=[env.File(fullpath)])
 
-class SafeChdir(object):
-  def __init__(self, to, cur=None, tool=None):
-    super(SafeChdir, self).__init__()
-    self.old = (os.getcwd() if cur is None else os.path.abspath(cur))
-    self.new = os.path.abspath(to)
-    self.tool = tool
-    self.changed = False
-
-  def __enter__(self):
-    if os.path.isdir(self.new):
-      Print("Change Directory: '%s'" % self.new, tool=self.tool)
-      os.chdir(self.new)
-      self.changed = True
-    return self
-
-  def __exit__(self, type, value, traceback):
-    if self.changed:
-      Print("Change Directory: '%s'" % self.old, tool=self.tool)
-      os.chdir(self.old)
-
-
-
 def CollectFiles(directory, patterns, recursive=True, exclude=[]):
   global VCD
 

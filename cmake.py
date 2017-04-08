@@ -29,6 +29,7 @@ from SCons.Script import *
 
 
 InstallExp = re.compile(r"^--\s+(Installing|Up-to-date):\s+([^\s].*)$")
+CmdSep = ("&&" if sys.platform == "win32" else ";")
 
 
 def BuildDir(name):
@@ -64,44 +65,41 @@ def Configure(name, topdir=None, opts={}):
 
    success = False
 
-   with excons.SafeChdir(bld, tool="cmake"):
-      cmd = "cmake "
-      if sys.platform == "win32":
-         try:
-            mscver = float(excons.GetArgument("mscver", "10.0"))
-            if mscver == 9.0:
-               cmd += "-G \"Visual Studio 9 2008 Win64\" "
-            elif mscver == 10.0:
-               cmd += "-G \"Visual Studio 10 2010 Win64\" "
-            elif mscver == 11.0:
-               cmd += "-G \"Visual Studio 11 2012 Win64\" "
-            elif mscver == 12.0:
-               cmd += "-G \"Visual Studio 12 2013 Win64\" "
-            elif mscver == 14.0:
-               cmd += "-G \"Visual Studio 14 2015 Win64\" "
-            else:
-               excons.Print("Unsupported visual studio version %s" % mscver, tool="cmake")
-               return False
-         except:
+   cmd = "cd \"%s\" %s cmake " % (bld, CmdSep)
+   if sys.platform == "win32":
+      try:
+         mscver = float(excons.GetArgument("mscver", "10.0"))
+         if mscver == 9.0:
+            cmd += "-G \"Visual Studio 9 2008 Win64\" "
+         elif mscver == 10.0:
+            cmd += "-G \"Visual Studio 10 2010 Win64\" "
+         elif mscver == 11.0:
+            cmd += "-G \"Visual Studio 11 2012 Win64\" "
+         elif mscver == 12.0:
+            cmd += "-G \"Visual Studio 12 2013 Win64\" "
+         elif mscver == 14.0:
+            cmd += "-G \"Visual Studio 14 2015 Win64\" "
+         else:
+            excons.Print("Unsupported visual studio version %s" % mscver, tool="cmake")
             return False
-      for k, v in opts.iteritems():
-         cmd += "-D%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
-      cmd += "-DCMAKE_INSTALL_PREFIX=\"%s\" "  % excons.OutputBaseDirectory()
-      if sys.platform != "win32":
-         cmd += "-DCMAKE_SKIP_BUILD_RPATH=0 "
-         cmd += "-DCMAKE_BUILD_WITH_INSTALL_RPATH=0 "
-         cmd += "-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=0 "
-         if sys.platform == "darwin":
-            cmd += "-DCMAKE_MACOSX_RPATH=1 "
-      cmd += relpath
+      except:
+         return False
+   for k, v in opts.iteritems():
+      cmd += "-D%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
+   cmd += "-DCMAKE_INSTALL_PREFIX=\"%s\" "  % excons.OutputBaseDirectory()
+   if sys.platform != "win32":
+      cmd += "-DCMAKE_SKIP_BUILD_RPATH=0 "
+      cmd += "-DCMAKE_BUILD_WITH_INSTALL_RPATH=0 "
+      cmd += "-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=0 "
+      if sys.platform == "darwin":
+         cmd += "-DCMAKE_MACOSX_RPATH=1 "
+   cmd += relpath
 
-      excons.Print("Run Command: %s" % cmd, tool="cmake")
-      p = subprocess.Popen(cmd, shell=True)
-      p.communicate()
+   excons.Print("Run Command: %s" % cmd, tool="cmake")
+   p = subprocess.Popen(cmd, shell=True)
+   p.communicate()
 
-      success = (p.returncode == 0)
-
-   return success
+   return (p.returncode == 0)
 
 def ParseOutputsInLines(lines, outfiles):
    for line in lines:
@@ -125,56 +123,57 @@ def Build(name, config=None, target=None):
    success = False
    outfiles = set()
 
-   with excons.SafeChdir(BuildDir(name), tool="cmake"):
-      if config is None:
-         config = excons.mode_dir
+   if config is None:
+      config = excons.mode_dir
 
-      if target is None:
-         target = "install"
+   if target is None:
+      target = "install"
 
-      cmd = "cmake --build . --config %s --target %s" % (config, target)
+   cmd = "cd \"%s\" %s cmake --build . --config %s --target %s" % (BuildDir(name), CmdSep, config, target)
 
-      extraargs = ""
-      njobs = GetOption("num_jobs")
-      if njobs > 1:
-         if sys.platform == "win32":
-            extraargs += " /m:%d" % njobs
-         else:
-            extraargs += " -j %d" % njobs
-      if excons.GetArgument("show-cmds", 0, int):
-         if sys.platform == "win32":
-            extraargs += " /v:n" # normal verbosity
-         else:
-            extraargs += " V=1"
+   extraargs = ""
+   njobs = GetOption("num_jobs")
+   if njobs > 1:
+      if sys.platform == "win32":
+         extraargs += " /m:%d" % njobs
       else:
-         if sys.platform == "win32":
-            extraargs += " /v:m" # minimal verbosity
-      if extraargs:
-         cmd += " --" + extraargs
+         extraargs += " -j %d" % njobs
+   if excons.GetArgument("show-cmds", 0, int):
+      if sys.platform == "win32":
+         extraargs += " /v:n" # normal verbosity
+      else:
+         extraargs += " V=1"
+   else:
+      if sys.platform == "win32":
+         extraargs += " /v:m" # minimal verbosity
+   if extraargs:
+      cmd += " --" + extraargs
 
-      excons.Print("Run Command: %s" % cmd, tool="cmake")
-      p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+   excons.Print("Run Command: %s" % cmd, tool="cmake")
+   p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-      buf = ""
-      while p.poll() is None:
-         r = p.stdout.readline(512)
-         buf += r
-         lines = buf.split("\n")
-         if len(lines) > 1:
-            buf = lines[-1]
-            ParseOutputsInLines(lines[:-1], outfiles)
-      ParseOutputsInLines(buf.split("\n"), outfiles)
-      excons.Print(buf, tool="cmake")
-
-      success = (p.returncode == 0)
+   buf = ""
+   while p.poll() is None:
+      r = p.stdout.readline(512)
+      buf += r
+      lines = buf.split("\n")
+      if len(lines) > 1:
+         buf = lines[-1]
+         ParseOutputsInLines(lines[:-1], outfiles)
+   ParseOutputsInLines(buf.split("\n"), outfiles)
+   excons.Print(buf, tool="cmake")
 
    # Write list of outputed files
-   with open(cof, "w") as f:
-      lst = list(outfiles)
-      lst.sort()
-      f.write("\n".join(excons.NormalizedRelativePaths(lst, excons.out_dir)))
-
-   return success
+   if p.returncode == 0:
+      with open(cof, "w") as f:
+         lst = list(outfiles)
+         lst.sort()
+         f.write("\n".join(excons.NormalizedRelativePaths(lst, excons.out_dir)))
+      return True
+   else:
+      if os.path.isfile(cof):
+         os.remove(cof)
+      return False
 
 def CleanOne(name):
    if not GetOption("clean"):
