@@ -383,6 +383,14 @@ def PrintOnce(msg, tool=None):
 def WarnConfig():
   WarnOnce("Build configuration may be incomplete (use 'scons -h' to list available options)")
 
+def IsBuildOutput(path):
+  p0 = OutputBaseDirectory()
+  p1 = os.path.abspath(path)
+  if sys.platform == "win32":
+    p0 = p0.replace("\\", "/").lower()
+    p1 = p1.replace("\\", "/").lower()
+  return p1.startswith(p1)
+
 def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc=True, silent=False):
   global arch_dir
   
@@ -419,7 +427,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   prefix = GetArgument(prefixflag)
   if prefix:
     prefix = os.path.abspath(os.path.expanduser(prefix))
-    if not os.path.isdir(prefix):
+    if not os.path.isdir(prefix) and not IsBuildOutput(prefix):
       errorwarn("Invalid %s prefix directory %s." % (name, prefix))
       prefix = None
     else:
@@ -440,7 +448,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   inc = GetArgument(incflag)
   if inc:
     inc = os.path.abspath(os.path.expanduser(inc))
-    if not os.path.isdir(inc):
+    if not os.path.isdir(inc) and not IsBuildOutput(inc):
       errorwarn("Invalid %s include directory %s." % (name, inc))
       inc = None
     else:
@@ -471,7 +479,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   lib = GetArgument(libflag)
   if lib:
     lib = os.path.abspath(os.path.expanduser(lib))
-    if not os.path.isdir(lib):
+    if not os.path.isdir(lib) and not IsBuildOutput(lib):
       errorwarn("Invalid %s library directory %s." % (name, lib))
       lib = None
     else:
@@ -1149,23 +1157,22 @@ def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=No
       if libpath is None:
         libpath = libdir + "/lib" + libname + libext
 
-    # Do not check if library exists to validate setting
+    if os.path.isfile(libpath) or IsBuildOutput(libpath):
+      def RequireFunc(env):
+        if definesFunc:
+          env.Append(CPPDEFINES=definesFunc(staticlink))
+        env.Append(CPPPATH=[incdir])
+        env.Append(LIBPATH=[libdir])
+        Link(env, libname, static=staticlink, force=True, silent=True)
+        if extraEnvFunc:
+          extraEnvFunc(env, static)
 
-    def RequireFunc(env):
-      if definesFunc:
-        env.Append(CPPDEFINES=definesFunc(staticlink))
-      env.Append(CPPPATH=[incdir])
-      env.Append(LIBPATH=[libdir])
-      Link(env, libname, static=staticlink, force=True, silent=True)
-      if extraEnvFunc:
-        extraEnvFunc(env, static)
-
-    rv["require"] = RequireFunc
-    rv["incdir"] = incdir
-    rv["libdir"] = libdir
-    rv["libname"] = libname
-    rv["libpath"] = libpath
-    rv["static"] = staticlink
+      rv["require"] = RequireFunc
+      rv["incdir"] = incdir
+      rv["libdir"] = libdir
+      rv["libname"] = libname
+      rv["libpath"] = libpath
+      rv["static"] = staticlink
 
   return rv
 
