@@ -82,7 +82,7 @@ def SetupEnvironment(env, settings):
    env["AUTOMAKE_PROJECT"] = name
    env["AUTOMAKE_TOPDIR"] = os.path.abspath(".")
    env["AUTOMAKE_OPTIONS"] = opts
-   env["AUTOMAKE_TARGET"] = settings.get("automakeg-target", "install")
+   env["AUTOMAKE_TARGET"] = settings.get("automake-target", "install")
    env["AUTOMAKE_CONFIGURE"] = conff
    env["AUTOMAKE_AUTOGEN"] = agenf
    env["AUTOMAKE_MAKEFILE"] = makef
