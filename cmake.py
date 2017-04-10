@@ -60,8 +60,9 @@ def Outputs(name):
    lst = []
    cof = OutputsCachePath(name)
    if os.path.isfile(cof):
+      cofd = os.path.dirname(cof)
       with open(cof, "r") as f:
-         lines = filter(lambda y: len(y)>0, map(lambda x: x.strip(), f.readlines()))
+         lines = filter(lambda y: len(y)>0 and os.path.isfile(os.path.join(cofd, y)), map(lambda x: x.strip(), f.readlines()))
          lst = map(lambda x: excons.out_dir + "/" + x, lines)
    return lst
 
