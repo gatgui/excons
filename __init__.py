@@ -23,6 +23,7 @@ import platform
 import re
 import sys
 import imp
+import atexit
 import string
 import subprocess
 from SCons.Script import *
@@ -139,6 +140,8 @@ class Cache(dict):
   def remove(self, k):
     pd = super(Cache, self).__getitem__(sys.platform)
     if k in pd:
+      if args_cache_echo:
+        print("[excons] Delete cache: %s" % k)
       del(pd[k])
       self.updated = True
   
@@ -150,6 +153,10 @@ class Cache(dict):
   
   def rawset(self, k, v):
     super(Cache, self).__setitem__(k, v)
+
+  def keys(self):
+    return super(Cache, self).__getitem__(sys.platform).keys()
+
 
 
 def GetArgument(key, default=None, convert=None):
@@ -509,13 +516,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   if inc is None or lib is None:
     if not silent:
       WarnConfig()
-    # msg = "provide %s include and/or library path by using one of:\n  %s=\n  %s=\n  %s=\nflags, or set %s and/or %s environment variables." % (name, prefixflag, incflag, libflag, incvar, libvar)
-    # if noexc:
-    #   if not silent:
-    #     msg = "You may need to %s" % msg
-    #     WarnOnce(msg)
-    # else:
-    #   raise Exception("Please %s" % msg)
+
   if inc and incsrc != "environment":
     SetArgument(incflag, inc)
   if lib and libsrc != "environment":
@@ -992,8 +993,12 @@ def Call(path, overrides={}, imp=[]):
 
   old_vals = {}
   old_cached_vals = {}
+  old_keys = set()
   check_cache = (not args_no_cache and args_cache is not None)
 
+  # Store current arguments cache state
+  if args_cache:
+    old_keys = set(args_cache.keys())
   for k, v in overrides.iteritems():
     old_vals[k] = ARGUMENTS.get(k, None)
     ARGUMENTS[k] = str(v)
@@ -1002,6 +1007,7 @@ def Call(path, overrides={}, imp=[]):
 
   SConscript(s)
 
+  # Restore old values
   for k, v in old_vals.iteritems():
     if v is None:
       del(ARGUMENTS[k])
@@ -1011,7 +1017,14 @@ def Call(path, overrides={}, imp=[]):
     if v is None:
       args_cache.remove(k)
     else:
-      args_cache.rawset(k, v)
+      args_cache[k] = v
+  # Remove newly introduced keys
+  if check_cache:
+    for k in args_cache.keys():
+      if not k in old_keys:
+        args_cache.remove(k)
+      if k in ARGUMENTS:
+        del(ARGUMENTS[k])
 
   for name in imp:
     Import(name)
@@ -1103,6 +1116,7 @@ def SetHelp(help):
   if not ignore_help:
     Help(help)
 
+@atexit.register
 def SyncCache():
   global args_no_cache, args_cache
 
@@ -1617,7 +1631,7 @@ def DeclareTargets(env, prjs):
         tgts.extend(pout)
         all_projs[prj] = tgts
   
-  SyncCache()
+  #SyncCache()
   
   for alias, targets in all_projs.iteritems():
     Alias(alias, targets)
