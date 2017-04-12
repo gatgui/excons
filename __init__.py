@@ -1188,6 +1188,8 @@ def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=No
       rv["libpath"] = libpath
       rv["static"] = staticlink
 
+  AddHelpOptions({"ext_%s" % name: ExternalLibHelp(name)})
+
   return rv
 
 def DeclareTargets(env, prjs):
