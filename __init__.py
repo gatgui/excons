@@ -989,7 +989,21 @@ def Call(path, overrides={}, imp=[]):
   if not os.path.isfile(s):
     s = path + "/SConscript"
     if not os.path.isfile(s):
-      return
+      # path may be a sub-repository
+      if len(glob.glob(path+"/*")) == 0:
+        cmd = "git submodule update --init %s" % path
+        p = subprocess.Popen(cmd, shell=True)
+        p.communicate()
+        if p.returncode == 0:
+          s = path + "/SConstruct"
+          if not os.path.isfile(s):
+            s = path + "/SConscript"
+            if not os.path.isfile(s):
+              return
+        else:
+          return
+      else:
+        return
 
   old_vals = {}
   old_cached_vals = {}
