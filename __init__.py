@@ -790,15 +790,16 @@ def MakeBaseEnv(noarch=None, output_dir="."):
     env.Append(CPPFLAGS=" /GR /EHsc")
     
     # Always disable:
+    #  4275: non dll-interface class used as base for dll-interface class
     #  4996: POSIX name deprecated ...
-    #  4275: template dll interface ...
+    #  4251: template needs to have dll-interface
     if warnl == "none":
       env.Append(CPPFLAGS=" /w")
     elif warnl == "std":
-      env.Append(CPPFLAGS=" /W3 /wd4275 /wd4996")
+      env.Append(CPPFLAGS=" /W3 /wd4275 /wd4996 /wd4251")
     elif warnl == "all":
       #env.Append(CPPFLAGS=" /Wall")
-      env.Append(CPPFLAGS=" /W4 /wd4275 /wd4996")
+      env.Append(CPPFLAGS=" /W4 /wd4275 /wd4996 /wd4251")
     
     #if "INCLUDE" in os.environ:
     #  env.Append(CPPPATH=os.environ["INCLUDE"].split(";"))
