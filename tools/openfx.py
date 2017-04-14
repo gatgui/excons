@@ -29,10 +29,10 @@ def MakeBundle(target=None, source=None, env=None):
   
   excons.PrintOnce("MakeBundle for \"%s\"" % binaryPath, tool="openfx")
   
-  outPath = os.path.join(os.path.dirname(binaryPath), "openfx")
+  outPath = excons.joinpath(os.path.dirname(binaryPath), "openfx")
   ofxName = os.path.basename(binaryPath)
-  BundleDir = os.path.join(outPath, ofxName+".bundle")
-  ContentsDir = os.path.join(BundleDir, "Contents")
+  BundleDir = excons.joinpath(outPath, ofxName+".bundle")
+  ContentsDir = excons.joinpath(BundleDir, "Contents")
   
   try:
     os.makedirs(ContentsDir)
@@ -42,7 +42,7 @@ def MakeBundle(target=None, source=None, env=None):
   BinaryDir = None
   
   if sys.platform == "darwin":
-    plistPath = os.path.join(ContentsDir, "Info.plist")
+    plistPath = excons.joinpath(ContentsDir, "Info.plist")
     plist = """
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -67,26 +67,26 @@ def MakeBundle(target=None, source=None, env=None):
     f.close()
     
     if env["TARGET_ARCH"] == "x64" and "OFX_NEW_PACKAGE" in env and env["OFX_NEW_PACKAGE"]:
-      BinaryDir = os.path.join(ContentsDir, "MacOS-x86-64")
+      BinaryDir = excons.joinpath(ContentsDir, "MacOS-x86-64")
       
     else:
-      BinaryDir = os.path.join(ContentsDir, "MacOS")
+      BinaryDir = excons.joinpath(ContentsDir, "MacOS")
   
   elif sys.platform in ["win32", "cygwin"]:
     #if pyplat.architecture()[0] == '64bit':
     if env["TARGET_ARCH"] == "x64":
-      BinaryDir = os.path.join(ContentsDir, "Win64")
+      BinaryDir = excons.joinpath(ContentsDir, "Win64")
       
     else:
-      BinaryDir = os.path.join(ContentsDir, "Win32")
+      BinaryDir = excons.joinpath(ContentsDir, "Win32")
   
   else:
     #if pyplat.architecture()[0] == '64bit':
     if env["TARGET_ARCH"] == "x64":
-      BinaryDir = os.path.join(ContentsDir, "Linux-x86-64")
+      BinaryDir = excons.joinpath(ContentsDir, "Linux-x86-64")
       
     else:
-      BinaryDir = os.path.join(ContentsDir, "Linux-x86")
+      BinaryDir = excons.joinpath(ContentsDir, "Linux-x86")
   
   try:
     os.mkdir(BinaryDir)

@@ -44,7 +44,7 @@ def _GetPythonVersionWIN(pythonPath):
   # On windows, pythonPath must be the path to the python executable
   # i.e.  with-python=C:/Python27/python.exe
   dn = os.path.dirname(pythonPath)
-  fl = glob.glob(os.path.join(dn, "python*.dll"))
+  fl = excons.glob(excons.joinpath(dn, "python*.dll"))
   if len(fl) == 1:
     m = re.match(r"python(\d)(\d)\.dll", os.path.basename(fl[0]), re.IGNORECASE)
     if m is not None:
@@ -81,9 +81,9 @@ def _GetPythonSpec(specString):
     if plat == "darwin":
       searchPaths = ["/System/Library/Frameworks", "/Library/Frameworks"]
       for searchPath in searchPaths:
-        pythonPath = os.path.join(searchPath, "Python.framework", "Versions", ver)
+        pythonPath = excons.joinpath(searchPath, "Python.framework", "Versions", ver)
         if os.path.isdir(pythonPath):
-          if ver == _GetPythonVersionOSX(os.path.join(searchPath, "Python.framework")):
+          if ver == _GetPythonVersionOSX(excons.joinpath(searchPath, "Python.framework")):
             spec = (ver, "%s/Headers" % pythonPath, searchPath, "Python")
             break
           else:
@@ -93,17 +93,17 @@ def _GetPythonSpec(specString):
     elif plat == "win32":
       pythonPath = "C:\\Python%s" % ver.replace(".", "")
       if os.path.isdir(pythonPath):
-        incdir = os.path.join(pythonPath, "include")
-        libdir = os.path.join(pythonPath, "libs")
+        incdir = excons.joinpath(pythonPath, "include")
+        libdir = excons.joinpath(pythonPath, "libs")
         lib = "python%s" % ver.replace(".", "")
         spec = (ver, incdir, libdir, lib)
 
     else:
       searchPaths = ["/usr", "/usr/local"]
       for searchPath in searchPaths:
-        pythonPath = os.path.join(searchPath, "bin", "python%s" % ver)
+        pythonPath = excons.joinpath(searchPath, "bin", "python%s" % ver)
         if not os.path.isfile(pythonPath):
-          pythonPath = os.path.join(searchPath, "python")
+          pythonPath = excons.joinpath(searchPath, "python")
           if os.path.isfile(pythonPath) and _GetPythonVersionUNIX() == ver:
             spec = (ver, searchPath)
             break
@@ -113,8 +113,8 @@ def _GetPythonSpec(specString):
 
       if spec:
         ver, prefix = spec
-        incdir = os.path.join(prefix, "include", "python%s" % ver)
-        libdir = os.path.join(prefix, ("lib64" if excons.Build64() else "lib"))
+        incdir = excons.joinpath(prefix, "include", "python%s" % ver)
+        libdir = excons.joinpath(prefix, ("lib64" if excons.Build64() else "lib"))
         lib = "python%s" % ver
         spec = (ver, incdir, libdir, lib)
 
@@ -152,8 +152,8 @@ def _GetPythonSpec(specString):
       ver = _GetPythonVersionWIN(specString)
       if ver is not None:
         d = os.path.dirname(specString)
-        incdir = os.path.join(d, "include")
-        libdir = os.path.join(d, "libs")
+        incdir = excons.joinpath(d, "include")
+        libdir = excons.joinpath(d, "libs")
         lib = "python%s" % ver.replace(".", "")
         spec = (ver, incdir, libdir, lib)
     
@@ -164,8 +164,8 @@ def _GetPythonSpec(specString):
         d = os.path.dirname(specString)
         if os.path.basename(d) == "bin":
           d = os.path.dirname(d)
-          incdir = os.path.join(d, "include", "python%s" % ver)
-          libdir = os.path.join(d, ("lib64" if excons.Build64() else "lib"))
+          incdir = excons.joinpath(d, "include", "python%s" % ver)
+          libdir = excons.joinpath(d, ("lib64" if excons.Build64() else "lib"))
           lib = "python%s" % ver
           spec = (ver, incdir, libdir, lib)
     
@@ -190,7 +190,7 @@ def _GetPythonSpec(specString):
         spec = None
       else:
         if plat == "win32":
-          if not os.path.isfile(os.path.join(libdir, "%s.lib" % lib)):
+          if not os.path.isfile(excons.joinpath(libdir, "%s.lib" % lib)):
             spec = None
         else:
           if not os.path.isfile(os.path.join(libdir, "lib%s.so" % lib)):

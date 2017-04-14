@@ -158,7 +158,7 @@ def Version(asString=True, nice=False):
   else:
     wantedver = None
   
-  mtypes = os.path.join(mayainc, "maya", "MTypes.h")
+  mtypes = excons.joinpath(mayainc, "maya", "MTypes.h")
   
   if os.path.isfile(mtypes):
     defexp = re.compile(r"^\s*#define\s+MAYA_API_VERSION\s+([0-9]+)")

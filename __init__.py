@@ -18,7 +18,7 @@
 # USA.
 
 import os
-import glob
+import glob as _glob
 import platform
 import re
 import sys
@@ -52,6 +52,14 @@ help_targets = {}
 help_options = {}
 ext_types = {}
 
+def abspath(path):
+  return os.path.abspath(path).replace("\\", "/")
+
+def joinpath(*parts):
+  return os.path.join(*parts).replace("\\", "/")
+
+def glob(pat):
+  return map(lambda x: x.replace("\\", "/"), _glob.glob(pat))
 
 def InitGlobals(output_dir=".", force=False):
   global args_cache, args_cache_path, args_no_cache
@@ -62,7 +70,7 @@ def InitGlobals(output_dir=".", force=False):
   global ext_types
 
   if bld_dir is None or force:
-    bld_dir = os.path.abspath("./.build")
+    bld_dir = abspath("./.build")
 
   if out_dir is None or force:
     if not output_dir:
@@ -74,10 +82,10 @@ def InitGlobals(output_dir=".", force=False):
       except:
         sys.exit(1)
 
-    out_dir = os.path.abspath(output_dir)
+    out_dir = abspath(output_dir)
 
   if args_cache_path is None or force:
-    cache_path = os.path.abspath("./excons.cache")
+    cache_path = abspath("./excons.cache")
   
     if cache_path != args_cache_path:
       if args_cache and not args_no_cache:
@@ -258,7 +266,7 @@ def Which(target):
   if "PATH" in os.environ:
     paths = filter(lambda x: len(x) > 0, map(lambda x: x.strip(), os.environ["PATH"].split(pathsplit)))
     for path in paths:
-      for item in glob.glob(os.path.join(path, "*")):
+      for item in glob(joinpath(path, "*")):
         if os.path.isdir(item):
           continue
         bn = os.path.basename(item)
@@ -392,7 +400,7 @@ def WarnConfig():
 
 def IsBuildOutput(path):
   p0 = OutputBaseDirectory()
-  p1 = os.path.abspath(path)
+  p1 = abspath(path)
   if sys.platform == "win32":
     p0 = p0.replace("\\", "/").lower()
     p1 = p1.replace("\\", "/").lower()
@@ -433,7 +441,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   # Read prefix directory from flag or cache
   prefix = GetArgument(prefixflag)
   if prefix:
-    prefix = os.path.abspath(os.path.expanduser(prefix))
+    prefix = abspath(os.path.expanduser(prefix))
     if not os.path.isdir(prefix) and not IsBuildOutput(prefix):
       errorwarn("Invalid %s prefix directory %s." % (name, prefix))
       prefix = None
@@ -454,7 +462,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   # Read include directory from flag or cache, fallback to prefixinc
   inc = GetArgument(incflag)
   if inc:
-    inc = os.path.abspath(os.path.expanduser(inc))
+    inc = abspath(os.path.expanduser(inc))
     if not os.path.isdir(inc) and not IsBuildOutput(inc):
       errorwarn("Invalid %s include directory %s." % (name, inc))
       inc = None
@@ -472,7 +480,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
     if inc is None or incsrc == "cache":
       val = os.environ[incvar]
       if val:
-        val = os.path.abspath(os.path.expanduser(val))
+        val = abspath(os.path.expanduser(val))
         if os.path.isdir(val):
           msg = "Use environment key %s value." % incvar
           WarnOnce(msg)
@@ -485,7 +493,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
   # Read library directory from flag or cache, fallback to prefixlib
   lib = GetArgument(libflag)
   if lib:
-    lib = os.path.abspath(os.path.expanduser(lib))
+    lib = abspath(os.path.expanduser(lib))
     if not os.path.isdir(lib) and not IsBuildOutput(lib):
       errorwarn("Invalid %s library directory %s." % (name, lib))
       lib = None
@@ -503,7 +511,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
     if lib is None or libsrc == "cache":
       val = os.environ[libvar]
       if val:
-        val = os.path.abspath(os.path.expanduser(val))
+        val = abspath(os.path.expanduser(val))
         if os.path.isdir(val):
           msg = "Use environment key %s value." % libvar
           WarnOnce(msg)
@@ -624,16 +632,16 @@ def CollectFiles(directory, patterns, recursive=True, exclude=[]):
   else:
     for pattern in patterns:
       if type(pattern) in (str, unicode):
-        items = glob.glob(directory + "/" + pattern)
+        items = glob(directory + "/" + pattern)
         for item in items:
           rv.append(item)
       else:
-        allfiles = glob.glob(directory + "/*")
+        allfiles = glob(directory + "/*")
         rv.extend(filter(lambda x: pattern.match(x) is not None, allfiles))
 
     if recursive:
       if allfiles is None:
-        allfiles = glob.glob(directory + "/*")
+        allfiles = glob(directory + "/*")
       for subdir in filter(os.path.isdir, allfiles):
         dn = os.path.basename(subdir)
         if dn in VCD or dn in exclude:
@@ -781,13 +789,16 @@ def MakeBaseEnv(noarch=None, output_dir="."):
     
     env.Append(CPPFLAGS=" /GR /EHsc")
     
+    # Always disable:
+    #  4996: POSIX name deprecated ...
+    #  4275: template dll interface ...
     if warnl == "none":
       env.Append(CPPFLAGS=" /w")
     elif warnl == "std":
-      env.Append(CPPFLAGS=" /W3")
+      env.Append(CPPFLAGS=" /W3 /wd4275 /wd4996")
     elif warnl == "all":
       #env.Append(CPPFLAGS=" /Wall")
-      env.Append(CPPFLAGS=" /W4")
+      env.Append(CPPFLAGS=" /W4 /wd4275 /wd4996")
     
     #if "INCLUDE" in os.environ:
     #  env.Append(CPPPATH=os.environ["INCLUDE"].split(";"))
@@ -797,6 +808,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
     if mt is None:
       mt = "mt.exe"
     
+    env.Append(CPPEDFINES=["_CRT_SECURE_NO_WARNINGS"])
     if float(mscver) > 7.1 and float(mscver) < 10.0:
       env.Append(CPPDEFINES=["_CRT_SECURE_NO_DEPRECATE"])
       env['LINKCOM'] = [env['LINKCOM'], '\"%s\" -nologo -manifest ${TARGET}.manifest -outputresource:$TARGET;1' % mt]
@@ -877,11 +889,11 @@ def MakeBaseEnv(noarch=None, output_dir="."):
     SetupRelease(env)
   
   if no_arch:
-    env.Append(CPPPATH=[os.path.join(out_dir, mode_dir, "include")])
-    env.Append(LIBPATH=[os.path.join(out_dir, mode_dir, "lib")])
+    env.Append(CPPPATH=[joinpath(out_dir, mode_dir, "include")])
+    env.Append(LIBPATH=[joinpath(out_dir, mode_dir, "lib")])
   else:
-    env.Append(CPPPATH=[os.path.join(out_dir, mode_dir, arch_dir, "include")])
-    env.Append(LIBPATH=[os.path.join(out_dir, mode_dir, arch_dir, "lib")])
+    env.Append(CPPPATH=[joinpath(out_dir, mode_dir, arch_dir, "include")])
+    env.Append(LIBPATH=[joinpath(out_dir, mode_dir, arch_dir, "lib")])
   
   env["TARGET_ARCH"] = arch_dir
   env["TARGET_MODE"] = mode_dir
@@ -896,7 +908,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
     if e is None:
       return
     
-    n = os.path.abspath(str(node))
+    n = abspath(str(node))
     
     for i in xrange(len(all_progress)):
       name, nodes, cnt = all_progress[i]
@@ -949,7 +961,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
       else:
         env[k] = "%s\n$%s" % (v, k[:-3])
 
-  for item in glob.glob(os.path.dirname(__file__) + "/envext/*.py"):
+  for item in glob(os.path.dirname(__file__) + "/envext/*.py"):
     bn = os.path.basename(item)
     if bn == "__init__.py":
       continue
@@ -970,14 +982,14 @@ def OutputBaseDirectory():
   global out_dir, mode_dir, arch_dir, no_arch
   
   if not no_arch:
-    return os.path.join(out_dir, mode_dir, arch_dir)
+    return joinpath(out_dir, mode_dir, arch_dir)
   else:
-    return os.path.join(out_dir, mode_dir)
+    return joinpath(out_dir, mode_dir)
 
 def BuildBaseDirectory():
   global bld_dir, mode_dir, arch_dir
 
-  return os.path.join(bld_dir, mode_dir, sys.platform, arch_dir)
+  return joinpath(bld_dir, mode_dir, sys.platform, arch_dir)
 
 def Call(path, overrides={}, imp=[]):
   global ignore_help, args_no_cache, args_cache
@@ -990,7 +1002,7 @@ def Call(path, overrides={}, imp=[]):
     s = path + "/SConscript"
     if not os.path.isfile(s):
       # path may be a sub-repository
-      if len(glob.glob(path+"/*")) == 0:
+      if len(glob(path+"/*")) == 0:
         cmd = "git submodule update --init %s" % path
         p = subprocess.Popen(cmd, shell=True)
         p.communicate()
@@ -1315,15 +1327,15 @@ def DeclareTargets(env, prjs):
         for customcall in settings["custom"]:
           customcall(penv)
       
-      odir = os.path.join(bld_dir, mode_dir, sys.platform, arch_dir, prj)
+      odir = joinpath(bld_dir, mode_dir, sys.platform, arch_dir, prj)
       
       # On windows, also msvc-9.0
       if str(Platform()) == "win32":
         msvcver = env.get("MSVC_VERSION", None)
         if msvcver:
-          odir = os.path.join(odir, "msvc-%s" % msvcver)
+          odir = joinpath(odir, "msvc-%s" % msvcver)
       if "bldprefix" in settings:
-        odir = os.path.join(odir, settings["bldprefix"])
+        odir = joinpath(odir, settings["bldprefix"])
       
       shared = True
       if settings["type"] in ["program", "testprograms", "staticlib"]:
@@ -1337,14 +1349,30 @@ def DeclareTargets(env, prjs):
           penv.Append(CCFLAGS=["-fvisibility=hidden"])
       
       objs = []
+      # Source level dependencies
+      srcdeps = settings.get("srcdeps", {})
       for src in settings["srcs"]:
-        bn = os.path.splitext(os.path.basename(str(src)))[0]
+        bn = os.path.basename(str(src))
+        bnnoext = os.path.splitext(bn)[0]
         if shared:
-          objs.append(penv.SharedObject(os.path.join(odir, bn), src))
+          obj = penv.SharedObject(joinpath(odir, bnnoext), src)
         else:
-          objs.append(penv.StaticObject(os.path.join(odir, bn), src))
-        
-      progress_nodes = set(map(lambda x: os.path.abspath(str(x[0])), objs))
+          obj = penv.StaticObject(joinpath(odir, bnnoext), src)
+        #objs.append(obj)
+        objs.extend(obj)
+        key = str(src)
+        deps = srcdeps.get(key, [])
+        if not deps:
+          key = key.replace("\\", "/")
+          deps = srcdeps.get(key, [])
+          if not deps:
+            deps = srcdeps.get(bn, [])
+        if deps:
+          #Print("Add dependencies for '%s': %s" % (str(obj[0]).replace("\\", "/"), map(lambda x: str(x).replace("\\", "/"), deps)))
+          penv.Depends(obj, deps)
+      
+      #progress_nodes = set(map(lambda x: abspath(str(x[0])), objs))
+      progress_nodes = set(map(lambda x: abspath(str(x)), objs))
       
       if alias != prj:
         global help_targets
@@ -1362,16 +1390,16 @@ def DeclareTargets(env, prjs):
         if str(Platform()) == "win32":
           if settings.get("win_separate_dll_and_lib", True):
             if no_arch:
-              outbn = os.path.join(out_dir, mode_dir, "bin", prj)
-              impbn = os.path.join(out_dir, mode_dir, "lib", prj)
+              outbn = joinpath(out_dir, mode_dir, "bin", prj)
+              impbn = joinpath(out_dir, mode_dir, "lib", prj)
             else:
-              outbn = os.path.join(out_dir, mode_dir, arch_dir, "bin", prj)
-              impbn = os.path.join(out_dir, mode_dir, arch_dir, "lib", prj)
+              outbn = joinpath(out_dir, mode_dir, arch_dir, "bin", prj)
+              impbn = joinpath(out_dir, mode_dir, arch_dir, "lib", prj)
           else:
             if no_arch:
-              impbn = os.path.join(out_dir, mode_dir, "lib", prj)
+              impbn = joinpath(out_dir, mode_dir, "lib", prj)
             else:
-              impbn = os.path.join(out_dir, mode_dir, arch_dir, "lib", prj)
+              impbn = joinpath(out_dir, mode_dir, arch_dir, "lib", prj)
             outbn = impbn
               
           try:
@@ -1402,7 +1430,7 @@ def DeclareTargets(env, prjs):
           penv["SHLIBPREFIX"] = ""
           penv["SHLIBSUFFIX"] = ""
           
-          outlibdir = os.path.join(out_dir, mode_dir).replace("\\", "/")
+          outlibdir = joinpath(out_dir, mode_dir).replace("\\", "/")
           if not no_arch:
             outlibdir += "/" + arch_dir
           outlibdir += "/lib"
@@ -1451,7 +1479,7 @@ def DeclareTargets(env, prjs):
           for symlink in symlinks:
             sout.extend(penv.Symlink(symlink, pout))
         
-        progress_nodes.add(os.path.abspath(str(pout[0])))
+        progress_nodes.add(abspath(str(pout[0])))
         
         add_deps(pout)
         
@@ -1462,7 +1490,7 @@ def DeclareTargets(env, prjs):
       elif settings["type"] == "program":
         AddHelpTargets({prj: "Program" if not desc else desc})
         
-        outbindir = os.path.join(out_dir, mode_dir).replace("\\", "/")
+        outbindir = joinpath(out_dir, mode_dir).replace("\\", "/")
         if not no_arch:
           outbindir += "/" + arch_dir
         outbindir += "/bin"
@@ -1485,7 +1513,7 @@ def DeclareTargets(env, prjs):
         
         pout = penv.Program(outbn, objs)
         
-        progress_nodes.add(os.path.abspath(str(pout[0])))
+        progress_nodes.add(abspath(str(pout[0])))
         
         add_deps(pout)
         
@@ -1500,7 +1528,7 @@ def DeclareTargets(env, prjs):
       elif settings["type"] == "staticlib":
         AddHelpTargets({prj: "Static library" if not desc else desc})
         
-        outlibdir = os.path.join(out_dir, mode_dir).replace("\\", "/")
+        outlibdir = joinpath(out_dir, mode_dir).replace("\\", "/")
         if not no_arch:
           outlibdir += "/" + arch_dir
         outlibdir += "/lib"
@@ -1511,7 +1539,7 @@ def DeclareTargets(env, prjs):
         # Let's force it
         pout = penv.StaticLibrary(outlibdir + "/" + prj + penv["LIBSUFFIX"], objs)
         
-        progress_nodes.add(os.path.abspath(str(pout[0])))
+        progress_nodes.add(abspath(str(pout[0])))
         
         add_deps(pout)
       
@@ -1520,7 +1548,7 @@ def DeclareTargets(env, prjs):
         
         pout = []
         
-        outbindir = os.path.join(out_dir, mode_dir).replace("\\", "/")
+        outbindir = joinpath(out_dir, mode_dir).replace("\\", "/")
         if not no_arch:
           outbindir += "/" + arch_dir
         outbindir += "/bin"
@@ -1545,7 +1573,7 @@ def DeclareTargets(env, prjs):
           
           prg = penv.Program(outbn, obj)
           
-          progress_nodes.add(os.path.abspath(str(prg[0])))
+          progress_nodes.add(abspath(str(prg[0])))
           
           add_deps(prg)
           
@@ -1562,7 +1590,7 @@ def DeclareTargets(env, prjs):
       elif settings["type"] == "dynamicmodule":
         AddHelpTargets({prj: "Dynamic module" if not desc else desc})
         
-        outmoddir = os.path.join(out_dir, mode_dir)
+        outmoddir = joinpath(out_dir, mode_dir)
         if not no_arch:
           outmoddir += "/" + arch_dir
         if prefix:
@@ -1575,7 +1603,7 @@ def DeclareTargets(env, prjs):
             penv["SHLIBSUFFIX"] = settings["ext"]
          
           # set import lib in build folder
-          impbn = os.path.join(odir, os.path.basename(prj))
+          impbn = joinpath(odir, os.path.basename(prj))
           penv['no_import_lib'] = 1
           penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
           pout = penv.SharedLibrary(outbn, objs)
@@ -1602,7 +1630,7 @@ def DeclareTargets(env, prjs):
           
           pout = penv.LoadableModule(outmoddir + "/" + prj, objs)
         
-        progress_nodes.add(os.path.abspath(str(pout[0])))
+        progress_nodes.add(abspath(str(pout[0])))
         
         add_deps(pout)
       
@@ -1619,7 +1647,7 @@ def DeclareTargets(env, prjs):
             penv.Depends(pout, penv.Install(dstdir, filepath))
           else:
             dn = dstdir + "/" + os.path.basename(filepath)
-            for item in glob.glob(filepath + "/*"):
+            for item in glob(filepath + "/*"):
               install_file(dn, item)
         else:
           penv.Depends(pout, penv.Install(dstdir, filepath))
@@ -1627,9 +1655,9 @@ def DeclareTargets(env, prjs):
       if "install" in settings:
         for prefix, files in settings["install"].iteritems():
           if no_arch:
-            dst = os.path.join(out_dir, mode_dir, prefix)
+            dst = joinpath(out_dir, mode_dir, prefix)
           else:
-            dst = os.path.join(out_dir, mode_dir, arch_dir, prefix)
+            dst = joinpath(out_dir, mode_dir, arch_dir, prefix)
           for f in files:
             install_file(dst, f)
       

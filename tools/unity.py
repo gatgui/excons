@@ -50,10 +50,10 @@ def PluginPost(pluginname, package=None):
   def _UnityPostBuild(*args, **kwargs):
     if sys.platform == "darwin":
       
-      macos_dir = os.path.join(excons.OutputBaseDirectory(), PluginPrefix(pluginname, package=package))
+      macos_dir = excons.joinpath(excons.OutputBaseDirectory(), PluginPrefix(pluginname, package=package))
       contents_dir = os.path.dirname(macos_dir)
       
-      plist_path = os.path.join(contents_dir, "Info.plist")
+      plist_path = excons.joinpath(contents_dir, "Info.plist")
       
       if not os.path.isfile(plist_path):
         plist_content = """
@@ -102,9 +102,9 @@ def Plugin(target, libs=[], package=None):
   
   install = target.get("install", {})
   if libs:
-    libs_dir = os.path.join(excons.OutputBaseDirectory(), prefix)
+    libs_dir = excons.joinpath(excons.OutputBaseDirectory(), prefix)
     if sys.platform == "darwin":
-      libs_dir = os.path.join(os.path.dirname(libs_dir), "Libraries")
+      libs_dir = excons.joinpath(os.path.dirname(libs_dir), "Libraries")
     install[libs_dir] = libs
   
   target["ext"] = PluginExt()

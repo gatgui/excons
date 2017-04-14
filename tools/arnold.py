@@ -43,7 +43,7 @@ def Version(asString=True):
   if arnoldinc is None:
     return ("0.0.0.0" if asString else (0, 0, 0, 0))
   
-  ai_version = os.path.join(arnoldinc, "ai_version.h")
+  ai_version = excons.joinpath(arnoldinc, "ai_version.h")
   
   varch, vmaj, vmin, vpatch = 0, 0, 0, 0
   

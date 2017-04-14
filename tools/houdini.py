@@ -144,7 +144,7 @@ def Require(env):
       cmntools = hcustomenv[cmntools]
       if cmntools.endswith("\\") or cmntools.endswith("/"):
         cmntools = cmntools[:-1]
-      cmntools = os.path.join(os.path.split(os.path.split(cmntools)[0])[0], "VC")
+      cmntools = excons.joinpath(os.path.split(os.path.split(cmntools)[0])[0], "VC")
       hcustomenv["MSVCDir"] = cmntools
   
   hcustom = "%s/bin/hcustom" % hfs

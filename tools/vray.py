@@ -25,7 +25,7 @@ import re
 import os
 
 def FindFileIn(filename, directory):
-  for item in glob.glob(directory+"/*"):
+  for item in excons.glob(directory+"/*"):
     if os.path.isdir(item):
       rv = FindFileIn(filename, item)
       if rv is not None:
@@ -45,7 +45,7 @@ def PluginExt():
 def Version(asString=True):
   vrayinc, _ = excons.GetDirs("vray")
 
-  vraybase = os.path.join(vrayinc, "vraybase.h")
+  vraybase = excons.joinpath(vrayinc, "vraybase.h")
   
   if os.path.isfile(vraybase):
     defexp = re.compile(r"^\s*#define\s+VRAY_DLL_VERSION\s+(0x[a-fA-F0-9]+)")

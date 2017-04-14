@@ -83,14 +83,14 @@ def Require(hl=False, verbose=False):
     if hdf5_inc:
       # Note: On Fedora 14, H5pubconf.h has been renamed to H5pubconf-64.h
       #       -> be slightly more flexible when looking up this file
-      lst = filter(lambda x: os.path.basename(x).startswith("H5pubconf"), glob.glob(hdf5_inc+"/*.h"))
+      lst = filter(lambda x: os.path.basename(x).startswith("H5pubconf"), excons.glob(hdf5_inc+"/*.h"))
       if len(lst) > 0:
         h5conf = lst[0].replace("\\", "/")
     
     else:
       # Look in current include paths
       for d in env["CPPPATH"]:
-        lst = filter(lambda x: os.path.basename(x).startswith("H5pubconf"), glob.glob(d+"/*.h"))
+        lst = filter(lambda x: os.path.basename(x).startswith("H5pubconf"), excons.glob(d+"/*.h"))
         if len(lst) > 0:
           h5conf = lst[0].replace("\\", "/")
           break

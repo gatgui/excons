@@ -70,8 +70,8 @@ def SetupEnvironment(env, settings):
    name = settings["name"]
    debug = (excons.GetArgument("debug", 0, int) != 0)
    opts = settings.get("automake-opts", {})
-   agenf = os.path.abspath("./autogen.sh")
-   conff = os.path.abspath("./configure")
+   agenf = excons.abspath("./autogen.sh")
+   conff = excons.abspath("./configure")
    blddir = automake.BuildDir(name)
    makef = blddir + "/Makefile"
    cfgc = automake.ConfigCachePath(name)
@@ -80,7 +80,7 @@ def SetupEnvironment(env, settings):
    # Override default C/C++ file scanner to avoid SCons being too nosy
    env.Prepend(SCANNERS=Scanner(function=DummyScanner, skeys=cexts))
    env["AUTOMAKE_PROJECT"] = name
-   env["AUTOMAKE_TOPDIR"] = os.path.abspath(".")
+   env["AUTOMAKE_TOPDIR"] = excons.abspath(".")
    env["AUTOMAKE_OPTIONS"] = opts
    env["AUTOMAKE_TARGET"] = settings.get("automake-target", "install")
    env["AUTOMAKE_CONFIGURE"] = conff

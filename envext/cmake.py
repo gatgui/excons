@@ -34,7 +34,7 @@ def SetupEnvironment(env, settings):
    # Override default C/C++ file scanner to avoid SCons being too nosy
    env.Prepend(SCANNERS=Scanner(function=DummyScanner, skeys=cexts))
    env["CMAKE_PROJECT"] = name
-   env["CMAKE_TOPDIR"] = os.path.abspath(".")
+   env["CMAKE_TOPDIR"] = excons.abspath(".")
    env["CMAKE_OPTIONS"] = opts
    env["CMAKE_CONFIG"] = settings.get("cmake-config", ("debug" if debug else "release"))
    env["CMAKE_TARGET"] = settings.get("cmake-target", "install")
