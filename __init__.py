@@ -991,7 +991,7 @@ def BuildBaseDirectory():
 
   return joinpath(bld_dir, mode_dir, sys.platform, arch_dir)
 
-def Call(path, overrides={}, imp=[]):
+def Call(path, targets=None, overrides={}, imp=[]):
   global ignore_help, args_no_cache, args_cache
 
   cur_ignore_help = ignore_help
@@ -1030,6 +1030,14 @@ def Call(path, overrides={}, imp=[]):
     ARGUMENTS[k] = str(v)
     if check_cache:
       old_cached_vals[k] = args_cache.get(k, None)
+
+  if targets is not None:
+    if type(targets) in (str, unicode):
+      for target in filter(lambda x: len(x)>0, map(lambda y: y.strip(), targets.split(" "))):
+        BUILD_TARGETS.append(target)
+    else:
+      for target in targets:
+        BUILD_TARGETS.append(target)
 
   SConscript(s)
 
@@ -1257,7 +1265,8 @@ def DeclareTargets(env, prjs):
               penv.Depends(tgt, all_targets[dep])
             else:
               if k == "deps":
-                WarnOnce("Can't find dependent target '%s'" % dep)
+                WarnOnce("Can't find dependent target '%s'. Depend on file." % dep)
+                penv.Depends(tgt, dep)
 
     if settings["type"] in ext_types:
       pout = ext_types[settings["type"]](penv, settings)
