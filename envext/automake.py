@@ -145,7 +145,11 @@ def SetupEnvironment(env, settings):
 
    bins = settings.get("automake-srcs", [])
    bins.extend(cout)
-   bout = automake.Outputs(name) + [automake.OutputsCachePath(name)]
+
+   expected_outputs = settings.get("automake-outputs", [])
+   expected_outputs = map(lambda x: (x if os.path.isabs(x) else (excons.OutputBaseDirectory() + "/" + x)), expected_outputs)
+   actual_outputs = automake.Outputs(name)
+   bout = list(set(actual_outputs).union(set(expected_outputs))) + [automake.OutputsCachePath(name)]
 
    out = env.Automake(bout, bins)
 
