@@ -1877,7 +1877,8 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
 
   distenv = env.Clone()
 
-  distdir = GetArgument(dirflag, defaultdir)
+  #distdir = GetArgument(dirflag, defaultdir)
+  distdir = ARGUMENTS.get(dirflag, defaultdir)
   verdir = "%s/%s/%s" % (distdir, name, version)
 
   if updenv:
