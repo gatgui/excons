@@ -52,6 +52,7 @@ help_targets = {}
 help_options = {}
 ext_types = {}
 
+
 def abspath(path):
   return os.path.abspath(path).replace("\\", "/")
 
@@ -593,31 +594,30 @@ def LibraryFullpath(env, lib, static=False):
   return None
 
 def StaticallyLink(env, lib, silent=False):
-  if sys.platform == "win32":
-    env.Append(LIBS=[lib])
-    return True
+  if os.path.isabs(lib):
+    fullpath = lib
   else:
     fullpath = LibraryFullpath(env, lib, static=True)
-    if fullpath is None:
-      if not silent:
-        WarnOnce("Could not find static lib for '%s'" % lib)
-      return False
-    else:
-      env.Append(LIBS=[env.File(fullpath)])
-      return True
+  if fullpath is None:
+    if not silent:
+      WarnOnce("Could not find static lib for '%s'" % lib)
+    return False
+  else:
+    env.Append(LIBS=[env.File(fullpath)])
+    return True
 
 def Link(env, lib, static=False, force=True, silent=False):
-  fullpath = LibraryFullpath(env, lib, static=static)
+  if os.path.isabs(lib):
+    fullpath = lib
+  else:
+    fullpath = LibraryFullpath(env, lib, static=static)
   if fullpath is None:
     if not silent:
       WarnOnce("Could not find %s lib for '%s'" % ("static" if static else "shared", lib))
     if force:
       env.Append(LIBS=[lib])
   else:
-    if sys.platform == "win32" or not static:
-      env.Append(LIBS=[lib])
-    else:
-      env.Append(LIBS=[env.File(fullpath)])
+    env.Append(LIBS=[env.File(fullpath)])
 
 def CollectFiles(directory, patterns, recursive=True, exclude=[]):
   global VCD
@@ -1170,7 +1170,7 @@ def ExternalLibHelp(name):
 # parameters
 #   libnameFunc: f(static) -> str
 #   definesFunc: f(static) -> []
-#   extraEnvFunc f(env, static) -> g(env)
+#   extraEnvFunc f(env, static) -> None
 def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=None):
   global arch_dir
 
@@ -1211,8 +1211,7 @@ def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=No
         if definesFunc:
           env.Append(CPPDEFINES=definesFunc(staticlink))
         env.Append(CPPPATH=[incdir])
-        env.Append(LIBPATH=[libdir])
-        Link(env, libname, static=staticlink, force=True, silent=True)
+        Link(env, libpath, static=staticlink, force=True, silent=True)
         if extraEnvFunc:
           extraEnvFunc(env, static)
 
@@ -1361,6 +1360,7 @@ def DeclareTargets(env, prjs):
       objs = []
       # Source level dependencies
       srcdeps = settings.get("srcdeps", {})
+      prereqs = srcdeps.get("*", [])
       for src in settings["srcs"]:
         bn = os.path.basename(str(src))
         bnnoext = os.path.splitext(bn)[0]
@@ -1380,6 +1380,9 @@ def DeclareTargets(env, prjs):
         if deps:
           #Print("Add dependencies for '%s': %s" % (str(obj[0]).replace("\\", "/"), map(lambda x: str(x).replace("\\", "/"), deps)))
           penv.Depends(obj, deps)
+        # target prerequisites
+        if prereqs:
+          penv.Depends(obj, prereqs)
       
       #progress_nodes = set(map(lambda x: abspath(str(x[0])), objs))
       progress_nodes = set(map(lambda x: abspath(str(x)), objs))
