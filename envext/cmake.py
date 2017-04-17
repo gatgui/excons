@@ -85,7 +85,11 @@ def SetupEnvironment(env, settings):
 
    bins = settings.get("cmake-srcs", [])
    bins.extend(cout)
-   bout = cmake.Outputs(name) + [cmake.OutputsCachePath(name)]
+
+   expected_outputs = settings.get("cmake-outputs", [])
+   expected_outputs = map(lambda x: (x if os.path.isabs(x) else (excons.OutputBaseDirectory() + "/" + x)), expected_outputs)
+   actual_outputs = cmake.Outputs(name)
+   bout = list(set(actual_outputs).union(set(expected_outputs))) + [cmake.OutputsCachePath(name)]
 
    out = env.CMake(bout, bins)
 
