@@ -1057,10 +1057,8 @@ def Call(path, targets=None, overrides={}, imp=[]):
   if check_cache:
     for k in args_cache.keys():
       if not k in old_keys:
-        print("Remove Cache (2) %s" % k)
         args_cache.remove(k)
         if k in ARGUMENTS:
-          print("Remove ARGUMENTS (2) %s" % k)
           del(ARGUMENTS[k])
 
   for name in imp:
