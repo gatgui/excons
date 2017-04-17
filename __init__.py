@@ -1423,6 +1423,10 @@ def DeclareTargets(env, prjs):
           penv['no_import_lib'] = 1
           penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
           pout = penv.SharedLibrary(outbn, objs)
+          implib = File(mode_dir + ("/" if no_arch else "/%s" % arch_dir) + "/lib/" + prj + ".lib")
+          # Create a fake target for implib
+          penv.Depends(implib, pout[0])
+          pout.append(implib)
           
           # Cleanup
           penv.Clean(pout, impbn+".lib")
