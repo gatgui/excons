@@ -102,7 +102,7 @@ def Require(libs=[]):
         env.Append(LIBPATH=[libdir])
 
       if sys.platform == "win32":
-        if autolinklib:
+        if not autolinklib:
           defs.append("BOOST_%s_NO_LIB" % lib.upper())
         else:
           autolinkcount += 1
