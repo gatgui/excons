@@ -34,19 +34,19 @@ def GetOptionsString():
                             (ignored when openexr-name is set)"""
 
 def Require(ilmbase=False, zlib=False):
+   openexr_libsuffix = excons.GetArgument("openexr-suffix", "")
+
+   openexr_libname = excons.GetArgument("openexr-name", "IlmImf%s" % openexr_libsuffix)
+
+   openexr_inc, openexr_lib = excons.GetDirs("openexr")
+   if openexr_inc and not openexr_inc.endswith("OpenEXR"):
+      openexr_inc += "/OpenEXR"
+
+   openexr_static = (excons.GetArgument("openexr-static", 0, int) != 0)
+
+   excons.AddHelpOptions(openexr=GetOptionsString())
    
    def _RequireOpenEXR(env):
-      openexr_libsuffix = excons.GetArgument("openexr-suffix", "")
-
-      openexr_libname = excons.GetArgument("openexr-name", "IlmImf%s" % openexr_libsuffix)
-
-      openexr_inc, openexr_lib = excons.GetDirs("openexr")
-
-      openexr_static = (excons.GetArgument("openexr-static", 0, int) != 0)
-
-      if openexr_inc and not openexr_inc.endswith("OpenEXR"):
-         openexr_inc += "/OpenEXR"
-
       if sys.platform == "win32" and not openexr_static:
          env.Append(CPPDEFINES=["OPENEXR_DLL"])
 
@@ -56,15 +56,12 @@ def Require(ilmbase=False, zlib=False):
       if openexr_lib:
          env.Append(LIBPATH=[openexr_lib])
 
-      if not openexr_static or not excons.StaticallyLink(env, openexr_libname):
-         env.Append(LIBS=[openexr_libname])
+      excons.Link(env, openexr_libname, static=openexr_static, force=True, silent=True)
 
       if ilmbase:
          excons.tools.ilmbase.Require()(env)
 
       if zlib:
          excons.tools.zlib.Require(env)
-
-      excons.AddHelpOptions(openexr=GetOptionsString())
 
    return _RequireOpenEXR

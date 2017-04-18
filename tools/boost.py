@@ -46,25 +46,39 @@ def IsStaticallyLinked(lib):
   return (excons.GetArgument("boost-%s-static" % lib, (1 if static else 0), int) != 0)
 
 def Require(libs=[]):
-  
+  boost_inc_dir, boost_lib_dir = excons.GetDirs("boost")
+  static = (excons.GetArgument("boost-static", 0, int) != 0)
+  boost_libsuffix = excons.GetArgument("boost-suffix", "")
+  useautolink = False
+  if sys.platform == "win32":
+    useautolink = (excons.GetArgument("boost-autolink", 1, int) != 0)
+
+  libargs = {}
+  for lib in libs:
+    incdir, libdir = excons.GetDirs("boost-%s" % lib)
+    libname = excons.GetArgument("boost-%s-name" % lib, None)
+    if libname is None:
+      libsuffix = excons.GetArgument("boost-%s-suffix" % lib, boost_libsuffix)
+      libname = "boost_%s%s" % (lib, libsuffix)
+    libstatic = (excons.GetArgument("boost-%s-static" % lib, (1 if static else 0), int) != 0)
+    autolinklib = False
+    if sys.platform == "win32":
+      autolinklib = (excons.GetArgument("boost-%s-autolink" % lib, (1 if useautolink else 0), int) != 0)
+    libargs[lib] = {"incdir": incdir,
+                    "libdir": libdir,
+                    "name": libname,
+                    "static": libstatic,
+                    "autolink": autolinklib}
+
   def _RealRequire(env):
-    boost_inc_dir, boost_lib_dir = excons.GetDirs("boost")
-    
     if boost_inc_dir:
       env.Append(CPPPATH=boost_inc_dir)
     
     if boost_lib_dir:
       env.Append(LIBPATH=boost_lib_dir)
-
-    static = (excons.GetArgument("boost-static", 0, int) != 0)
     
-    boost_libsuffix = excons.GetArgument("boost-suffix", "")
-    
-    useautolink = False
     autolinkcount = 0
-    if sys.platform == "win32":
-      useautolink = (excons.GetArgument("boost-autolink", 1, int) != 0)
-    
+
     defs = []
 
     # All libs but Boost.Python are statically linked by default
@@ -75,25 +89,20 @@ def Require(libs=[]):
     # => disable for a specific lib using BOOST_[libraryname]_NO_LIB
     
     for lib in libs:
-      incdir, libdir = excons.GetDirs("boost-%s" % lib)
+      incdir = libargs[lib]["incdir"]
+      libdir = libargs[lib]["libdir"]
+      libname = libargs[lib]["name"]
+      libstatic = libargs[lib]["static"]
+      autolinklib = libargs[lib]["autolink"]
+
       if incdir:
         env.Append(CPPPATH=[incdir])
-      
+
       if libdir:
         env.Append(LIBPATH=[libdir])
-      
-      libname = excons.GetArgument("boost-%s-name" % lib, None)
-      if not libname:
-        libsuffix = excons.GetArgument("boost-%s-suffix" % lib, boost_libsuffix)
-        libname = "boost_%s%s" % (lib, libsuffix)
-      
-      libstatic = (excons.GetArgument("boost-%s-static" % lib, (1 if static else 0), int) != 0)
-      
-      autolinklib = False
-      
+
       if sys.platform == "win32":
-        autolinklib = (excons.GetArgument("boost-%s-autolink" % lib, (1 if useautolink else 0), int) != 0)
-        if not autolinklib:
+        if autolinklib:
           defs.append("BOOST_%s_NO_LIB" % lib.upper())
         else:
           autolinkcount += 1
@@ -117,8 +126,7 @@ def Require(libs=[]):
             defs.append("BOOST_%s_DYN_LINK" % lib.upper())
       
       if not autolinklib:
-        if not libstatic or not excons.StaticallyLink(env, libname):
-          env.Append(LIBS=[libname])
+        excons.Link(env, libname, static=libstatic, force=True, silent=True)
 
     if sys.platform == "win32" and autolinkcount == 0:
       defs.append("BOOST_ALL_NO_LIB")
