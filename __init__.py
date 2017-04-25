@@ -1227,8 +1227,8 @@ def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=No
   return rv
 
 def DeclareTargets(env, prjs):
-  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets, all_progress, ext_types
-  
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets, all_progress, ext_types, help_targets
+
   all_projs = {}
   
   for settings in prjs:
@@ -1271,7 +1271,8 @@ def DeclareTargets(env, prjs):
     if settings["type"] in ext_types:
       pout = ext_types[settings["type"]](penv, settings)
       if pout:
-        AddHelpTargets({prj: ("Build %s project" % settings["type"]) if not desc else desc})
+        if not prj in help_targets:
+          AddHelpTargets({prj: ("Build %s project" % settings["type"]) if not desc else desc})
         add_deps(pout)
 
     else:
@@ -1388,15 +1389,16 @@ def DeclareTargets(env, prjs):
       progress_nodes = set(map(lambda x: abspath(str(x)), objs))
       
       if alias != prj:
-        global help_targets
-        val = help_targets.get(alias, "")
-        if val:
-          val += ", "
-        val += prj
-        help_targets[alias] = val
+        if not alias in help_targets:
+          val = help_targets.get(alias, "")
+          if val:
+            val += ", "
+          val += prj
+          help_targets[alias] = val
       
       if settings["type"] == "sharedlib":
-        AddHelpTargets({prj: "Shared library" if not desc else desc})
+        if not prj in help_targets:
+          AddHelpTargets({prj: "Shared library" if not desc else desc})
         
         sout = []
         
@@ -1505,7 +1507,8 @@ def DeclareTargets(env, prjs):
           pout = sout
       
       elif settings["type"] == "program":
-        AddHelpTargets({prj: "Program" if not desc else desc})
+        if not prj in help_targets:
+          AddHelpTargets({prj: "Program" if not desc else desc})
         
         outbindir = joinpath(out_dir, mode_dir).replace("\\", "/")
         if not no_arch:
@@ -1543,7 +1546,8 @@ def DeclareTargets(env, prjs):
             penv.Clean(pout, outbn+".pdb")
       
       elif settings["type"] == "staticlib":
-        AddHelpTargets({prj: "Static library" if not desc else desc})
+        if not prj in help_targets:
+          AddHelpTargets({prj: "Static library" if not desc else desc})
         
         outlibdir = joinpath(out_dir, mode_dir).replace("\\", "/")
         if not no_arch:
@@ -1561,7 +1565,8 @@ def DeclareTargets(env, prjs):
         add_deps(pout)
       
       elif settings["type"] == "testprograms":
-        AddHelpTargets({prj: "Programs" if not desc else desc})
+        if not prj in help_targets:
+          AddHelpTargets({prj: "Programs" if not desc else desc})
         
         pout = []
         
@@ -1605,7 +1610,8 @@ def DeclareTargets(env, prjs):
               penv.Clean(prg, outbn+".pdb")
       
       elif settings["type"] == "dynamicmodule":
-        AddHelpTargets({prj: "Dynamic module" if not desc else desc})
+        if not prj in help_targets:
+          AddHelpTargets({prj: "Dynamic module" if not desc else desc})
         
         outmoddir = joinpath(out_dir, mode_dir)
         if not no_arch:
