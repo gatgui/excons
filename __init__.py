@@ -1265,7 +1265,7 @@ def DeclareTargets(env, prjs):
               penv.Depends(tgt, all_targets[dep])
             else:
               if k == "deps":
-                WarnOnce("Can't find dependent target '%s'. Depend on file." % dep)
+                # WarnOnce("Can't find dependent target '%s'. Depend on file." % dep)
                 penv.Depends(tgt, dep)
 
     if settings["type"] in ext_types:
