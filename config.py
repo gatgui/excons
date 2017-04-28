@@ -3,7 +3,6 @@ import re
 import excons
 from SCons.Script import *
 
-phexp = re.compile(r"@([^@]+)@")
 
 def GetPath(name):
    return excons.joinpath(excons.out_dir, "%s.config" % name)
@@ -26,7 +25,11 @@ def Write(name, opts):
          f.write("%s %s\n" % (k, v))
       f.write("\n")
 
-def GenerateFile(outpath, inpath, opts):
+def GenerateFile(outpath, inpath, opts, pattern=None):
+   if pattern is not None:
+      phexp = re.compile(pattern)
+   else:
+      phexp = re.compile(r"@([^@]+)@")
    with open(outpath, "w") as outf:
       with open(inpath, "r") as inf:
          for line in inf.readlines():
@@ -41,7 +44,7 @@ def GenerateFile(outpath, inpath, opts):
                m = phexp.search(line)
             outf.write(line)
 
-def AddGenerator(env, name, opts):
+def AddGenerator(env, name, opts, pattern=None):
    def _ActionFunc(target, source, env):
       GenerateFile(str(target[0]), str(source[0]), opts)
       return None
