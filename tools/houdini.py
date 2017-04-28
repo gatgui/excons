@@ -34,14 +34,15 @@ def GetOptionsString():
 
 def SetupMscver():
   if sys.platform == "win32":
-    mscver = ARGUMENTS.get("mscver", None)
+    excons.InitGlobals()
+    mscver = excons.GetArgument("mscver", None)
     if mscver is None:
       houver = Version(full=False)
       if houver is not None:
         mscver = _hou_mscver.get(houver, None)
         if mscver is not None:
           print("Using msvc %s" % mscver)
-          ARGUMENTS["mscver"] = mscver
+          excons.SetArgument("mscver", mscver)
 
 def PluginExt():
   if str(Platform()) == "darwin":
