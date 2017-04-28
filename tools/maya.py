@@ -184,7 +184,7 @@ def Version(asString=True, nice=False):
     f.close()
   
   excons.WarnOnce("Cannot find maya headers (missing with-mayadevkit= ?).")
-  return None
+  return (None if not asString else "")
 
 def Require(env):
   excons.AddHelpOptions(maya=GetOptionsString())

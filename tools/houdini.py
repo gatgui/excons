@@ -58,7 +58,7 @@ def Plugin(env):
 def Version(asString=True, full=True):
   ver, _ = GetVersionAndDirectory(noexc=True)
   if ver is None:
-    return None
+    return (None if not asString else "")
   else:
     if not full or not asString:
       ver = ".".join(ver.split(".")[:2])
