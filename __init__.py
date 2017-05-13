@@ -1004,9 +1004,15 @@ def Call(path, targets=None, overrides={}, imp=[]):
     if not os.path.isfile(s):
       # path may be a sub-repository
       if len(glob(path+"/*")) == 0:
-        cmd = "git submodule update --init %s" % path
+        d, n = os.path.split(path)
+        cwd = os.getcwd()
+        if d:
+          os.chdir(d)
+        cmd = "git submodule update --init %s" % n
         p = subprocess.Popen(cmd, shell=True)
         p.communicate()
+        if d:
+          os.chdir(cwd)
         if p.returncode == 0:
           s = path + "/SConstruct"
           if not os.path.isfile(s):
