@@ -1219,7 +1219,7 @@ def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=No
         env.Append(CPPPATH=[incdir])
         Link(env, libpath, static=staticlink, force=True, silent=True)
         if extraEnvFunc:
-          extraEnvFunc(env, static)
+          extraEnvFunc(env, staticlink)
 
       rv["require"] = RequireFunc
       rv["incdir"] = incdir
