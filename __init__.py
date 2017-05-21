@@ -124,14 +124,16 @@ class Cache(dict):
     if self.updated:
       import pprint
       
-      if args_cache_echo:
-        print("[excons] Write excons.cache: %s" % args_cache_path)
-      f = open(args_cache_path, "w")
-      pprint.pprint(self, f)
-      f.write("\n")
-      f.close()
-      
-      self.updated = False
+      if args_cache_path:
+        if args_cache_echo:
+          print("[excons] Write excons.cache: %s" % args_cache_path)
+        f = open(args_cache_path, "w")
+        pprint.pprint(self, f)
+        f.write("\n")
+        f.close()
+        self.updated = False
+      else:
+        print("[excons] Cannot write arguments cache: Invalid path.")
   
   def __setitem__(self, k, v):
     global args_cache_echo
@@ -182,27 +184,30 @@ def GetArgument(key, default=None, convert=None):
         args_no_cache = True
         return GetArgument(key, default, convert)
       
-      args_cache = Cache()
-      
-      if os.path.exists(args_cache_path):
-        print("[excons] Read excons.cache: %s" % args_cache_path)
-        import ast
-        import copy
+      if args_cache_path:
+        args_cache = Cache()
         
-        f = open(args_cache_path, "r")
-        cc = f.read()
-        f.close()
-        
-        try:
-          d = ast.literal_eval(cc)
-          for k, v in d.iteritems():
-            if k == sys.platform:
-              for k2, v2 in v.iteritems():
-                print("[excons]  %s = %s" % (k2, v2))
-            args_cache.rawset(k, copy.deepcopy(v))
-        except Exception, e:
-          print(e)
-          args_cache.clear()
+        if os.path.exists(args_cache_path):
+          print("[excons] Read excons.cache: %s" % args_cache_path)
+          import ast
+          import copy
+          
+          f = open(args_cache_path, "r")
+          cc = f.read()
+          f.close()
+          
+          try:
+            d = ast.literal_eval(cc)
+            for k, v in d.iteritems():
+              if k == sys.platform:
+                for k2, v2 in v.iteritems():
+                  print("[excons]  %s = %s" % (k2, v2))
+              args_cache.rawset(k, copy.deepcopy(v))
+          except Exception, e:
+            print(e)
+            args_cache.clear()
+      else:
+        print("[excons] Cannot read '%s' from cache: Invalid cache path." % key)
     
     # What if cache was modified in the meantime
     # => happens when using SConscript("path/to/another/SConstruct")
@@ -210,13 +215,13 @@ def GetArgument(key, default=None, convert=None):
     rv = ARGUMENTS.get(key, None)
     
     if rv is None:
-      rv = args_cache.get(key, None)
-      
+      if args_cache:
+        rv = args_cache.get(key, None)
       if rv is None:
         return default
-    
     else:
-      args_cache[key] = rv
+      if args_cache:
+        args_cache[key] = rv
   
   if convert:
     try:
@@ -238,7 +243,8 @@ def SetArgument(key, value, cache=False):
       # force creation
       GetArgument("__dummy__")
     
-    args_cache[key] = str(value)
+    if args_cache:
+      args_cache[key] = str(value)
 
 def RemoveCacheKey(key):
   global args_cache, args_no_cache
@@ -248,7 +254,8 @@ def RemoveCacheKey(key):
       # force creation
       GetArgument("__dummy__")
     
-    args_cache.remove(key)
+    if args_cache:
+      args_cache.remove(key)
 
 def Which(target):
   pathsplit = None
@@ -854,7 +861,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
           
           if warnl == "std":
             # remove some more c++11 specific warnings
-            env.Append(CPPFLAGS=" ".join(["-Wno-deprecated-register",
+            env.Append(CPPFLAGS=" ".join([" -Wno-deprecated-register",
                                           "-Wno-deprecated-declarations",
                                           "-Wno-missing-field-initializers",
                                           "-Wno-unused-private-field"]))
