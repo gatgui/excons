@@ -182,6 +182,12 @@ def GetLLVMConfig(components=None):
    return llvm_cfg
 
 
+def GetOptionsString():
+  return """LLVM OPTIONS
+  with-llvm=<path>     : LLVM prefix                []
+  with-llvm-inc=<path> : LLVM headers directory     [<prefix>/include]
+  with-llvm-lib=<path> : LLVM libraries directory   [<prefix>/lib]"""
+
 def Require(min_version=None, require_rtti=False, require_exceptions=False, components=None):
    cfg = GetLLVMConfig(components)
 
@@ -222,6 +228,8 @@ def Require(min_version=None, require_rtti=False, require_exceptions=False, comp
       for lib in cfg["libs"]:
          excons.Link(env, lib, static=True, force=True, silent=False)
       env.Append(LIBS=cfg["syslibs"])
+
+      excons.AddHelpOptions(llvm=GetOptionsString())
 
    return _RequireLLVM
 
