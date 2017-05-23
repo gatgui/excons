@@ -999,7 +999,7 @@ def BuildBaseDirectory():
 
   return joinpath(bld_dir, mode_dir, sys.platform, arch_dir)
 
-def Call(path, targets=None, overrides={}, imp=[]):
+def Call(path, targets=None, overrides={}, imp=[], keepflags=[]):
   global ignore_help, args_no_cache, args_cache
 
   cur_ignore_help = ignore_help
@@ -1070,6 +1070,23 @@ def Call(path, targets=None, overrides={}, imp=[]):
   if check_cache:
     for k in args_cache.keys():
       if not k in old_keys:
+        # may want to keep
+        ignore = False
+        for e in keepflags:
+          if type(e) in (str, unicode):
+            if e in k:
+              ignore = True
+              break
+          else:
+              try:
+                m = e.search(k)
+                if m is not None:
+                  ignore = True
+                  break
+              except:
+                pass
+        if ignore:
+          continue
         args_cache.remove(k)
         if k in ARGUMENTS:
           del(ARGUMENTS[k])
