@@ -243,4 +243,4 @@ def ExternalLibRequire(configOpts, name, libnameFunc=None, definesFunc=None, ext
 
       configOpts["--with-%s" % flag] = "%s,%s" % (rv["incdir"], rv["libdir"])
 
-   return req
+   return rv

@@ -250,4 +250,4 @@ def ExternalLibRequire(configOpts, name, libnameFunc=None, definesFunc=None, ext
       configOpts["%sLIBRARY_DEBUG" % varPrefix] = rv["libpath"]
       configOpts["%sLIBRARY_RELEASE" % varPrefix] = rv["libpath"]
 
-   return req
+   return rv
