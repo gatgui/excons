@@ -53,13 +53,12 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
 
    ilmbase_libsuffix = excons.GetArgument("ilmbase-suffix", "")
 
+   pyilmbase_inc, pyilmbase_lib, pyilmbase_libsuffix = "", "", ""
    if python:
       pyilmbase_inc, pyilmbase_lib = excons.GetDirs("ilmbase-python")
+      if pyilmbase_inc and not pyilmbase_inc.endswith("OpenEXR"):
+         pyilmbase_inc += "/OpenEXR"
       pyilmbase_libsuffix = excons.GetArgument("ilmbase-python-suffix", ilmbase_libsuffix)
-   else:
-      pyilmbase_inc = None
-      pyilmbase_lib = None
-      pyilmbase_libsuffix = None
 
    ilmbase_inc, ilmbase_lib = excons.GetDirs("ilmbase")
    if ilmbase_inc and not ilmbase_inc.endswith("OpenEXR"):
@@ -73,8 +72,6 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
       # Add python bindings first
       if python:
          if pyilmbase_inc:
-            if not pyilmbase_inc.endswith("OpenEXR"):
-               pyilmbase_inc += "/OpenEXR"
             env.Append(CPPPATH=[pyilmbase_inc, os.path.dirname(pyilmbase_inc)])
          
          if pyilmbase_lib:
