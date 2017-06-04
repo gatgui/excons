@@ -32,6 +32,7 @@ def GetOptionsString():
   with-ilmbase-python=<path>     : PyIlmBase prefix
   with-ilmbase-python-inc=<path> : PyIlmBase headers directory   [<prefix>/include]
   with-ilmbase-python-lib=<path> : PyIlmBase libraries directory [<prefix>/lib]
+  ilmbase-python-static=0|1      : Link static libraries         [0]
   ilmbase-python-suffix=<str>    : PyIlmBase library suffix      ['']"""
 
 def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
@@ -66,6 +67,10 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
 
    static = (excons.GetArgument("ilmbase-static", 0, int) != 0)
 
+   pystatic = static
+   if python:
+      pystatic = (excons.GetArgument("ilmbase-python-static", (1 if static else 0), int) != 0)
+
    excons.AddHelpOptions(ilmbase=GetOptionsString())
 
    def _RealRequire(env):
@@ -77,7 +82,7 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
          if pyilmbase_lib:
             env.Append(LIBPATH=[pyilmbase_lib])
          
-         env.Append(LIBS=["PyImath" + pyilmbase_libsuffix])
+         excons.Link(env, "PyImath%s" % pyilmbase_libsuffix, static=pystatic, silent=True)
 
       if ilmbase_inc:
          env.Append(CPPPATH=[ilmbase_inc, os.path.dirname(ilmbase_inc)])
