@@ -76,6 +76,11 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
    def _RealRequire(env):
       # Add python bindings first
       if python:
+         if pystatic:
+            env.Append(CPPDEFINES=["PLATFORM_BUILD_STATIC"])
+         if sys.platform != "win32":
+            env.Append(CPPDEFINES=["PLATFORM_VISIBILITY_AVAILABLE"])
+
          if pyilmbase_inc:
             env.Append(CPPPATH=[pyilmbase_inc, os.path.dirname(pyilmbase_inc)])
          
@@ -83,6 +88,7 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
             env.Append(LIBPATH=[pyilmbase_lib])
          
          excons.Link(env, "PyImath%s" % pyilmbase_libsuffix, static=pystatic, silent=True)
+         excons.Link(env, "PyIex%s" % pyilmbase_libsuffix, static=pystatic, silent=True)
 
       if ilmbase_inc:
          env.Append(CPPPATH=[ilmbase_inc, os.path.dirname(ilmbase_inc)])
