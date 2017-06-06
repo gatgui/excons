@@ -1278,7 +1278,7 @@ def DeclareTargets(env, prjs):
     if not "type" in settings:
       print("[excons] Project \"%s\" missing \"type\"" % prj)
       continue
-    elif settings["type"] not in ext_types and not "srcs" in settings:
+    elif settings["type"] not in ext_types and settings["type"] != "install" and not "srcs" in settings:
       print("[excons] Project \"%s\" missing \"srcs\"" % prj)
       continue
 
@@ -1378,7 +1378,7 @@ def DeclareTargets(env, prjs):
         odir = joinpath(odir, settings["bldprefix"])
       
       shared = True
-      if settings["type"] in ["program", "testprograms", "staticlib"]:
+      if settings["type"] in ["program", "testprograms", "staticlib", "install"]:
         shared = False
       
       if str(Platform()) != "win32":
@@ -1392,7 +1392,7 @@ def DeclareTargets(env, prjs):
       # Source level dependencies
       srcdeps = settings.get("srcdeps", {})
       prereqs = srcdeps.get("*", [])
-      for src in settings["srcs"]:
+      for src in settings.get("srcs", []):
         bn = os.path.basename(str(src))
         bnnoext = os.path.splitext(bn)[0]
         if shared:
@@ -1687,23 +1687,37 @@ def DeclareTargets(env, prjs):
         
         add_deps(pout)
       
+      elif settings["type"] == "install":
+        pout = None
+        if not prj in help_targets:
+          AddHelpTargets({prj: "Install files" if not desc else desc})
+
       else:
         pout = None
     
-    if pout:
-      if "post" in settings:
+    if pout or settings["type"] == "install":
+      if pout and "post" in settings:
         penv.AddPostAction(pout, settings["post"])
       
-      def install_file(dstdir, filepath):
+      def install_file(po, dstdir, filepath):
         if type(filepath) in (str, unicode):
           if os.path.isfile(filepath):
-            penv.Depends(pout, penv.Install(dstdir, filepath))
+            insttgt = penv.Install(dstdir, filepath)
+            if po is None:
+              po = insttgt
+            else:
+              penv.Depends(po, insttgt)
           else:
             dn = dstdir + "/" + os.path.basename(filepath)
             for item in glob(filepath + "/*"):
-              install_file(dn, item)
+              po = install_file(po, dn, item)
         else:
-          penv.Depends(pout, penv.Install(dstdir, filepath))
+          insttgt = penv.Install(dstdir, filepath)
+          if po is None:
+            po = insttgt
+          else:
+            penv.Depends(po, insttgt)
+        return po
       
       if "install" in settings:
         for prefix, files in settings["install"].iteritems():
@@ -1712,21 +1726,26 @@ def DeclareTargets(env, prjs):
           else:
             dst = joinpath(out_dir, mode_dir, arch_dir, prefix)
           for f in files:
-            install_file(dst, f)
+            pout = install_file(pout, dst, f)
       
-      all_progress.append((prj, progress_nodes, 0))
-      
-      aliased = all_projs.get(alias, [])
-      aliased.extend(pout)
-      all_projs[alias] = aliased
+      if pout:
+        if settings["type"] == "install":
+          # no progress for 'install' target
+          Alias(prj, pout)
+        else:
+          all_progress.append((prj, progress_nodes, 0))
+        
+        aliased = all_projs.get(alias, [])
+        aliased.extend(pout)
+        all_projs[alias] = aliased
 
-      # Also keep target name alias
-      if alias != prj:
-        Alias(prj, pout)
+        # Also keep target name alias
+        if alias != prj:
+          Alias(prj, pout)
 
-        tgts = all_projs.get(prj, [])
-        tgts.extend(pout)
-        all_projs[prj] = tgts
+          tgts = all_projs.get(prj, [])
+          tgts.extend(pout)
+          all_projs[prj] = tgts
   
   #SyncCache()
   
