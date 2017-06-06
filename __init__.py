@@ -1433,20 +1433,26 @@ def DeclareTargets(env, prjs):
         sout = []
         
         if str(Platform()) == "win32":
+          baseoutdir = joinpath(out_dir, mode_dir)
+          if not no_arch:
+            baseoutdir = joinpath(baseoutdir, arch_dir)
+          bindir = joinpath(baseoutdir, "bin")
+          libdir = joinpath(baseoutdir, "lib")
+          if prefix:
+            bindir = joinpath(bindir, prefix)
+            libdir = joinpath(libdir, prefix)
+          
+          impbn = joinpath(libdir, prj)
           if settings.get("win_separate_dll_and_lib", True):
-            if no_arch:
-              outbn = joinpath(out_dir, mode_dir, "bin", prj)
-              impbn = joinpath(out_dir, mode_dir, "lib", prj)
-            else:
-              outbn = joinpath(out_dir, mode_dir, arch_dir, "bin", prj)
-              impbn = joinpath(out_dir, mode_dir, arch_dir, "lib", prj)
+            outbn = joinpath(bindir, prj)
           else:
-            if no_arch:
-              impbn = joinpath(out_dir, mode_dir, "lib", prj)
-            else:
-              impbn = joinpath(out_dir, mode_dir, arch_dir, "lib", prj)
             outbn = impbn
-              
+          
+          try:
+            os.makedirs(os.path.dirname(outbn))
+          except:
+            pass
+          
           try:
             os.makedirs(os.path.dirname(impbn))
           except:
@@ -1455,7 +1461,7 @@ def DeclareTargets(env, prjs):
           penv['no_import_lib'] = 1
           penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
           pout = penv.SharedLibrary(outbn, objs)
-          implib = File(mode_dir + ("/" if no_arch else "/%s" % arch_dir) + "/lib/" + prj + ".lib")
+          implib = File(mode_dir + ("/" if no_arch else "/%s" % arch_dir) + "/lib" + ("/%s/" % prefix if prefix else "/") + prj + ".lib")
           # Create a fake target for implib
           penv.Depends(implib, pout[0])
           pout.append(implib)
