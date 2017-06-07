@@ -27,6 +27,7 @@ def GetOptionsString():
   with-ilmbase-inc=<path> : IlmBase headers directory   [<prefix>/include]
   with-ilmbase-lib=<path> : IlmBase libraries directory [<prefix>/lib]
   ilmbase-static=0|1      : Link static libraries       [0]
+  ilmbase-prefix=<str>    : IlmBase library prefix      ['']
   ilmbase-suffix=<str>    : IlmBase library suffix      ['']
 
   with-ilmbase-python=<path>     : PyIlmBase prefix
@@ -53,13 +54,15 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
       python = False
 
    ilmbase_libsuffix = excons.GetArgument("ilmbase-suffix", "")
+   ilmbase_libprefix = excons.GetArgument("ilmbase-prefix", "")
 
-   pyilmbase_inc, pyilmbase_lib, pyilmbase_libsuffix = "", "", ""
+   pyilmbase_inc, pyilmbase_lib, pyilmbase_libsuffix, pyilmbase_libprefix = "", "", "", ""
    if python:
       pyilmbase_inc, pyilmbase_lib = excons.GetDirs("ilmbase-python")
       if pyilmbase_inc and not pyilmbase_inc.endswith("OpenEXR"):
          pyilmbase_inc += "/OpenEXR"
       pyilmbase_libsuffix = excons.GetArgument("ilmbase-python-suffix", ilmbase_libsuffix)
+      pyilmbase_libprefix = excons.GetArgument("ilmbase-python-prefix", ilmbase_libprefix)
 
    ilmbase_inc, ilmbase_lib = excons.GetDirs("ilmbase")
    if ilmbase_inc and not ilmbase_inc.endswith("OpenEXR"):
@@ -87,8 +90,8 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
          if pyilmbase_lib:
             env.Append(LIBPATH=[pyilmbase_lib])
          
-         excons.Link(env, "PyImath%s" % pyilmbase_libsuffix, static=pystatic, silent=True)
-         excons.Link(env, "PyIex%s" % pyilmbase_libsuffix, static=pystatic, silent=True)
+         excons.Link(env, "%sPyImath%s" % (pyilmbase_libprefix, pyilmbase_libsuffix), static=pystatic, silent=True)
+         excons.Link(env, "%sPyIex%s" % (pyilmbase_libprefix, pyilmbase_libsuffix), static=pystatic, silent=True)
 
       if ilmbase_inc:
          env.Append(CPPPATH=[ilmbase_inc, os.path.dirname(ilmbase_inc)])
@@ -101,23 +104,23 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
       
       if ilmthread:
          # ilmthread will be False if halfonly is True
-         libname = "IlmThread%s" % ilmbase_libsuffix
+         libname = "%sIlmThread%s" % (ilmbase_libprefix, ilmbase_libsuffix)
          excons.Link(env, libname, static=static, force=True, silent=True)
       
       if not halfonly:
-         libname = "Imath%s" % ilmbase_libsuffix
+         libname = "%sImath%s" % (ilmbase_libprefix, ilmbase_libsuffix)
          excons.Link(env, libname, static=static, force=True, silent=True)
       
       if iexmath:
          # iexmath will be False if halfonly is True
-         libname = "IexMath%s" % ilmbase_libsuffix
+         libname = "%sIexMath%s" % (ilmbase_libprefix, ilmbase_libsuffix)
          excons.Link(env, libname, static=static, force=True, silent=True)
       
       if not halfonly:
-         libname = "Iex%s" % ilmbase_libsuffix
+         libname = "%sIex%s" % (ilmbase_libprefix, ilmbase_libsuffix)
          excons.Link(env, libname, static=static, force=True, silent=True)
       
-      libname = "Half%s" % ilmbase_libsuffix
+      libname = "%sHalf%s" % (ilmbase_libprefix, ilmbase_libsuffix)
       excons.Link(env, libname, static=static, force=True, silent=True)
 
    return _RealRequire
