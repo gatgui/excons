@@ -50,5 +50,4 @@ def Require(env):
     szip_libsuffix = excons.GetArgument("szip_suffix", "")
     szip_libname = "%s%s" % (("sz" if sys.platform != "win32" else "libszip"), szip_libsuffix)
   
-  if not szip_static or not excons.StaticallyLink(env, szip_libname):
-    env.Append(LIBS=[szip_libname])
+  excons.Link(env, szip_libname, static=szip_static, force=True, silent=True)

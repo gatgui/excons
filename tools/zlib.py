@@ -47,17 +47,12 @@ def Require(env):
     zlib_name = excons.GetArgument("zlib-name", None)
     if not zlib_name:
       zlib_name = "z%s" % excons.GetArgument("zlib-suffix", "")
-    
-    if not static or not excons.StaticallyLink(env, zlib_name):
-      env.Append(LIBS=[zlib_name])
   
   else:
     if static:
       zlib_name = excons.GetArgument("zlib-name", None)
       if not zlib_name:
         zlib_name = "zlib%s" % excons.GetArgument("zlib-suffix", "")
-      
-      env.Append(LIBS=[zlib_name])
     
     else:
       zlib_name = excons.GetArgument("zlib-name", None)
@@ -65,6 +60,7 @@ def Require(env):
         zlib_name = "zdll%s" % excons.GetArgument("zlib-suffix", "")
       
       env.Append(CPPDEFINES=["ZLIB_DLL"])
-      env.Append(LIBS=[zlib_name])
+  
+  excons.Link(env, zlib_name, static=static, force=True, silent=True)
   
   excons.AddHelpOptions(zlib=GetOptionsString())

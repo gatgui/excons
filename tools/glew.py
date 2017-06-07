@@ -72,7 +72,6 @@ def Require(env):
     if sys.platform == "win32" and glew_static:
       glew_libname += "s"
 
-  if not glew_static or not excons.StaticallyLink(env, glew_libname):
-    env.Append(LIBS=[glew_libname])
+  excons.Link(env, glew_libname, static=glew_static, force=True, silent=True)
   
   excons.AddHelpOptions(glew=GetOptionsString())
