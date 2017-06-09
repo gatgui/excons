@@ -23,23 +23,26 @@ import excons
 
 def GetOptionsString():
   return """BOOST OPTIONS
-  with-boost=<str>     : Boost prefix.
-  with-boost-inc=<str> : Boost default headers directory.   [<prefix>/include]
-  with-boost-lib=<str> : Boost default libraries directory. [<prefix>/lib]
+  with-boost=<str>     : Boost root directory.
+  with-boost-inc=<str> : Boost default headers directory.   [<root>/include]
+  with-boost-lib=<str> : Boost default libraries directory. [<root>/lib]
   boost-static=0|1     : Link boost static libraries.       [0]
+  boost-prefix=<str>   : Default boost library prefix.      ['']
   boost-suffix=<str>   : Default boost library suffix.      ['']
-  boost-autolink=0|1   : Disable boost auto linking         [1] (windows only)
+  boost-autolink=0|1   : Disable boost auto linking.        [1] (windows only)
 
   Additionally each boost library LIBNAME can have its overrides:
 
-  with-boost-LIBNAME=<path>     : Boost LIBNAME prefix                [inherit from boost]
-  with-boost-LIBNAME-inc=<path> : Boost LIBNAME headers directory     [inherit from boost]
-  with-boost-LIBNAME-lib=<path> : Boost LIBNAME libraries directory   [inherit from boost]
-  boost-LIBNAME-static=0|1      : Link boost LIBNAME statically       [inherit from boost]
-  boost-LIBNAME-name=<str>      : Override boost LIBNAME library name []
-  boost-LIBNAME-suffix=<str>    : Boost LIBNAME library suffix        [inherit from boost]
+  with-boost-LIBNAME=<path>     : Boost LIBNAME root directory.        [inherit from boost]
+  with-boost-LIBNAME-inc=<path> : Boost LIBNAME headers directory.     [inherit from boost]
+  with-boost-LIBNAME-lib=<path> : Boost LIBNAME libraries directory.   [inherit from boost]
+  boost-LIBNAME-static=0|1      : Link boost LIBNAME statically.       [inherit from boost]
+  boost-LIBNAME-name=<str>      : Override boost LIBNAME library name. []
+  boost-LIBNAME-prefix=<str>    : Boost LIBNAME library prefix.        [inherit from boost]
                                   (ignore when boost-LIBNAME-name is set)
-  boost-LIBNAME-autolink=0|1    : Disable boost LIBNAME auto linking  [inherit from boost]"""
+  boost-LIBNAME-suffix=<str>    : Boost LIBNAME library suffix.        [inherit from boost]
+                                  (ignore when boost-LIBNAME-name is set)
+  boost-LIBNAME-autolink=0|1    : Disable boost LIBNAME auto linking.  [inherit from boost]"""
 
 def IsStaticallyLinked(lib):
   static = (excons.GetArgument("boost-static", 0, int) != 0)
@@ -48,6 +51,7 @@ def IsStaticallyLinked(lib):
 def Require(libs=[]):
   boost_inc_dir, boost_lib_dir = excons.GetDirs("boost")
   static = (excons.GetArgument("boost-static", 0, int) != 0)
+  boost_libprefix = excons.GetArgument("boost-prefix", "")
   boost_libsuffix = excons.GetArgument("boost-suffix", "")
   useautolink = False
   if sys.platform == "win32":
@@ -58,8 +62,9 @@ def Require(libs=[]):
     incdir, libdir = excons.GetDirs("boost-%s" % lib)
     libname = excons.GetArgument("boost-%s-name" % lib, None)
     if libname is None:
+      libprefix = excons.GetArgument("boost-%s-prefix" % lib, boost_libprefix)
       libsuffix = excons.GetArgument("boost-%s-suffix" % lib, boost_libsuffix)
-      libname = "boost_%s%s" % (lib, libsuffix)
+      libname = "%sboost_%s%s" % (libprefix, lib, libsuffix)
     libstatic = (excons.GetArgument("boost-%s-static" % lib, (1 if static else 0), int) != 0)
     autolinklib = False
     if sys.platform == "win32":

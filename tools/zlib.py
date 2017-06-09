@@ -22,12 +22,14 @@ import excons
 
 def GetOptionsString():
   return """ZLIB OPTIONS
-  with-zlib=<path>     : Zlib prefix.
-  with-zlib-inc=<path> : Zlib headers directory.           [<prefix>/include]
-  with-zlib-lib=<path> : Zlib libraries directory.         [<prefix>/lib]
+  with-zlib=<path>     : Zlib root directory.
+  with-zlib-inc=<path> : Zlib headers directory.           [<root>/include]
+  with-zlib-lib=<path> : Zlib libraries directory.         [<root>/lib]
   zlib-static=0|1      : Link Zlib statically.             [0]
   zlib-name=<str>      : Override Zlib library name.       []
                          (default name is 'z' on osx and linux, 'zlib' (static) or 'zdll' (shared) on windows)
+  zlib-prefix=<str>    : Default Zlib library name prefix. []
+                         (ignored when zlib-name is set)
   zlib-suffix=<str>    : Default Zlib library name suffix. []
                          (ignored when zlib-name is set)"""
                          
@@ -46,7 +48,7 @@ def Require(env):
   if str(Platform()) != "win32":
     zlib_name = excons.GetArgument("zlib-name", None)
     if not zlib_name:
-      zlib_name = "z%s" % excons.GetArgument("zlib-suffix", "")
+      zlib_name = "%sz%s" % (excons.GetArgument("zlib-prefix", ""), excons.GetArgument("zlib-suffix", ""))
   
   else:
     if static:
@@ -64,3 +66,4 @@ def Require(env):
   excons.Link(env, zlib_name, static=static, force=True, silent=True)
   
   excons.AddHelpOptions(zlib=GetOptionsString())
+

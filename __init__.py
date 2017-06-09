@@ -1190,18 +1190,22 @@ def SyncCache():
 
 def ExternalLibHelp(name):
   return string.Template("""EXTERNAL ${uc_name} OPTIONS
-  with-${name}=<path>     : ${name} prefix.
-  with-${name}-inc=<path> : ${name} headers directory.           [<prefix>/include]
-  with-${name}-lib=<path> : ${name} libraries directory.         [<prefix>/lib]
+  with-${name}=<path>     : ${name} root directory.
+  with-${name}-inc=<path> : ${name} headers directory.           [<root>/include]
+  with-${name}-lib=<path> : ${name} libraries directory.         [<root>/lib]
   ${name}-static=0|1      : Link ${name} statically.             [0]
   ${name}-name=<str>      : Override ${name} library name.       []
+  ${name}-prefix=<str>    : Default ${name} library name prefix. [] (ignored when ${name}-name is set)
   ${name}-suffix=<str>    : Default ${name} library name suffix. [] (ignored when ${name}-name is set)""").substitute(uc_name=name.upper(), name=name)
 
 # parameters
 #   libnameFunc: f(static) -> str
 #   definesFunc: f(static) -> []
 #   extraEnvFunc f(env, static) -> None
-def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=None):
+#   noLink: Don't link library
+#           -> can be use for multi library dependencies like openexr
+#              caller is in charge of linking the right libraries directly or through extraEnvFunc
+def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=None, noLink=False):
   global arch_dir
 
   rv = {"require": None,
@@ -1211,37 +1215,48 @@ def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=No
         "libpath": None,
         "static": None}
 
+  AddHelpOptions({"ext_%s" % name: ExternalLibHelp(name)})
+
   incdir, libdir = GetDirs(name)
   if incdir and libdir:
-    libname = GetArgument("%s-name" % name, None)
     staticlink = (GetArgument("%s-static" % name, 0, int) != 0)
 
+    libpath = None
+    libname = GetArgument("%s-name" % name, None)
     if libname is None:
-      libname = (name if libnameFunc is None else libnameFunc(staticlink))
-      libname += GetArgument("%s-suffix" % name, "")
+      basename = (name if libnameFunc is None else libnameFunc(staticlink))
+      prefix = GetArgument("%s-prefix" % name, "")
+      suffix = GetArgument("%s-suffix" % name, "")
+      libname = prefix + basename + suffix
 
-    if sys.platform == "win32":
-      libpath = libdir + "/" + libname + ".lib"
+    valid = True
 
-    else:
-      #not os.path.isfile(libpath)
-      libext = (".a" if staticlink else SharedLibraryLinkExt())
-      libpath = None
-      if arch_dir == "x64" and not libdir.endswith("64"):
-        libpath = libdir + "64/lib" + libname + libext
-        if not os.path.isfile(libpath):
-          libpath = None
-        else:
-          libdir = libdir + "64"
-      if libpath is None:
-        libpath = libdir + "/lib" + libname + libext
+    if not noLink:
+      if sys.platform == "win32":
+        libpath = libdir + "/" + libname + ".lib"
 
-    if os.path.isfile(libpath) or IsBuildOutput(libpath):
+      else:
+        #not os.path.isfile(libpath)
+        libext = (".a" if staticlink else SharedLibraryLinkExt())
+        libpath = None
+        if arch_dir == "x64" and not libdir.endswith("64"):
+          libpath = libdir + "64/lib" + libname + libext
+          if not os.path.isfile(libpath):
+            libpath = None
+          else:
+            libdir = libdir + "64"
+        if libpath is None:
+          libpath = libdir + "/lib" + libname + libext
+
+      valid = (os.path.isfile(libpath) or IsBuildOutput(libpath))
+
+    if valid:
       def RequireFunc(env):
         if definesFunc:
           env.Append(CPPDEFINES=definesFunc(staticlink))
         env.Append(CPPPATH=[incdir])
-        Link(env, libpath, static=staticlink, force=True, silent=True)
+        if not noLink:
+          Link(env, libpath, static=staticlink, force=True, silent=True)
         if extraEnvFunc:
           extraEnvFunc(env, staticlink)
 
@@ -1251,8 +1266,6 @@ def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=No
       rv["libname"] = libname
       rv["libpath"] = libpath
       rv["static"] = staticlink
-
-  AddHelpOptions({"ext_%s" % name: ExternalLibHelp(name)})
 
   return rv
 

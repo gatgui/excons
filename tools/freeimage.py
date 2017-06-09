@@ -22,12 +22,14 @@ import excons
 
 def GetOptionsString():
   return """FREEIMAGE OPTIONS
-  with-freeimage=<path>     : FreeImage prefix                []
-  with-freeimage-inc=<path> : FreeImage headers directory     [<prefix>/include]
-  with-freeimage-lib=<path> : FreeImage libraries directory   [<prefix>/lib]
-  freeimage-static=0|1      : Link FreeImage static lib       [0]
-  freeimage-name=<str>      : Override FreeImage library name []
-  freeimage-suffix=<str>    : FreeImage library suffix        ['']
+  with-freeimage=<path>     : FreeImage root directory.
+  with-freeimage-inc=<path> : FreeImage headers directory.     [<root>/include]
+  with-freeimage-lib=<path> : FreeImage libraries directory.   [<root>/lib]
+  freeimage-static=0|1      : Link FreeImage static lib.       [0]
+  freeimage-name=<str>      : Override FreeImage library name. []
+  freeimage-prefix=<str>    : FreeImage library name prefix.   ['']
+                              (ignored when freeimage-name is set)
+  freeimage-suffix=<str>    : FreeImage library name suffix.   ['']
                               (ignored when freeimage-name is set)"""
 
 def Require(env):
@@ -45,10 +47,10 @@ def Require(env):
   
   filibname = excons.GetArgument("freeimage-name", None)
   if not filibname:
+    filibprefix = excons.GetArgument("freeimage-prefix", "")
     filibsuffix = excons.GetArgument("freeimage-suffix", "")
-    filibname = "freeimage%s" % filibsuffix
+    filibname = "%sfreeimage%s" % (filibprefix, filibsuffix)
   
-  if not static or not excons.StaticallyLink(env, filibname):
-    env.Append(LIBS=[filibname])
+  excons.Link(env, filibname, static=static, force=True, silent=True)
   
   excons.AddHelpOptions(freeimage=GetOptionsString())

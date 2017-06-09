@@ -22,12 +22,14 @@ import excons
 
 def GetOptionsString():
   return """TBB OPTIONS
-  with-tbb=<path>     : TBB prefix
-  with-tbb-inc=<path> : TBB headers directory     [<prefix>/include]
-  with-tbb-lib=<path> : TBB libraries directory   [<prefix>/lib]
-  tbb-static=0|1      : Link static library       [0]
-  tbb-name=<str>      : Override TBB library name []
-  tbb-suffix=<str>    : TBB library suffix        ['']
+  with-tbb=<path>     : TBB root directory.
+  with-tbb-inc=<path> : TBB headers directory.     [<root>/include]
+  with-tbb-lib=<path> : TBB libraries directory.   [<root>/lib]
+  tbb-static=0|1      : Link static library.       [0]
+  tbb-name=<str>      : Override TBB library name. []
+  tbb-prefix=<str>    : TBB library name prefix.   ['']
+                        (ignored when tbb-name is set)
+  tbb-suffix=<str>    : TBB library name suffix.   ['']
                         (ignored when tbb-name is set)"""
 
 def Require(env):
@@ -45,9 +47,8 @@ def Require(env):
   
   tbblibname = excons.GetArgument("tbb-name", None)
   if not tbblibname:
-    tbblibname = "tbb%s" % excons.GetArgument("tbb-suffix", "")
-  
-  if not static or not excons.StaticallyLink(env, tbblibname):
-    env.Append(LIBS=[tbblibname])
+    tbblibname = "%stbb%s" % (excons.GetArgument("tbb-prefix", ""), excons.GetArgument("tbb-suffix", ""))
+
+  excons.Link(env, tbblibname, static=static, force=True, silent=True)
 
   excons.AddHelpOptions(tbb=GetOptionsString())

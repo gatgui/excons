@@ -23,14 +23,16 @@ import excons
 
 def GetOptionsString():
   return """GLUT OPTIONS
-  with-glut=<path>     : GLUT prefix                []
-  with-glut-inc=<path> : GLUT headers directory     [<prefix>/include]
-  with-glut-lib=<path> : GLUT libraries directory   [<prefix>/lib]
-  glut-name=<str>      : Override GLUT library name []
+  with-glut=<path>     : GLUT root directory.        []
+  with-glut-inc=<path> : GLUT headers directory.     [<root>/include]
+  with-glut-lib=<path> : GLUT libraries directory.   [<root>/lib]
+  glut-name=<str>      : Override GLUT library name. []
                          (default library name is glut32/glut64 on windows, glut on linux)
-  glut-suffix=<str>    : GLUT library suffix        ['']
+  glut-prefix=<str>    : GLUT library name prefix.   ['']
                          (ignored when glut-name is set)
-  glut-static=0|1      : Use GLUT static library    [1]
+  glut-suffix=<str>    : GLUT library name suffix.   ['']
+                         (ignored when glut-name is set)
+  glut-static=0|1      : Use GLUT static library.    [1]
 
   On OSX, library related options are ignored as the GLUT framework is used"""
 
@@ -47,11 +49,12 @@ def Require(env):
 
   libname = excons.GetArgument("glut-name", "")
   if not libname:
+    libprefix = excons.GetArgument("glut-prefix", "")
     libsuffix = excons.GetArgument("glut-suffix", "")
     if sys.platform == "win32":
       libname = ("glut64" if excons.Build64() else "glut32") + libsuffix
     else:
-      libname = "glut%s" % libsuffix
+      libname = "%sglut%s" % (libprefix, libsuffix)
 
   if sys.platform == "win32":
     env.Append(CPPDEFINES=["GLUT_NO_LIB_PRAGMA"])
@@ -61,7 +64,7 @@ def Require(env):
     env.Append(LINKFLAGS=" -framework GLUT")
   
   else:
-    if not static or not excons.StaticallyLink(env, libname):
-      env.Append(LIBS=[libname])
+    excons.Link(env, libname, static=static, force=True, silent=True)
   
   excons.AddHelpOptions(glut=GetOptionsString())
+

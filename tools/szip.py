@@ -22,14 +22,16 @@ import excons
 
 def GetOptionsString():
   return """SZIP OPTIONS
-  with-szip=<path>     : SZIP prefix                []
-  with-szip-inc=<path> : SZIP headers directory     [<prefix>/include]
-  with-szip-lib=<path> : SZIP libraries directory   [<prefix>/lib]
-  szip-name=<str>      : Override SZIP library name []
+  with-szip=<path>     : SZIP root directory.
+  with-szip-inc=<path> : SZIP headers directory.     [<root>/include]
+  with-szip-lib=<path> : SZIP libraries directory.   [<root>/lib]
+  szip-static=0|1      : Use SZIP static library.    [1]
+  szip-name=<str>      : Override SZIP library name. []
                          (default library name is libszip on windows, sz on linux)
-  szip-suffix=<str>    : SZIP library suffix        ['']
+  szip-prefix=<str>    : SZIP library name prefix.   ['']
                          (ignored when szip-name is set)
-  szip-static=0|1      : Use SZIP static library    [1]"""
+  szip-suffix=<str>    : SZIP library name suffix.   ['']
+                         (ignored when szip-name is set)"""
 
 def Require(env):
   szip_inc, szip_lib = excons.GetDirs("szip")
@@ -47,7 +49,8 @@ def Require(env):
   
   szip_libname = excons.GetArgument("szip-name", None)
   if not szip_libname:
-    szip_libsuffix = excons.GetArgument("szip_suffix", "")
-    szip_libname = "%s%s" % (("sz" if sys.platform != "win32" else "libszip"), szip_libsuffix)
+    szip_libprefix = excons.GetArgument("szip-prefix", "")
+    szip_libsuffix = excons.GetArgument("szip-suffix", "")
+    szip_libname = "%s%s%s" % (szip_libprefix, ("sz" if sys.platform != "win32" else "libszip"), szip_libsuffix)
   
   excons.Link(env, szip_libname, static=szip_static, force=True, silent=True)

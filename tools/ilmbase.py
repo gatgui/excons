@@ -23,18 +23,19 @@ import os
 
 def GetOptionsString():
    return """ILMBASE OPTIONS
-  with-ilmbase=<path>     : IlmBase prefix
-  with-ilmbase-inc=<path> : IlmBase headers directory   [<prefix>/include]
-  with-ilmbase-lib=<path> : IlmBase libraries directory [<prefix>/lib]
-  ilmbase-static=0|1      : Link static libraries       [0]
-  ilmbase-prefix=<str>    : IlmBase library prefix      ['']
-  ilmbase-suffix=<str>    : IlmBase library suffix      ['']
+  with-ilmbase=<path>     : IlmBase root directory.
+  with-ilmbase-inc=<path> : IlmBase headers directory.   [<root>/include]
+  with-ilmbase-lib=<path> : IlmBase libraries directory. [<root>/lib]
+  ilmbase-static=0|1      : Link static libraries.       [0]
+  ilmbase-prefix=<str>    : IlmBase library prefix.      ['']
+  ilmbase-suffix=<str>    : IlmBase library suffix.      ['']
 
-  with-ilmbase-python=<path>     : PyIlmBase prefix
-  with-ilmbase-python-inc=<path> : PyIlmBase headers directory   [<prefix>/include]
-  with-ilmbase-python-lib=<path> : PyIlmBase libraries directory [<prefix>/lib]
-  ilmbase-python-static=0|1      : Link static libraries         [0]
-  ilmbase-python-suffix=<str>    : PyIlmBase library suffix      ['']"""
+  with-ilmbase-python=<path>     : PyIlmBase root directory.      [inherit from ilmbase]
+  with-ilmbase-python-inc=<path> : PyIlmBase headers directory.   [inherit from ilmbase]
+  with-ilmbase-python-lib=<path> : PyIlmBase libraries directory. [inherit from ilmbase]
+  ilmbase-python-static=0|1      : Link static libraries.         [inherit from ilmbase]
+  ilmbase-python-prefix=<str>    : PyIlmBase library name prefix. [inherit from ilmbase]
+  ilmbase-python-suffix=<str>    : PyIlmBase library name suffix. [inherit from ilmbase]"""
 
 def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
    
@@ -56,13 +57,13 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
    ilmbase_libsuffix = excons.GetArgument("ilmbase-suffix", "")
    ilmbase_libprefix = excons.GetArgument("ilmbase-prefix", "")
 
-   pyilmbase_inc, pyilmbase_lib, pyilmbase_libsuffix, pyilmbase_libprefix = "", "", "", ""
+   pyilmbase_inc, pyilmbase_lib, pyilmbase_libprefix, pyilmbase_libsuffix = "", "", "", ""
    if python:
       pyilmbase_inc, pyilmbase_lib = excons.GetDirs("ilmbase-python")
       if pyilmbase_inc and not pyilmbase_inc.endswith("OpenEXR"):
          pyilmbase_inc += "/OpenEXR"
-      pyilmbase_libsuffix = excons.GetArgument("ilmbase-python-suffix", ilmbase_libsuffix)
       pyilmbase_libprefix = excons.GetArgument("ilmbase-python-prefix", ilmbase_libprefix)
+      pyilmbase_libsuffix = excons.GetArgument("ilmbase-python-suffix", ilmbase_libsuffix)
 
    ilmbase_inc, ilmbase_lib = excons.GetDirs("ilmbase")
    if ilmbase_inc and not ilmbase_inc.endswith("OpenEXR"):
@@ -124,3 +125,4 @@ def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
       excons.Link(env, libname, static=static, force=True, silent=True)
 
    return _RealRequire
+

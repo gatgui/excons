@@ -25,18 +25,21 @@ import os
 
 def GetOptionsString():
    return """OPENEXR OPTIONS
-  with-openexr=<path>     : OpenEXR prefix
-  with-openexr-inc=<path> : OpenEXR headers directory     [<prefix>/include]
-  with-openexr-lib=<path> : OpenEXR libraries directory   [<prefix>/lib]
-  openexr-static=0|1      : Link static libraries         [0]
-  openexr-name=<str>      : Override OpenEXR library name []
-  openexr-suffix=<str>    : OpenEXR library suffix        ['']
+  with-openexr=<path>     : OpenEXR root directory.
+  with-openexr-inc=<path> : OpenEXR headers directory.     [<root>/include]
+  with-openexr-lib=<path> : OpenEXR libraries directory.   [<root>/lib]
+  openexr-static=0|1      : Link static libraries.         [0]
+  openexr-name=<str>      : Override OpenEXR library name. []
+  openexr-prefix=<str>    : OpenEXR library name prefix.   ['']
+                            (ignored when openexr-name is set)
+  openexr-suffix=<str>    : OpenEXR library name suffix.   ['']
                             (ignored when openexr-name is set)"""
 
 def Require(ilmbase=False, zlib=False):
+   openexr_libprefix = excons.GetArgument("openexr-prefix", "")
    openexr_libsuffix = excons.GetArgument("openexr-suffix", "")
 
-   openexr_libname = excons.GetArgument("openexr-name", "IlmImf%s" % openexr_libsuffix)
+   openexr_libname = excons.GetArgument("openexr-name", "%sIlmImf%s" % (openexr_libprefix, openexr_libsuffix))
 
    openexr_inc, openexr_lib = excons.GetDirs("openexr")
    if openexr_inc and not openexr_inc.endswith("OpenEXR"):
@@ -65,3 +68,4 @@ def Require(ilmbase=False, zlib=False):
          excons.tools.zlib.Require(env)
 
    return _RequireOpenEXR
+

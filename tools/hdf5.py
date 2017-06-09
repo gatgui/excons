@@ -34,14 +34,16 @@ hdf5_confs = {}
 
 def GetOptionsString():
   return """HDF5 OPTIONS
-  with-hdf5=<path>     : HDF5 prefix                []
-  with-hdf5-inc=<path> : HDF5 headers directory     [<prefix>/include]
-  with-hdf5-lib=<path> : HDF5 libraries directory   [<prefix>/lib]
-  hdf5-name=<str>      : Override HDF5 library name []
+  with-hdf5=<path>     : HDF5 root directory.
+  with-hdf5-inc=<path> : HDF5 headers directory.     [<root>/include]
+  with-hdf5-lib=<path> : HDF5 libraries directory.   [<root>/lib]
+  hdf5-name=<str>      : Override HDF5 library name. []
                          (default library name is hdf532/hdf564 on windows, hdf5 on linux)
-  hdf5-suffix=<str>    : HDF5 library suffix        ['']
+  hdf5-prefix=<str>    : HDF5 library name prefix.   ['']
                          (ignored when hdf5-name is set)
-  hdf5-static=0|1      : Use HDF5 static library    [1]"""
+  hdf5-suffix=<str>    : HDF5 library name suffix.   ['']
+                         (ignored when hdf5-name is set)
+  hdf5-static=0|1      : Use HDF5 static library     [1]"""
 
 def Require(hl=False, verbose=False):
   global ThreadSafe_exp, Szlib_exp, Zlib_exp, hdf5_confs
@@ -52,10 +54,11 @@ def Require(hl=False, verbose=False):
 
   hdf5_libname = excons.GetArgument("hdf5-name", None)
   if not hdf5_libname:
+    hdf5_libprefix = excons.GetArgument("hdf5-prefix", "")
     hdf5_libsuffix = excons.GetArgument("hdf5-suffix", "")
     hdf5_basename = ("hdf5" if sys.platform != "win32" else "libhdf5")
     hdf5_libname = hdf5_basename + hdf5_libsuffix
-    hdf5hl_libname = hdf5_basename + "_hl" + hdf5_libsuffix
+    hdf5hl_libname = hdf5_libprefix + hdf5_basename + "_hl" + hdf5_libsuffix
   else:
     hdf5hl_libname = hdf5_libname + "_hl"
 
