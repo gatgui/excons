@@ -162,5 +162,7 @@ def Require(hl=False, verbose=False):
             excons.PrintOnce("Force static szip", tool="hdf5")
           excons.SetArgument("szip-static", 1)
         szip.Require(env)
-      
+
+  excons.AddHelpOptions(hdf5=GetOptionsString())
+
   return _RealRequire
