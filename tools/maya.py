@@ -205,26 +205,11 @@ def Require(env):
     if os.path.isfile(mach):
       env.Append(CCFLAGS=" -include \"%s\" -fno-gnu-keywords" % mach)
 
-    # Global excons flags for c++11 handling (see excons/__init__.py)
-    use_cpp11 = (excons.GetArgument("use-c++11", 0, int) != 0)
-    use_stdcpp = (excons.GetArgument("use-stdc++", 0, int) != 0)
-
     # Starting Maya 2017, on osx libc++ is used instead of libstdc++
     # Before this version, and unless explicitely overridden by 'use-c++11=' command line flag, use c++0x and libstdc++
-    if Version(asString=False, nice=True) < 2017 and not use_cpp11:
-      env.Append(CXXFLAGS=" -std=c++0x -stdlib=libstdc++")
-      env.Append(LINKFLAGS=" -stdlib=libstdc++")
+    if Version(asString=False, nice=True) < 2017:
+      excons.WarnOnce("Maya below 2017 requires linking against libstdc++.\nThis can be done using by using the command line flag 'use-stdc++=1'.", tool="maya")
     
-    else:
-      # if use_cpp11 is True, -std=c++11 will have already been added
-      if not use_cpp11:
-        env.Append(CXXFLAGS=" -std=c++11")
-      
-      # use use_stdcpp is True, -stdlib=libstdc++ will have already been added
-      if not use_stdcpp:
-        env.Append(CXXFLAGS=" -stdlib=libc++")
-        env.Append(LINKFLAGS=" -stdlib=libc++")
-
   else:
     env.Append(LIBPATH=["%s/lib" % mayadir])
     if sys.platform == "win32":
