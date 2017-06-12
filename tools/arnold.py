@@ -25,9 +25,9 @@ import os
 
 def GetOptionsString():
   return """ARNOLD OPTIONS
-  with-arnold=<path>     : Arnold prefix              []
-  with-arnold-inc=<path> : Arnold headers directory   [<prefix>/include]
-  with-arnold-lib=<path> : Arnold libraries directory [<prefix>/bin or <prefix>/lib]"""
+  with-arnold=<path>     : Arnold root directory.
+  with-arnold-inc=<path> : Arnold headers directory.   [<root>/include]
+  with-arnold-lib=<path> : Arnold libraries directory. [<root>/bin or <prefix>/lib]"""
 
 def PluginExt():
   if str(Platform()) == "darwin":
@@ -37,11 +37,14 @@ def PluginExt():
   else:
     return ".so"
 
-def Version(asString=True):
+def Version(asString=True, compat=False):
   arnoldinc, _ = excons.GetDirs("arnold", libdirname=("bin" if sys.platform != "win32" else "lib"))
   
   if arnoldinc is None:
-    return ("0.0.0.0" if asString else (0, 0, 0, 0))
+    if compat:
+      return ("0.0" if asString else (0, 0))
+    else:
+      return ("0.0.0.0" if asString else (0, 0, 0, 0))
   
   ai_version = excons.joinpath(arnoldinc, "ai_version.h")
   
@@ -67,7 +70,11 @@ def Version(asString=True):
   
   rv = (varch, vmaj, vmin, vpatch)
 
-  return ("%s.%s.%s.%s" % rv if asString else rv)
+  if compat:
+    cv = (rv[0], rv[1])
+    return ("%s.%s" % cv if asString else cv)
+  else:
+    return ("%s.%s.%s.%s" % rv if asString else rv)
 
 def Require(env):
   arnoldinc, arnoldlib = excons.GetDirs("arnold", libdirname=("bin" if sys.platform != "win32" else "lib"))
