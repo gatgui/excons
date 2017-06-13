@@ -42,7 +42,7 @@ def PluginExt():
   else:
     return ".so"
 
-def Version(asString=True):
+def Version(asString=True, nice=False):
   vrayinc, _ = excons.GetDirs("vray")
 
   vraybase = excons.joinpath(vrayinc, "vraybase.h")
@@ -53,10 +53,23 @@ def Version(asString=True):
     for line in f.readlines():
       m = defexp.match(line)
       if m:
-        return (int(m.group(1), 16) if not asString else m.group(1)[2:])
+        #rv = (int(m.group(1), 16) if not asString else m.group(1)[2:])
+        rv = m.group(1)[2:]
+        if nice:
+          iv = int(rv)
+          major = iv / 10000
+          minor = (iv % 10000) / 100
+          patch = iv % 100
+          rv = (major, minor, patch)
+          if asString:
+            rv = "%d.%d.%d" % rv
+        else:
+          if not asString:
+            rv = int(rv)
+        return rv
     f.close()
 
-  return None
+  return ("" if asString else (0 if not nice else (0, 0, 0)))
 
 def Require(env):
   vrayinc, vraylib = excons.GetDirs("vray")
