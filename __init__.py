@@ -624,7 +624,16 @@ def Link(env, lib, static=False, force=True, silent=False):
     if force:
       env.Append(LIBS=[lib])
   else:
-    env.Append(LIBS=[env.File(fullpath)])
+    if static:
+      env.Append(LIBS=[env.File(fullpath)])
+    else:
+      dn, bn = os.path.split(fullpath)
+      ln, _ = os.path.splitext(bn)
+      if sys.platform != "win32" and ln.startswith("lib"):
+        ln = ln[3:]
+      if  not dn.startswith("/usr") and not dn in env["LIBPATH"]:
+        env.Append(LIBPATH=[dn])
+      env.Append(LIBS=[ln])
 
 def CollectFiles(directory, patterns, recursive=True, exclude=[]):
   global VCD
