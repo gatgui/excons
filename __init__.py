@@ -1411,31 +1411,42 @@ def DeclareTargets(env, prjs):
           penv.Append(CCFLAGS=["-fvisibility=hidden"])
       
       objs = []
+      srcs = settings.get("srcs", [])
       # Source level dependencies
       srcdeps = settings.get("srcdeps", {})
       prereqs = srcdeps.get("*", [])
-      for src in settings.get("srcs", []):
-        bn = os.path.basename(str(src))
-        bnnoext = os.path.splitext(bn)[0]
-        if shared:
-          obj = penv.SharedObject(joinpath(odir, bnnoext), src)
+      srcdict = isinstance(srcs, dict)
+      for item in srcs:
+        if not srcdict:
+          extradir = ""
+          srcitems = [item]
         else:
-          obj = penv.StaticObject(joinpath(odir, bnnoext), src)
-        #objs.append(obj)
-        objs.extend(obj)
-        key = str(src)
-        deps = srcdeps.get(key, [])
-        if not deps:
-          key = key.replace("\\", "/")
+          extradir = item
+          srcitems = srcs[item]
+        for src in srcitems:
+          bn = os.path.basename(str(src))
+          bnnoext = os.path.splitext(bn)[0]
+          if extradir:
+            bnnoext = extradir + "/" + bnnoext
+          if shared:
+            obj = penv.SharedObject(joinpath(odir, bnnoext), src)
+          else:
+            obj = penv.StaticObject(joinpath(odir, bnnoext), src)
+          #objs.append(obj)
+          objs.extend(obj)
+          key = str(src)
           deps = srcdeps.get(key, [])
           if not deps:
-            deps = srcdeps.get(bn, [])
-        if deps:
-          #Print("Add dependencies for '%s': %s" % (str(obj[0]).replace("\\", "/"), map(lambda x: str(x).replace("\\", "/"), deps)))
-          penv.Depends(obj, deps)
-        # target prerequisites
-        if prereqs:
-          penv.Depends(obj, prereqs)
+            key = key.replace("\\", "/")
+            deps = srcdeps.get(key, [])
+            if not deps:
+              deps = srcdeps.get(bn, [])
+          if deps:
+            #Print("Add dependencies for '%s': %s" % (str(obj[0]).replace("\\", "/"), map(lambda x: str(x).replace("\\", "/"), deps)))
+            penv.Depends(obj, deps)
+          # target prerequisites
+          if prereqs:
+            penv.Depends(obj, prereqs)
       
       #progress_nodes = set(map(lambda x: abspath(str(x[0])), objs))
       progress_nodes = set(map(lambda x: abspath(str(x)), objs))
