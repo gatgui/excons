@@ -5,7 +5,7 @@ from SCons.Script import *
 
 
 def GetPath(name):
-   return excons.joinpath(excons.out_dir, "%s.config" % name)
+   return excons.joinpath(excons.out_dir, "%s.status" % name)
 
 def HasChanged(name, opts):
    if not os.path.isfile(GetPath(name)):
@@ -35,18 +35,22 @@ def GenerateFile(outpath, inpath, opts, pattern=None):
          for line in inf.readlines():
             m = phexp.search(line)
             while m is not None:
-               key = m.group(1)
-               if not key in opts:
-                  excons.WarnOnce("No value for placeholder '%s' in %s" % (key, path))
-                  break
-               else:
-                  line = line.replace(m.group(0), opts[key])
+               replaced = False
+               for keyi in xrange(len(m.groups())):
+                  key = m.group(1 + keyi)
+                  if key is None:
+                     continue
+                  elif not key in opts:
+                     excons.WarnOnce("No value for placeholder '%s' in %s" % (key, path))
+                  else:
+                     line = line.replace(m.group(0), opts[key])
+                     break
                m = phexp.search(line)
             outf.write(line)
 
 def AddGenerator(env, name, opts, pattern=None):
    def _ActionFunc(target, source, env):
-      GenerateFile(str(target[0]), str(source[0]), opts)
+      GenerateFile(str(target[0]), str(source[0]), opts, pattern=pattern)
       return None
 
    funcname = "%sGenerateFile" % name
