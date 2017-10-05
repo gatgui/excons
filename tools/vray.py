@@ -92,4 +92,5 @@ def Require(env):
     env.Append(CPPDEFINES=["SENSELESS_DEFINE_FOR_WIN32",
                            "_CRT_SECURE_NO_DEPRECATE",
                            "_CRT_NONSTDC_NO_DEPRECATE"])
-    env.Append(LIBS=["user32"])
+    env.Append(LIBS=["user32", "advapi32", "shell32"])
+
