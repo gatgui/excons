@@ -216,6 +216,10 @@ def Require(env):
     if sys.platform == "win32":
       env.Append(CPPDEFINES=["NT_PLUGIN"])
     else:
+      maya_ver = Version(asString=False, nice=True)
+      if maya_ver and maya_ver >= 2018:
+        env.Append(CPPFLAGS=" -std=c++11")
+
       env.Append(CPPDEFINES=["LINUX"])
       env.Append(CPPFLAGS=" -fno-strict-aliasing -Wno-comment -Wno-sign-compare -funsigned-char -Wno-reorder -fno-gnu-keywords -pthread")
   
