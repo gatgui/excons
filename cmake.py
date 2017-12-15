@@ -66,7 +66,7 @@ def Outputs(name):
          lst = map(lambda x: excons.out_dir + "/" + x, lines)
    return lst
 
-def Configure(name, topdir=None, opts={}):
+def Configure(name, topdir=None, opts={}, min_mscver=None):
    if GetOption("clean"):
       return True
 
@@ -82,6 +82,8 @@ def Configure(name, topdir=None, opts={}):
    if sys.platform == "win32":
       try:
          mscver = float(excons.GetArgument("mscver", "10.0"))
+         if min_mscver is not None and mscver < min_mscver:
+            mscver = min_mscver
          if mscver == 9.0:
             cmd += "-G \"Visual Studio 9 2008 Win64\" "
          elif mscver == 10.0:
