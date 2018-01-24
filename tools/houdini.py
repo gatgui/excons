@@ -26,7 +26,8 @@ import subprocess
 
 _hou_mscver = {"15.0": "11.0",
                "15.5": "14.0",
-               "16.0": "14.0"}
+               "16.0": "14.0",
+               "16.5": "14.0"}
 
 def GetOptionsString():
   return """HOUDINI OPTIONS
