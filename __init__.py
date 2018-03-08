@@ -1041,13 +1041,15 @@ def Call(path, targets=None, overrides={}, imp=[], keepflags=[]):
         return
 
   old_vals = {}
-  old_cached_vals = {}
   old_keys = set()
+  old_cached_vals = {}
+  old_cached_keys = set()
   check_cache = (not args_no_cache and args_cache is not None)
 
   # Store current arguments cache state
-  if args_cache:
-    old_keys = set(args_cache.keys())
+  old_keys = set(ARGUMENTS.keys())
+  if check_cache:
+    old_cached_keys = set(args_cache.keys())
   for k, v in overrides.iteritems():
     old_vals[k] = ARGUMENTS.get(k, None)
     ARGUMENTS[k] = str(v)
@@ -1070,35 +1072,34 @@ def Call(path, targets=None, overrides={}, imp=[], keepflags=[]):
       del(ARGUMENTS[k])
     else:
       ARGUMENTS[k] = v
-  for k, v in old_cached_vals.iteritems():
-    if v is None:
-      args_cache.remove(k)
-    else:
-      args_cache[k] = v
+  if check_cache:
+    for k, v in old_cached_vals.iteritems():
+      if v is None:
+        args_cache.remove(k)
+      else:
+        args_cache[k] = v
   # Remove newly introduced keys
+  def _keepkey(k):
+    for e in keepflags:
+      if type(e) in (str, unicode):
+        if e in k:
+          return True
+      else:
+          try:
+            m = e.search(k)
+            if m is not None:
+              return True
+          except:
+            pass
+    return False
+
+  for k in ARGUMENTS.keys():
+    if not k in old_keys and not _keepkey(k):
+      del(ARGUMENTS[k])
   if check_cache:
     for k in args_cache.keys():
-      if not k in old_keys:
-        # may want to keep
-        ignore = False
-        for e in keepflags:
-          if type(e) in (str, unicode):
-            if e in k:
-              ignore = True
-              break
-          else:
-              try:
-                m = e.search(k)
-                if m is not None:
-                  ignore = True
-                  break
-              except:
-                pass
-        if ignore:
-          continue
+      if not k in old_cached_keys and not _keepkey(k):
         args_cache.remove(k)
-        if k in ARGUMENTS:
-          del(ARGUMENTS[k])
 
   for name in imp:
     Import(name)
