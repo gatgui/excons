@@ -8,7 +8,7 @@ def DummyScanner(node, env, path):
    return []
 
 def ConfigureAction(target, source, env):
-   if not cmake.Configure(env["CMAKE_PROJECT"], topdir=env["CMAKE_TOPDIR"], opts=env["CMAKE_OPTIONS"]):
+   if not cmake.Configure(env["CMAKE_PROJECT"], topdir=env["CMAKE_TOPDIR"], opts=env["CMAKE_OPTIONS"], min_mscver=env["CMAKE_MIN_MSCVER"]):
       if os.path.isfile(env["CMAKE_CONFIG_CACHE"]):
          os.remove(env["CMAKE_CONFIG_CACHE"])
       if os.path.isfile(env["CMAKE_CACHE"]):
@@ -36,6 +36,7 @@ def SetupEnvironment(env, settings):
    env["CMAKE_PROJECT"] = name
    env["CMAKE_TOPDIR"] = excons.abspath(".")
    env["CMAKE_OPTIONS"] = opts
+   env["CMAKE_MIN_MSCVER"] = settings.get("cmake-min-mscver", None)
    env["CMAKE_CONFIG"] = settings.get("cmake-config", ("debug" if debug else "release"))
    env["CMAKE_TARGET"] = settings.get("cmake-target", "install")
    env["CMAKE_CACHE"] = cmakec

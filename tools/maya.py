@@ -206,16 +206,25 @@ def Require(env):
     if os.path.isfile(mach):
       env.Append(CCFLAGS=" -include \"%s\" -fno-gnu-keywords" % mach)
 
-    # Starting Maya 2017, on osx libc++ is used instead of libstdc++
+    maya_ver = Version(asString=False, nice=True)
+    if maya_ver:
+      # Starting Maya 2017, on osx libc++ is used instead of libstdc++
     # Before this version, and unless explicitely overridden by 'use-c++11=' command line flag, use c++0x and libstdc++
-    if Version(asString=False, nice=True) < 2017:
-      excons.WarnOnce("Maya below 2017 requires linking against libstdc++.\nThis can be done using by using the command line flag 'use-stdc++=1'.", tool="maya")
-    
+      if maya_ver < 2017:
+        excons.WarnOnce("Maya below 2017 requires linking against libstdc++.\nThis can be done using by using the command line flag 'use-stdc++=1'.", tool="maya")
+      # Starting Maya 2018, Maya API is using C++11 standard
+      if maya_ver >= 2018:
+        env.Append(CPPFLAGS=" -std=c++11")
   else:
     env.Append(LIBPATH=["%s/lib" % mayadir])
     if sys.platform == "win32":
       env.Append(CPPDEFINES=["NT_PLUGIN"])
     else:
+      maya_ver = Version(asString=False, nice=True)
+      # Starting Maya 2018, Maya API is using C++11 standard
+      if maya_ver and maya_ver >= 2018:
+        env.Append(CPPFLAGS=" -std=c++11")
+
       env.Append(CPPDEFINES=["LINUX"])
       env.Append(CPPFLAGS=" -fno-strict-aliasing -Wno-comment -Wno-sign-compare -funsigned-char -Wno-reorder -fno-gnu-keywords -pthread")
   
