@@ -794,9 +794,13 @@ def MakeBaseEnv(noarch=None, output_dir="."):
     # XP:    _WIN32_WINNT=0x0500
     # Vista: _WIN32_WINNT=0x0600
     winnt = "_WIN32_WINNT=0x0400"
-    m = re.match(r"(\d)(\.(\d)(\.(\d+))?)?", platform.version())
+    m = re.match(r"(\d+)(\.(\d)(\.(\d+))?)?", platform.version())
     if m:
-      winnt = "_WIN32_WINNT=0x0%s00" % m.group(1)
+      winver = int(m.group(1))
+      if winver >= 10:
+        winnt = "_WIN32_WINNT=0x0%s00" % chr(55 + winver)
+      else:
+        winnt = "_WIN32_WINNT=0x0%d00" % winver
     
     env.Append(CPPDEFINES=[winnt, "_USE_MATH_DEFINES", "_WIN32", "WIN32", "_WINDOWS"])
     
