@@ -70,6 +70,7 @@ def _GetPythonSpec(specString):
     return _specCache[specString]
 
   spec = None
+  specErr = ""
 
   plat = str(Platform())
 
@@ -83,12 +84,25 @@ def _GetPythonSpec(specString):
       for searchPath in searchPaths:
         pythonPath = excons.joinpath(searchPath, "Python.framework", "Versions", ver)
         if os.path.isdir(pythonPath):
-          if ver == _GetPythonVersionOSX(excons.joinpath(searchPath, "Python.framework")):
-            spec = (ver, "%s/Headers" % pythonPath, searchPath, "Python")
-            break
+          incdir = None
+          for isd in ("include/python%s" % ver, "Headers"):
+            _incdir = pythonPath + "/" + isd
+            if os.path.isdir(_incdir):
+              incdir = _incdir
+              break
+          if incdir is not None:
+            if ver == _GetPythonVersionOSX(excons.joinpath(searchPath, "Python.framework")):
+              spec = (ver, incdir, searchPath, "Python")
+              specErr = ""
+              break
+            else:
+              spec = (ver, incdir, None, "%s/Python" % (pythonPath))
+              specErr = ""
+              break
           else:
-            spec = (ver, "%s/Headers" % pythonPath, None, "%s/Python" % (pythonPath))
-            break
+            specErr += "\n  Cannot find python %s include directory in %s" % (ver, pythonPath)
+        else:
+          specErr += "\n  Cannot find python %s in %s" % (ver, searchPath)
 
     elif plat == "win32":
       pythonPath = "C:\\Python%s" % ver.replace(".", "")
@@ -121,8 +135,11 @@ def _GetPythonSpec(specString):
     if spec is None:
       curver = str(sysconfig.get_python_version())
       if curver != ver:
-        excons.PrintOnce("Couldn't find stock python %s.\nCurrent version doesn't match (%s), aborting build." % (ver, curver), tool="python")
+        specErr += "\n"
+        excons.PrintOnce("Couldn't find stock python %s.%sCurrent version doesn't match (%s), aborting build." % (ver, specErr, curver), tool="python")
         sys.exit(1)
+      else:
+        excons.PrintOnce("Couldn't find stock python %s.%sUse currently running version instead." % (ver, specErr), tool="python")
 
   else:
     if plat == "darwin":
@@ -131,22 +148,38 @@ def _GetPythonSpec(specString):
       m = re.search(r"/([^/]+)\.framework/Versions/([^/]+)/?$", specString)
       if m:
         fwn = m.group(1)
+        ver = m.group(2)
         fw = "%s/%s" % (specString, fwn)
         fwh = "%s/Headers" % specString
+        if not os.path.isdir(fwh):
+          fwh = "%s/include/python%s" % (specString, ver)
         if os.path.isfile(fw) and os.path.isdir(fwh):
           # if it is the current version, use framework directory
-          ver = m.group(2)
           fwd = re.sub(r"/Versions/.*$", "", specString)
           if ver == _GetPythonVersionOSX(fwd):
             spec = (ver, fwh, os.path.dirname(fwd), fwn)
           else:
             spec = (ver, fwh, None, fw)
+        else:
+          if not os.path.isfile(fwh):
+            specErr += "\n  Cannot find python %s include directory in %s" % (ver, specString)
+          if not os.path.isfile(fw):
+            specErr += "\n  Cannot find python framework in %s" % specString
       else:
         ver = _GetPythonVersionOSX(specString)
         if ver is not None:
           d = os.path.dirname(specString)
           n = os.path.splitext(os.path.basename(specString))[0]
-          spec = (ver, "%s/Versions/%s/Headers" % (specString, ver), d, n)
+          incdir = None
+          for isd in ("include/python%s" % ver, "Headers"):
+            _incdir = "%s/Versions/%s/%s" % (specString, ver, isd)
+            if os.path.isdir(_incdir):
+              incdir = _incdir
+              break
+          if incdir is not None:
+            spec = (ver, incdir, d, n)
+          else:
+            specErr += "\n  Cannot find python %s include directory in %s" % (ver, specString)
     
     elif plat == "win32":
       ver = _GetPythonVersionWIN(specString)
@@ -170,7 +203,8 @@ def _GetPythonSpec(specString):
           spec = (ver, incdir, libdir, lib)
     
     if spec is None:
-      excons.PrintOnce("Invalid python specification \"%s\".\nAborting build." % specString, tool="python")
+      specErr += "\n"
+      excons.PrintOnce("Invalid python specification \"%s\".%sAborting build." % (specErr, specString), tool="python")
       sys.exit(1)
 
   # check setup validity
