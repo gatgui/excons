@@ -102,6 +102,7 @@ def Configure(name, topdir=None, opts={}, min_mscver=None):
    for k, v in opts.iteritems():
       cmd += "-D%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
    cmd += "-DCMAKE_INSTALL_PREFIX=\"%s\" "  % excons.OutputBaseDirectory()
+   cmd += "-DCMAKE_INSTALL_LIBDIR=\"%s\" "  % (excons.OutputBaseDirectory() + "/lib")
    if sys.platform != "win32":
       cmd += "-DCMAKE_SKIP_BUILD_RPATH=0 "
       cmd += "-DCMAKE_BUILD_WITH_INSTALL_RPATH=0 "
