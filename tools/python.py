@@ -356,3 +356,12 @@ def CythonGenerate(e, pyx, h=None, c=None, incdirs=[], cpp=False):
   ec["ENV"]["PATH"] = os.environ.get("PATH", "")
   ec["ENV"]["PYTHONPATH"] = os.environ.get("PYTHONPATH", "")
   return ec.Command([c, h], pyx, cmd)
+
+def SilentCythonWarnings(env):
+  plat = str(Platform())
+  if plat == "darwin":
+    env.Append(CPPFLAGS=" -Wno-unused-function -Wno-unneeded-internal-declaration")
+  elif plat != "win32":
+    env.Append(CPPFLAGS=" -Wno-strict-aliasing")
+  else:
+    env.Append(CPPFLAGS=" /wd4310 /wd4706")
