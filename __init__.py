@@ -2003,18 +2003,33 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
   else:
     Alias("eco", distenv.InstallAs(distdir + "/%s_%s.env" % (name, version.replace(".", "_")), ecofile))
 
+  def install_files(dstdir, src):
+    if os.path.islink(src):
+      lnksrc = os.readlink(src)
+      if not os.path.isabs(lnksrc):
+        lnksrc = dstdir + "/" + lnksrc
+        lnkdst = dstdir + "/" + os.path.basename(src)
+        Alias("eco", distenv.Symlink(lnkdst, lnksrc))
+    elif os.path.isdir(src):
+      bn = os.path.basename(src)
+      for item in os.listdir(src):
+        install_files(dstdir + "/" + bn, src + "/" + item)
+    else:
+      Alias("eco", distenv.Install(dstdir, src))
+
   for targetname, subdir in targetdirs.iteritems():
     dstdir = verdir + subdir
     for target in targets[targetname]:
-      path = str(target)
-      if os.path.islink(path):
-        lnksrc = os.readlink(path)
-        if not os.path.isabs(lnksrc):
-          lnksrc = dstdir + "/" + lnksrc
-          lnkdst = dstdir + "/" + os.path.basename(path)
-          Alias("eco", distenv.Symlink(lnkdst, lnksrc))
-          continue
-      Alias("eco", distenv.Install(dstdir, target))
+      install_files(dstdir, str(target))
+      # path = str(target)
+      # if os.path.islink(path):
+      #   lnksrc = os.readlink(path)
+      #   if not os.path.isabs(lnksrc):
+      #     lnksrc = dstdir + "/" + lnksrc
+      #     lnkdst = dstdir + "/" + os.path.basename(path)
+      #     Alias("eco", distenv.Symlink(lnkdst, lnksrc))
+      #     continue
+      # Alias("eco", distenv.Install(dstdir, target))
 
   # Also add version directory to 'eco' alias for additional install targets
   Alias("eco", verdir)
