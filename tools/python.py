@@ -134,8 +134,8 @@ def _GetPythonSpec(specString):
 
     if spec is None:
       curver = str(sysconfig.get_python_version())
+      specErr += "\n"
       if curver != ver:
-        specErr += "\n"
         excons.PrintOnce("Couldn't find stock python %s.%sCurrent version doesn't match (%s), aborting build." % (ver, specErr, curver), tool="python")
         sys.exit(1)
       else:
@@ -314,7 +314,30 @@ def ModulePrefix():
 def ModuleExtension():
   return sysconfig.get_config_var("SO")
 
+
+_cython = ""
+
 def RequireCython(e):
+  global _cython
+
+  cython = excons.GetArgument("with-cython", _cython)
+  if not os.path.isfile(cython):
+    excons.PrintOnce("Invalid 'cython' specification", tool="python")
+    cython = None
+  if not cython:
+    cython = "cython%s" % Version()
+    path = excons.Which(cython)
+    if path is None:
+      excons.PrintOnce("No \"%s\" found in PATH. Try with \"cython\" instead" % cython, tool="python")
+      cython = "cython"
+      path = excons.Which(cython)
+      if path is None:
+        excons.PrintOnce("Cannot find a valid cython in your PATH, use with-cython= flag to provide a valid location.", tool="python")
+        return False
+    excons.PrintOnce("Use \"%s\" found in %s." % (cython, path), tool="python")
+
+  _cython = cython
+  
   cython_include_re = re.compile(r"^include\s+([\"'])(\S+)\1", re.MULTILINE)
   
   def scan_cython_includes(node, env, path):
@@ -329,19 +352,14 @@ def RequireCython(e):
   
   e.Append(SCANNERS=Scanner(function=scan_cython_includes, skeys=".pyx"))
 
+  return True
+
 def CythonGenerate(e, pyx, h=None, c=None, incdirs=[], cpp=False):
-  cython = excons.GetArgument("with-cython", "")
-  if not cython:
-    cython = "cython%s" % Version()
-    path = excons.Which(cython)
-    if path is None:
-      excons.PrintOnce("No \"%s\" found in PATH. Try with \"cython\" instead" % cython, tool="python")
-      cython = "cython"
-      path = excons.Which(cython)
-      if path is None:
-        excons.PrintOnce("Cannot find a valid cython in your PATH, use with-cython= flag to provide a valid location.", tool="python")
-        sys.exit(1)
-    excons.PrintOnce("Use \"%s\" found in %s." % (cython, path), tool="python")
+  global _cython
+  
+  if not _cython:
+    excons.PrintOnce("No 'cython' to generate %s" % pyx, tool="python")
+    return None
   
   if h is None:
     h = os.path.splitext(pyx)[0] + ".h"
@@ -349,10 +367,19 @@ def CythonGenerate(e, pyx, h=None, c=None, incdirs=[], cpp=False):
   if c is None:
     c = os.path.splitext(pyx)[0] + (".cpp" if cpp else ".c")
   
-  cmd = cython + " " + " ".join(map(lambda x: "-I %s" % x, incdirs)) + (" --cplus" if cpp else "") + " --embed-positions -o $TARGET $SOURCE"
+  cmd = _cython + " " + " ".join(map(lambda x: "-I %s" % x, incdirs)) + (" --cplus" if cpp else "") + " --embed-positions -o $TARGET $SOURCE"
   
   # Command seems to fail if PATH and PYTHONPATH are not set
   ec = e.Clone()
   ec["ENV"]["PATH"] = os.environ.get("PATH", "")
   ec["ENV"]["PYTHONPATH"] = os.environ.get("PYTHONPATH", "")
   return ec.Command([c, h], pyx, cmd)
+
+def SilentCythonWarnings(env):
+  plat = str(Platform())
+  if plat == "darwin":
+    env.Append(CPPFLAGS=" -Wno-unused-function -Wno-unneeded-internal-declaration")
+  elif plat != "win32":
+    env.Append(CPPFLAGS=" -Wno-strict-aliasing")
+  else:
+    env.Append(CPPFLAGS=" /wd4310 /wd4706")
