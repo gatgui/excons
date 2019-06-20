@@ -852,7 +852,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
       SetupRelease = SetupMSVCReleaseWithDebug
     
   else:
-    env = Environment()
+    env = Environment(ENV={"PATH": os.environ["PATH"]})
     cppflags = " -fPIC -pipe -pthread"
     if warnl == "none":
       cppflags += " -w"
