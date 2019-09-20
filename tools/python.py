@@ -354,7 +354,7 @@ def RequireCython(e):
 
   return True
 
-def CythonGenerate(e, pyx, h=None, c=None, incdirs=[], cpp=False):
+def CythonGenerate(e, pyx, h=None, c=None, incdirs=[], cpp=False, cte={}):
   global _cython
   
   if not _cython:
@@ -367,7 +367,8 @@ def CythonGenerate(e, pyx, h=None, c=None, incdirs=[], cpp=False):
   if c is None:
     c = os.path.splitext(pyx)[0] + (".cpp" if cpp else ".c")
   
-  cmd = _cython + " " + " ".join(map(lambda x: "-I %s" % x, incdirs)) + (" --cplus" if cpp else "") + " --embed-positions -o $TARGET $SOURCE"
+  cteflags = "".join([" -E %s=%s" % (k, v) for k, v in cte.items()])
+  cmd = _cython + " " + " ".join(map(lambda x: "-I %s" % x, incdirs)) + (" --cplus" if cpp else "") + cteflags + " --embed-positions -o $TARGET $SOURCE"
   
   # Command seems to fail if PATH and PYTHONPATH are not set
   ec = e.Clone()
