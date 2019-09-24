@@ -163,7 +163,7 @@ def Build(name, config=None, target=None):
    else:
       if sys.platform == "win32":
          extraargs += " /v:m" # minimal verbosity
-   if extraargs:
+   if extraargs and (sys.platform != "win32" or float(excons.GetArgument("mscver", "10.0")) >= 10.0):
       cmd += " --" + extraargs
 
    excons.Print("Run Command: %s" % cmd, tool="cmake")
