@@ -792,13 +792,13 @@ def MakeBaseEnv(noarch=None, output_dir="."):
       if float(mscver) < 14.0:
         WarnOnce("Specified compiler version doesn't fully cover C++11. Use mscver=14.0 at least.")
     if not vcvars or not os.path.isfile(vcvars):
-      env = Environment(MSVC_VERSION=mscver, MSVS_VERSION=mscver, MSVS_ARCH=msvsarch, TARGET_ARCH=msvsarch)
+      env = Environment(ENV={"PATH": os.environ["PATH"], "TMP": os.environ["TEMP"]}, MSVC_VERSION=mscver, MSVS_VERSION=mscver, MSVS_ARCH=msvsarch, TARGET_ARCH=msvsarch)
     else:
       if (" " in vcvars or "\t" in vcvars) and not vcvars.startswith('"'):
         vcvars = "\"%s\"" % vcvars
       # Too bad this doesn't work
       #vcvars += " %s -vcvars_ver=%s" % (msvsarch, mscver)
-      env = Environment(MSVC_VERSION=mscver, TARGET_ARCH=msvsarch, MSVC_USE_SCRIPT=vcvars)
+      env = Environment(ENV={"PATH": os.environ["PATH"], "TMP": os.environ["TEMP"]}, MSVC_VERSION=mscver, TARGET_ARCH=msvsarch, MSVC_USE_SCRIPT=vcvars)
     # XP:    _WIN32_WINNT=0x0500
     # Vista: _WIN32_WINNT=0x0600
     winnt = "_WIN32_WINNT=0x0400"
