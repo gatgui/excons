@@ -94,6 +94,8 @@ def Configure(name, topdir=None, opts={}, min_mscver=None):
             cmd += "-G \"Visual Studio 12 2013 Win64\" "
          elif mscver == 14.0:
             cmd += "-G \"Visual Studio 14 2015 Win64\" "
+         elif mscver == 15.0:
+            cmd += "-G \"Visual Studio 15 2017 Win64\" "
          else:
             excons.Print("Unsupported visual studio version %s" % mscver, tool="cmake")
             return False
