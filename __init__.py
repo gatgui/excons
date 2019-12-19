@@ -785,12 +785,20 @@ def MakeBaseEnv(noarch=None, output_dir="."):
   SetupDebug = None
   
   if str(Platform()) == "win32":
-    mscver = GetArgument("mscver", "10.0")
+    vcvars = GetArgument("with-vcvars", os.environ.get("MSVC_USE_SCRIPT", ""))
+    mscver = GetArgument("mscver", os.environ.get("MSVC_DEFAULT_VERSION", "10.0"))
+    msvsarch = "amd64" if arch_dir == "x64" else "x86"
     if GetArgument("use-c++11", 0, int) != 0:
       if float(mscver) < 14.0:
         WarnOnce("Specified compiler version doesn't fully cover C++11. Use mscver=14.0 at least.")
-    msvsarch = "amd64" if arch_dir == "x64" else "x86"
-    env = Environment(MSVC_VERSION=mscver, MSVS_VERSION=mscver, MSVS_ARCH=msvsarch, TARGET_ARCH=msvsarch)
+    if not vcvars or not os.path.isfile(vcvars):
+      env = Environment(ENV={"PATH": os.environ["PATH"], "TMP": os.environ["TEMP"]}, MSVC_VERSION=mscver, MSVS_VERSION=mscver, MSVS_ARCH=msvsarch, TARGET_ARCH=msvsarch)
+    else:
+      if (" " in vcvars or "\t" in vcvars) and not vcvars.startswith('"'):
+        vcvars = "\"%s\"" % vcvars
+      # Too bad this doesn't work
+      #vcvars += " %s -vcvars_ver=%s" % (msvsarch, mscver)
+      env = Environment(ENV={"PATH": os.environ["PATH"], "TMP": os.environ["TEMP"]}, MSVC_VERSION=mscver, TARGET_ARCH=msvsarch, MSVC_USE_SCRIPT=vcvars)
     # XP:    _WIN32_WINNT=0x0500
     # Vista: _WIN32_WINNT=0x0600
     winnt = "_WIN32_WINNT=0x0400"
@@ -844,7 +852,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
       SetupRelease = SetupMSVCReleaseWithDebug
     
   else:
-    env = Environment()
+    env = Environment(ENV={"PATH": os.environ["PATH"]})
     cppflags = " -fPIC -pipe -pthread"
     if warnl == "none":
       cppflags += " -w"
@@ -1995,18 +2003,33 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
   else:
     Alias("eco", distenv.InstallAs(distdir + "/%s_%s.env" % (name, version.replace(".", "_")), ecofile))
 
+  def install_files(dstdir, src):
+    if os.path.islink(src):
+      lnksrc = os.readlink(src)
+      if not os.path.isabs(lnksrc):
+        lnksrc = dstdir + "/" + lnksrc
+        lnkdst = dstdir + "/" + os.path.basename(src)
+        Alias("eco", distenv.Symlink(lnkdst, lnksrc))
+    elif os.path.isdir(src):
+      bn = os.path.basename(src)
+      for item in os.listdir(src):
+        install_files(dstdir + "/" + bn, src + "/" + item)
+    else:
+      Alias("eco", distenv.Install(dstdir, src))
+
   for targetname, subdir in targetdirs.iteritems():
     dstdir = verdir + subdir
     for target in targets[targetname]:
-      path = str(target)
-      if os.path.islink(path):
-        lnksrc = os.readlink(path)
-        if not os.path.isabs(lnksrc):
-          lnksrc = dstdir + "/" + lnksrc
-          lnkdst = dstdir + "/" + os.path.basename(path)
-          Alias("eco", distenv.Symlink(lnkdst, lnksrc))
-          continue
-      Alias("eco", distenv.Install(dstdir, target))
+      install_files(dstdir, str(target))
+      # path = str(target)
+      # if os.path.islink(path):
+      #   lnksrc = os.readlink(path)
+      #   if not os.path.isabs(lnksrc):
+      #     lnksrc = dstdir + "/" + lnksrc
+      #     lnkdst = dstdir + "/" + os.path.basename(path)
+      #     Alias("eco", distenv.Symlink(lnkdst, lnksrc))
+      #     continue
+      # Alias("eco", distenv.Install(dstdir, target))
 
   # Also add version directory to 'eco' alias for additional install targets
   Alias("eco", verdir)

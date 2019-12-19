@@ -30,8 +30,8 @@ def GenerateFile(outpath, inpath, opts, pattern=None):
       phexp = re.compile(pattern)
    else:
       phexp = re.compile(r"@([^@]+)@")
-   with open(outpath, "w") as outf:
-      with open(inpath, "r") as inf:
+   with open(outpath, "wb") as outf:
+      with open(inpath, "rb") as inf:
          for line in inf.readlines():
             m = phexp.search(line)
             while m is not None:

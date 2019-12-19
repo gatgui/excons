@@ -94,6 +94,8 @@ def Configure(name, topdir=None, opts={}, min_mscver=None):
             cmd += "-G \"Visual Studio 12 2013 Win64\" "
          elif mscver == 14.0:
             cmd += "-G \"Visual Studio 14 2015 Win64\" "
+         elif mscver == 14.1:
+            cmd += "-G \"Visual Studio 15 2017 Win64\" "
          else:
             excons.Print("Unsupported visual studio version %s" % mscver, tool="cmake")
             return False
@@ -161,7 +163,7 @@ def Build(name, config=None, target=None):
    else:
       if sys.platform == "win32":
          extraargs += " /v:m" # minimal verbosity
-   if extraargs:
+   if extraargs and (sys.platform != "win32" or float(excons.GetArgument("mscver", "10.0")) >= 10.0):
       cmd += " --" + extraargs
 
    excons.Print("Run Command: %s" % cmd, tool="cmake")
