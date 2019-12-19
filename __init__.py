@@ -1444,9 +1444,9 @@ def DeclareTargets(env, prjs):
           if extradir:
             bnnoext = extradir + "/" + bnnoext
           if shared:
-            obj = penv.SharedObject(joinpath(odir, bnnoext), src)
+            obj = penv.SharedObject(joinpath(odir, bnnoext + ".os"), src)
           else:
-            obj = penv.StaticObject(joinpath(odir, bnnoext), src)
+            obj = penv.StaticObject(joinpath(odir, bnnoext + ".o"), src)
           #objs.append(obj)
           objs.extend(obj)
           key = str(src)
