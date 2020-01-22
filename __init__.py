@@ -1753,20 +1753,26 @@ def DeclareTargets(env, prjs):
       if pout and "post" in settings:
         penv.AddPostAction(pout, settings["post"])
       
-      def install_file(po, dstdir, filepath):
+      def install_file(po, dstdir, filepath, basename=None):
         if type(filepath) in (str, unicode):
           if os.path.isfile(filepath):
-            insttgt = penv.Install(dstdir, filepath)
+            if basename is None:
+              insttgt = penv.Install(dstdir, filepath)
+            else:
+              insttgt = penv.InstallAs(dstdir + "/" + basename, filepath)
             if po is None:
               po = insttgt
             else:
               penv.Depends(po, insttgt)
           else:
-            dn = dstdir + "/" + os.path.basename(filepath)
+            dn = dstdir + "/" + (os.path.basename(filepath) if basename is None else basename)
             for item in glob(filepath + "/*"):
               po = install_file(po, dn, item)
         else:
-          insttgt = penv.Install(dstdir, filepath)
+          if basename is None:
+            insttgt = penv.Install(dstdir, filepath)
+          else:
+            insttgt = penv.InstallAs(dstdir + "/" + basename, filepath)
           if po is None:
             po = insttgt
           else:
@@ -1780,7 +1786,17 @@ def DeclareTargets(env, prjs):
           else:
             dst = joinpath(out_dir, mode_dir, arch_dir, prefix)
           for f in files:
-            pout = install_file(pout, dst, f)
+            if isinstance(f, (list, tuple)):
+              try:
+                path, basename = f
+              except:
+                print("Invalid 'install' item: %s" % f)
+                continue
+            else:
+              path = f
+              basename = None
+            # pout = install_file(pout, dst, f)
+            pout = install_file(pout, dst, path, basename=basename)
       
       if pout:
         if settings["type"] == "install":
