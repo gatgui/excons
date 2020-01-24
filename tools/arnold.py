@@ -94,6 +94,7 @@ def Require(env):
     if sys.platform != "win32":
       if not excons.GetArgument("use-c++11", 0, int):
         excons.SetArgument("use-c++11", 1)
+      if not "-std=c++11" in " ".join(env["CXXFLAGS"]):
         env.Append(CXXFLAGS=" -std=c++11")
   
   env.Append(LIBS=["ai"])
