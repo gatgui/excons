@@ -1807,7 +1807,7 @@ def DeclareTargets(env, prjs):
           tgts = all_projs.get(alias, [])
           tgts.extend(pout)
           all_projs[alias] = tgts
-          Alias(prj, tgts)
+          Alias(alias, tgts)
 
   for name, targets in all_projs.iteritems():
     if name in all_targets:
