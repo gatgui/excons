@@ -1683,7 +1683,7 @@ def DeclareTargets(env, prjs):
           
           add_deps(prg)
           
-          pout.append(prg)
+          pout.extend(prg)
           
           # Cleanup
           if str(Platform()) == "win32":
