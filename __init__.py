@@ -1753,31 +1753,27 @@ def DeclareTargets(env, prjs):
       if pout and "post" in settings:
         penv.AddPostAction(pout, settings["post"])
       
-      def install_file(po, dstdir, filepath, basename=None):
+      if not pout:
+        pout = []
+
+      def install_file(dstdir, filepath, basename=None):
         if type(filepath) in (str, unicode):
           if os.path.isfile(filepath):
             if basename is None:
               insttgt = penv.Install(dstdir, filepath)
             else:
               insttgt = penv.InstallAs(dstdir + "/" + basename, filepath)
-            if po is None:
-              po = insttgt
-            else:
-              penv.Depends(po, insttgt)
+            pout.extend(insttgt)
           else:
             dn = dstdir + "/" + (os.path.basename(filepath) if basename is None else basename)
             for item in glob(filepath + "/*"):
-              po = install_file(po, dn, item)
+              install_file(dn, item)
         else:
           if basename is None:
             insttgt = penv.Install(dstdir, filepath)
           else:
             insttgt = penv.InstallAs(dstdir + "/" + basename, filepath)
-          if po is None:
-            po = insttgt
-          else:
-            penv.Depends(po, insttgt)
-        return po
+          pout.extend(insttgt)
       
       if "install" in settings:
         for prefix, files in settings["install"].iteritems():
@@ -1795,37 +1791,30 @@ def DeclareTargets(env, prjs):
             else:
               path = f
               basename = None
-            # pout = install_file(pout, dst, f)
-            pout = install_file(pout, dst, path, basename=basename)
+            install_file(dst, path, basename=basename)
       
+      if settings["type"] != "install":
+        # no progress for 'install' target
+        all_progress.append((prj, progress_nodes, 0))
+
       if pout:
-        if settings["type"] == "install":
-          # no progress for 'install' target
-          Alias(prj, pout)
-        else:
-          all_progress.append((prj, progress_nodes, 0))
-        
-        aliased = all_projs.get(alias, [])
-        aliased.extend(pout)
-        all_projs[alias] = aliased
+        tgts = all_projs.get(prj, [])
+        tgts.extend(pout)
+        all_projs[prj] = tgts
+        Alias(prj, tgts)
 
-        # Also keep target name alias
         if alias != prj:
-          Alias(prj, pout)
-
-          tgts = all_projs.get(prj, [])
+          tgts = all_projs.get(alias, [])
           tgts.extend(pout)
-          all_projs[prj] = tgts
-  
-  #SyncCache()
-  
-  for alias, targets in all_projs.iteritems():
-    Alias(alias, targets)
-    if alias in all_targets:
-      PrintOnce("Target '%s' already declared in another SCons script. Merging." % alias)
-      all_targets[alias].extend(targets)
+          all_projs[alias] = tgts
+          Alias(prj, tgts)
+
+  for name, targets in all_projs.iteritems():
+    if name in all_targets:
+      PrintOnce("Target '%s' already declared in another SCons script. Merging." % name)
+      all_targets[name].extend(targets)
     else:
-      all_targets[alias] = targets
+      all_targets[name] = targets
   
   env["EXCONS_TARGETS"] = all_projs
 
@@ -1954,8 +1943,24 @@ class EcoUtils(object):
       return d
 
 def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=None, defaultdir="eco", dirflag="eco-dir", ecoenv={}):
+  global out_dir
+
   if targets is None and "EXCONS_TARGETS" in env:
     targets = env["EXCONS_TARGETS"]
+
+  # limit ecosystem distribution to command line specified targets
+  # => how to take into account default targets?
+  cltgts = cmdtargets = COMMAND_LINE_TARGETS[:]
+  if "eco" in cltgts:
+    cltgts.remove("eco")
+  if len(cltgts) > 0:
+    skip = True
+    for tgt in targets.keys():
+      if tgt in cltgts:
+        skip = False
+        break
+    if skip:
+      return
 
   ecod = {}
 
@@ -2002,8 +2007,9 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
 
   distenv = env.Clone()
 
-  #distdir = GetArgument(dirflag, defaultdir)
   distdir = ARGUMENTS.get(dirflag, defaultdir)
+  if not os.path.isabs(distdir):
+    distdir = out_dir + "/" + distdir
   verdir = "%s/%s/%s" % (distdir, name, version)
 
   if updenv:
@@ -2034,18 +2040,21 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
       Alias("eco", distenv.Install(dstdir, src))
 
   for targetname, subdir in targetdirs.iteritems():
+    if os.path.isabs(subdir):
+      relfrom = subdir
+      subdir = ""
+    else:
+      relfrom = None
+      if subdir and not subdir.startswith("/"):
+        subdir = "/" + subdir
     dstdir = verdir + subdir
     for target in targets[targetname]:
-      install_files(dstdir, str(target))
-      # path = str(target)
-      # if os.path.islink(path):
-      #   lnksrc = os.readlink(path)
-      #   if not os.path.isabs(lnksrc):
-      #     lnksrc = dstdir + "/" + lnksrc
-      #     lnkdst = dstdir + "/" + os.path.basename(path)
-      #     Alias("eco", distenv.Symlink(lnkdst, lnksrc))
-      #     continue
-      # Alias("eco", distenv.Install(dstdir, target))
+      if relfrom is not None:
+        rp = os.path.relpath(str(target), relfrom)
+        sd = os.path.dirname(rp)
+        install_files(dstdir + "/" + sd, str(target))
+      else:
+        install_files(dstdir, str(target))
 
   # Also add version directory to 'eco' alias for additional install targets
   Alias("eco", verdir)
