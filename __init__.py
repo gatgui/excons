@@ -1310,6 +1310,7 @@ def DeclareTargets(env, prjs):
     alias = settings.get("alias", prj)
     desc = settings.get("desc", "")
     prefix = settings.get("prefix", None)
+    fullprefix = settings.get("fullprefix", None)
     progress_nodes = set()
 
     if not "type" in settings:
@@ -1343,16 +1344,12 @@ def DeclareTargets(env, prjs):
         add_deps(pout)
 
     else:
-      if "/" in prj.replace("\\", "/"):
-        print("[excons] Invalid target name '%s'. Please use 'prefix' instead." % prj)
-        spl = prj.split("/")
-        spl = prj.split("/")
-        prj = spl[-1]
-        subdir = "/".join(spl[:-1])
-        prefix = ("%s/%s" % (prefix, subdir) if prefix else subdir)
-        settings["name"] = prj
-        settings["prefix"] = prefix
-        print("[excons] => Update: name='%s', prefix='%s'" % (prj, prefix))
+      if fullprefix is not None:
+        if fullprefix.startswith("/"):
+          fullprefix = fullprefix[1:]
+        if fullprefix.endswith("/"):
+          fullprefix = fullprefix[:-1]
+        settings["fullprefix"] = fullprefix
       
       if prefix:
         if prefix.startswith("/"):
@@ -1360,6 +1357,24 @@ def DeclareTargets(env, prjs):
         if prefix.endswith("/"):
           prefix = prefix[:-1]
         settings["prefix"] = prefix
+      
+      if "/" in prj.replace("\\", "/"):
+        print("[excons] Invalid target name '%s'. Please use 'prefix' instead." % prj)
+        spl = prj.split("/")
+        spl = prj.split("/")
+        prj = spl[-1]
+        subdir = "/".join(spl[:-1])
+        if fullprefix is not None:
+          fullprefix += (("/" + subdir) if fullprefix else subdir)
+          settings["fullprefix"] = fullprefix
+        if prefix:
+          prefix += "/" + subdir
+          settings["prefix"] = prefix
+        if not (prefix or fullprefix):
+          prefix = subdir
+          settings["prefix"] = prefix
+        settings["name"] = prj
+        print("[excons] => Update: name='%s', prefix='%s'" % (prj, prefix))
       
       if "libdirs" in settings:
         penv.Append(LIBPATH=settings["libdirs"])
@@ -1484,15 +1499,23 @@ def DeclareTargets(env, prjs):
           baseoutdir = joinpath(out_dir, mode_dir)
           if not no_arch:
             baseoutdir = joinpath(baseoutdir, arch_dir)
-          bindir = joinpath(baseoutdir, "bin")
-          libdir = joinpath(baseoutdir, "lib")
-          if prefix:
-            bindir = joinpath(bindir, prefix)
-            libdir = joinpath(libdir, prefix)
+          if fullprefix is not None:
+            bindir = (joinpath(baseoutdir, fullprefix) if fullprefix else baseoutdir)
+            libdir = bindir
+          else:
+            bindir = joinpath(baseoutdir, "bin")
+            libdir = joinpath(baseoutdir, "lib")
+            if prefix:
+              bindir = joinpath(bindir, prefix)
+              libdir = joinpath(libdir, prefix)
           
           impbn = joinpath(libdir, prj)
           if settings.get("win_separate_dll_and_lib", True):
-            outbn = joinpath(bindir, prj)
+            if fullprefix is not None:
+              print("'win_separate_dll_and_lib' option is not compatible with 'fullprefix'")
+              outbn = impbn
+            else:
+              outbn = joinpath(bindir, prj)
           else:
             outbn = impbn
           
@@ -1525,7 +1548,9 @@ def DeclareTargets(env, prjs):
         
         else:
           relpath = None
-          if prefix:
+          if fullprefix is not None:
+            relpath = "/".join([".."] * fullprefix.count("/"))
+          elif prefix:
             relpath = "/".join([".."] * (1 + prefix.count("/")))
           
           symlinks = set()
@@ -1536,9 +1561,12 @@ def DeclareTargets(env, prjs):
           outlibdir = joinpath(out_dir, mode_dir).replace("\\", "/")
           if not no_arch:
             outlibdir += "/" + arch_dir
-          outlibdir += "/lib"
-          if prefix:
-            outlibdir += "/" + prefix
+          if fullprefix is not None:
+            outlibdir += (("/" + fullprefix) if fullprefix else "")
+          else:
+            outlibdir += "/lib"
+            if prefix:
+              outlibdir += "/" + prefix
           
           outlibname = "lib%s" % prj
           
@@ -1597,9 +1625,12 @@ def DeclareTargets(env, prjs):
         outbindir = joinpath(out_dir, mode_dir).replace("\\", "/")
         if not no_arch:
           outbindir += "/" + arch_dir
-        outbindir += "/bin"
-        if prefix:
-          outbindir += "/" + prefix
+        if fullprefix is not None:
+          outbindir += (("/" + fullprefix) if fullprefix else "")
+        else:
+          outbindir += "/bin"
+          if prefix:
+            outbindir += "/" + prefix
         
         outbn = outbindir + "/" + prj
         
@@ -1608,7 +1639,9 @@ def DeclareTargets(env, prjs):
         
         SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(GetArgument("stack-size", None))))
         
-        if prefix:
+        if fullprefix is not None:
+          relpath = "/".join([".."] * fullprefix.count("/")) + "/../lib"
+        elif prefix:
           relpath = "/".join([".."] * (1 + prefix.count("/"))) + "/../lib"
         else:
           relpath = "../lib"
@@ -1636,9 +1669,12 @@ def DeclareTargets(env, prjs):
         outlibdir = joinpath(out_dir, mode_dir).replace("\\", "/")
         if not no_arch:
           outlibdir += "/" + arch_dir
-        outlibdir += "/lib"
-        if prefix:
-          outlibdir += "/" + prefix
+        if fullprefix is not None:
+          outlibdir += (("/" + fullprefix) if fullprefix else "")
+        else:
+          outlibdir += "/lib"
+          if prefix:
+            outlibdir += "/" + prefix
         
         # It seems that is there's a '.' in prj, SCons fails to add extension
         # Let's force it
@@ -1657,16 +1693,21 @@ def DeclareTargets(env, prjs):
         outbindir = joinpath(out_dir, mode_dir).replace("\\", "/")
         if not no_arch:
           outbindir += "/" + arch_dir
-        outbindir += "/bin"
-        if prefix:
-          outbindir += "/" + prefix
+        if fullprefix is not None:
+          outbindir += (("/" + fullprefix) if fullprefix else "")
+        else:
+          outbindir += "/bin"
+          if prefix:
+            outbindir += "/" + prefix
         
         if GetArgument("no-console", 0, int) or ("console" in settings and settings["console"] is False):
           NoConsole(penv)
         
         SetStackSize(penv, size=settings.get("stacksize", ParseStackSize(GetArgument("stack-size", None))))
         
-        if prefix:
+        if fullprefix is not None:
+          relpath = "/".join([".."] * fullprefix.count("/")) + "/../lib"
+        elif prefix:
           relpath = "/".join([".."] * (1 + prefix.count("/"))) + "/../lib"
         else:
           relpath = "../lib"
@@ -1700,7 +1741,9 @@ def DeclareTargets(env, prjs):
         outmoddir = joinpath(out_dir, mode_dir)
         if not no_arch:
           outmoddir += "/" + arch_dir
-        if prefix:
+        if fullprefix is not None:
+          outmoddir += (("/" + fullprefix) if fullprefix else "")
+        elif prefix:
           outmoddir += "/" + prefix
         
         if str(Platform()) == "win32":
