@@ -85,6 +85,18 @@ def Require(env):
   if arnoldlib:
     env.Append(LIBPATH=[arnoldlib])
   
+  aver = Version(asString=False)
+  if aver[0] >= 5:
+    if sys.platform == "win32":
+      if float(excons.mscver) < 14:
+        excons.WarnOnce("Arnold 5 and above require Visual Studio 2015 or newer (mscver 14.0)")
+  if aver[0] >= 6:
+    if sys.platform != "win32":
+      if not excons.GetArgument("use-c++11", 0, int):
+        excons.SetArgument("use-c++11", 1)
+      if not "-std=c++11" in " ".join(env["CXXFLAGS"]):
+        env.Append(CXXFLAGS=" -std=c++11")
+  
   env.Append(LIBS=["ai"])
   
   excons.AddHelpOptions(arnold=GetOptionsString())

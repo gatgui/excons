@@ -354,8 +354,11 @@ def RequireCython(e):
 
   return True
 
-def CythonGenerate(e, pyx, h=None, c=None, incdirs=[], cpp=False, cte={}):
+def CythonGenerate(e, pyx, h=None, c=None, incdirs=[], cpp=False, cte={}, directives={}):
   global _cython
+
+  if float(Version()) < 3:
+    directives["language_level"] = 2
   
   if not _cython:
     excons.PrintOnce("No 'cython' to generate %s" % pyx, tool="python")
@@ -368,7 +371,8 @@ def CythonGenerate(e, pyx, h=None, c=None, incdirs=[], cpp=False, cte={}):
     c = os.path.splitext(pyx)[0] + (".cpp" if cpp else ".c")
   
   cteflags = "".join([" -E %s=%s" % (k, v) for k, v in cte.items()])
-  cmd = _cython + " " + " ".join(map(lambda x: "-I %s" % x, incdirs)) + (" --cplus" if cpp else "") + cteflags + " --embed-positions -o $TARGET $SOURCE"
+  dirflags = "".join([" --directive %s=%s" % (k, v) for k, v in directives.items()])
+  cmd = _cython + " " + " ".join(map(lambda x: "-I %s" % x, incdirs)) + (" --cplus" if cpp else "") + cteflags + dirflags + " --embed-positions -o $TARGET $SOURCE"
   
   # Command seems to fail if PATH and PYTHONPATH are not set
   ec = e.Clone()
