@@ -66,7 +66,7 @@ def Outputs(name):
          lst = map(lambda x: excons.out_dir + "/" + x, lines)
    return lst
 
-def Configure(name, topdir=None, opts={}, min_mscver=None):
+def Configure(name, topdir=None, opts={}, min_mscver=None, flags=None):
    if GetOption("clean"):
       return True
 
@@ -101,6 +101,12 @@ def Configure(name, topdir=None, opts={}, min_mscver=None):
             return False
       except:
          return False
+   if flags:
+      if not cmd.endswith(" "):
+         cmd += " "
+      cmd += flags
+      if not flags.endswith(" "):
+         cmd += " "
    for k, v in opts.iteritems():
       cmd += "-D%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
    cmd += "-DCMAKE_INSTALL_PREFIX=\"%s\" "  % excons.OutputBaseDirectory()

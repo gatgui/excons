@@ -8,7 +8,7 @@ def DummyScanner(node, env, path):
    return []
 
 def ConfigureAction(target, source, env):
-   if not cmake.Configure(env["CMAKE_PROJECT"], topdir=env["CMAKE_TOPDIR"], opts=env["CMAKE_OPTIONS"], min_mscver=env["CMAKE_MIN_MSCVER"]):
+   if not cmake.Configure(env["CMAKE_PROJECT"], topdir=env["CMAKE_TOPDIR"], opts=env["CMAKE_OPTIONS"], flags=env["CMAKE_FLAGS"], min_mscver=env["CMAKE_MIN_MSCVER"]):
       if os.path.isfile(env["CMAKE_CONFIG_CACHE"]):
          os.remove(env["CMAKE_CONFIG_CACHE"])
       if os.path.isfile(env["CMAKE_CACHE"]):
@@ -26,6 +26,7 @@ def SetupEnvironment(env, settings):
 
    debug = (excons.GetArgument("debug", 0, int) != 0)
    opts = settings.get("cmake-opts", {})
+   flags = settings.get("cmake-flags", "")
    blddir = cmake.BuildDir(name)
    cmakec = blddir + "/CMakeCache.txt"
    cfgc = cmake.ConfigCachePath(name)
@@ -36,6 +37,7 @@ def SetupEnvironment(env, settings):
    env["CMAKE_PROJECT"] = name
    env["CMAKE_TOPDIR"] = excons.abspath(settings.get("cmake-root", "."))
    env["CMAKE_OPTIONS"] = opts
+   env["CMAKE_FLAGS"] = flags
    env["CMAKE_MIN_MSCVER"] = settings.get("cmake-min-mscver", None)
    env["CMAKE_CONFIG"] = settings.get("cmake-config", ("debug" if debug else "release"))
    env["CMAKE_TARGET"] = settings.get("cmake-target", "install")
