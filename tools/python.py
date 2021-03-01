@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
-from SCons.Script import *
+import SCons.Script # pylint: disable=import-error
 import os
 import re
 import sys
@@ -34,7 +34,7 @@ def _GetPythonVersionOSX(pythonPath):
   # On osx, pythonPath must be the path to the python framework
   # i.e.  with-python=/System/Library/Frameworks/Python.framework
   p = subprocess.Popen("ls -l %s/Versions | grep Current" % pythonPath, shell=True, stdout=subprocess.PIPE)
-  out, err = p.communicate()
+  out, _ = p.communicate()
   m = re.search(r"Current\s+->\s+(%s/Versions/)?([0-9\.]+)" % pythonPath, out)
   if m is not None:
     return m.group(2)
@@ -55,7 +55,7 @@ def _GetPythonVersionUNIX(pythonPath):
   # On unix, pythonPath must be the path to the python executable
   # i.e.  with-python=/usr/local/bin/python
   p = subprocess.Popen("ldd %s | grep libpython" % pythonPath, shell=True, stdout=subprocess.PIPE)
-  out, err = p.communicate()
+  out, _ = p.communicate()
   m = re.search(r"libpython([0-9\.]+)\.so", out)
   if m is not None:
     return m.group(1)
@@ -72,7 +72,7 @@ def _GetPythonSpec(specString):
   spec = None
   specErr = ""
 
-  plat = str(Platform())
+  plat = str(SCons.Script.Platform())
 
   if re.match(r"\d+\.\d+", specString):
     ver = specString
@@ -118,7 +118,7 @@ def _GetPythonSpec(specString):
         pythonPath = excons.joinpath(searchPath, "bin", "python%s" % ver)
         if not os.path.isfile(pythonPath):
           pythonPath = excons.joinpath(searchPath, "python")
-          if os.path.isfile(pythonPath) and _GetPythonVersionUNIX() == ver:
+          if os.path.isfile(pythonPath) and _GetPythonVersionUNIX(pythonPath) == ver:
             spec = (ver, searchPath)
             break
         else:
@@ -258,7 +258,7 @@ def Require(e, ignoreLinkFlags=False):
 
     if rv is not None:
       ver, incdir, libdir, lib = rv
-      plat = str(Platform())
+      plat = str(SCons.Script.Platform())
 
       e.Append(CCFLAGS=" -DPY_VER=%s" % ver)
       e.Append(CPPPATH=[incdir])
@@ -290,7 +290,7 @@ def Require(e, ignoreLinkFlags=False):
       else:
         e.Append(LINKFLAGS=" -F%s -framework %s" % (fwdir, fwname))
   else:
-    if str(Platform()) == "win32":
+    if str(SCons.Script.Platform()) == "win32":
       e.Append(LIBPATH=[sysconfig.PREFIX+'\\libs'])
       e.Append(LIBS=["python%s" % pyver.replace(".", "")])
     else:
@@ -302,7 +302,7 @@ def Require(e, ignoreLinkFlags=False):
   excons.AddHelpOptions(python=GetOptionsString())
 
 def SoftRequire(e):
-  if str(Platform()) == "darwin":
+  if str(SCons.Script.Platform()) == "darwin":
     e.Append(LINKFLAGS=" -undefined dynamic_lookup")
     Require(e, ignoreLinkFlags=True)
   else:
@@ -350,7 +350,7 @@ def RequireCython(e):
     else:
       return []
   
-  e.Append(SCANNERS=Scanner(function=scan_cython_includes, skeys=".pyx"))
+  e.Append(SCANNERS=SCons.Script.Scanner(function=scan_cython_includes, skeys=".pyx"))
 
   return True
 
@@ -381,7 +381,7 @@ def CythonGenerate(e, pyx, h=None, c=None, incdirs=[], cpp=False, cte={}, direct
   return ec.Command([c, h], pyx, cmd)
 
 def SilentCythonWarnings(env):
-  plat = str(Platform())
+  plat = str(SCons.Script.Platform())
   if plat == "darwin":
     env.Append(CPPFLAGS=" -Wno-unused-function -Wno-unneeded-internal-declaration")
   elif plat != "win32":
