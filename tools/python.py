@@ -25,6 +25,7 @@ import glob
 import subprocess
 import excons
 import distutils
+import distutils.sysconfig
 
 def GetOptionsString():
   return """PYTHON OPTIONS
