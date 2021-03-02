@@ -1,4 +1,4 @@
-# Copyright (C) 2009, 2010  Gaetan Guidet
+# Copyright (C) 2009~  Gaetan Guidet
 #
 # This file is part of excons.
 #
@@ -24,7 +24,7 @@ import sys
 import glob
 import subprocess
 import excons
-from distutils import sysconfig
+import distutils
 
 def GetOptionsString():
   return """PYTHON OPTIONS
@@ -133,7 +133,7 @@ def _GetPythonSpec(specString):
         spec = (ver, incdir, libdir, lib)
 
     if spec is None:
-      curver = str(sysconfig.get_python_version())
+      curver = str(distutils.sysconfig.get_python_version())
       specErr += "\n"
       if curver != ver:
         excons.PrintOnce("Couldn't find stock python %s.%sCurrent version doesn't match (%s), aborting build." % (ver, specErr, curver), tool="python")
@@ -248,7 +248,7 @@ def Version():
     if rv is not None:
       return rv[0]
 
-  return str(sysconfig.get_python_version())
+  return str(distutils.sysconfig.get_python_version())
 
 def Require(e, ignoreLinkFlags=False):
   po = excons.GetArgument("with-python")
@@ -277,26 +277,26 @@ def Require(e, ignoreLinkFlags=False):
   
   # Default settings: use the python that this script runs on
   
-  pyver = sysconfig.get_python_version()
+  pyver = distutils.sysconfig.get_python_version()
   e.Append(CCFLAGS=" -DPY_VER=%s" % pyver)
-  e.Append(CPPPATH=[sysconfig.get_python_inc()])
+  e.Append(CPPPATH=[distutils.sysconfig.get_python_inc()])
   
-  if sysconfig.get_config_var("PYTHONFRAMEWORK"):
+  if distutils.sysconfig.get_config_var("PYTHONFRAMEWORK"):
     if not ignoreLinkFlags:
-      fwdir = sysconfig.get_config_var("PYTHONFRAMEWORKPREFIX")
-      fwname = sysconfig.get_config_var("PYTHONFRAMEWORK")
+      fwdir = distutils.sysconfig.get_config_var("PYTHONFRAMEWORKPREFIX")
+      fwname = distutils.sysconfig.get_config_var("PYTHONFRAMEWORK")
       if _GetPythonVersionOSX("%s/%s.framework" % (fwdir, fwname)) != pyver:
         e.Append(LINKFLAGS=" %s/%s.framework/Versions/%s/%s" % (fwdir, fwname, pyver, fwname))
       else:
         e.Append(LINKFLAGS=" -F%s -framework %s" % (fwdir, fwname))
   else:
     if str(SCons.Script.Platform()) == "win32":
-      e.Append(LIBPATH=[sysconfig.PREFIX+'\\libs'])
+      e.Append(LIBPATH=[distutils.sysconfig.PREFIX+'\\libs'])
       e.Append(LIBS=["python%s" % pyver.replace(".", "")])
     else:
-      e.Append(CCFLAGS=" %s" % sysconfig.get_config_var("CFLAGS"))
+      e.Append(CCFLAGS=" %s" % distutils.sysconfig.get_config_var("CFLAGS"))
       if not ignoreLinkFlags:
-        e.Append(LINKFLAGS=" %s" % sysconfig.get_config_var("LINKFORSHARED"))
+        e.Append(LINKFLAGS=" %s" % distutils.sysconfig.get_config_var("LINKFORSHARED"))
         e.Append(LIBS=["python%s" % pyver])
   
   excons.AddHelpOptions(python=GetOptionsString())
@@ -312,7 +312,7 @@ def ModulePrefix():
   return "lib/python/"
 
 def ModuleExtension():
-  return sysconfig.get_config_var("SO")
+  return distutils.sysconfig.get_config_var("SO")
 
 
 _cython = ""

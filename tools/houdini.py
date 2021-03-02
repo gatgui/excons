@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Gaetan Guidet
+# Copyright (C) 2013~ Gaetan Guidet
 #
 # This file is part of excons.
 #
@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
-from SCons.Script import *
+import SCons.Script # pylint: disable=import-error
 import excons
 import sys
 import re
@@ -46,9 +46,9 @@ def SetupMscver():
           excons.SetArgument("mscver", mscver)
 
 def PluginExt():
-  if str(Platform()) == "darwin":
+  if str(SCons.Script.Platform()) == "darwin":
     return ".dylib"
-  elif str(Platform()) == "win32":
+  elif str(SCons.Script.Platform()) == "win32":
     return ".dll"
   else:
     return ".so"
@@ -153,7 +153,7 @@ def Require(env):
   
   cmd = "\"%s\" -c" % hcustom
   p = subprocess.Popen(cmd, shell=True, env=hcustomenv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  out, err = p.communicate()
+  out, _ = p.communicate()
   ccflags = out.strip()
   if not "DLLEXPORT" in ccflags:
     if sys.platform == "win32":
@@ -167,7 +167,7 @@ def Require(env):
   
   cmd = "\"%s\" -m" % hcustom
   p = subprocess.Popen(cmd, shell=True, env=hcustomenv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  out, err = p.communicate()
+  out, _ = p.communicate()
   linkflags = out.strip()
   if sys.platform == "win32":
     linkflags = re.sub(r"-link\s+", "", linkflags)

@@ -17,13 +17,14 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
+import os
 import sys
 import excons
 import pprint
 import subprocess
 import excons
 import excons.automake as automake
-from SCons.Script import *
+import SCons.Script # pylint: disable=import-error
 
 
 def DummyScanner(node, env, path):
@@ -68,7 +69,7 @@ def SetupEnvironment(env, settings):
       return None
 
    name = settings["name"]
-   debug = (excons.GetArgument("debug", 0, int) != 0)
+   # debug = (excons.GetArgument("debug", 0, int) != 0)
    opts = settings.get("automake-opts", {})
    agenf = excons.abspath("./autogen.sh")
    conff = excons.abspath("./configure")
@@ -78,7 +79,7 @@ def SetupEnvironment(env, settings):
    cexts = [".c", ".h", ".cc", ".hh", ".cpp", ".hpp", ".cxx", ".hxx"]
 
    # Override default C/C++ file scanner to avoid SCons being too nosy
-   env.Prepend(SCANNERS=Scanner(function=DummyScanner, skeys=cexts))
+   env.Prepend(SCANNERS=SCons.Script.Scanner(function=DummyScanner, skeys=cexts))
    env["AUTOMAKE_PROJECT"] = name
    env["AUTOMAKE_TOPDIR"] = excons.abspath(".")
    env["AUTOMAKE_OPTIONS"] = opts
@@ -87,12 +88,12 @@ def SetupEnvironment(env, settings):
    env["AUTOMAKE_AUTOGEN"] = agenf
    env["AUTOMAKE_MAKEFILE"] = makef
    env["AUTOMAKE_CONFIG_CACHE"] = cfgc
-   env["BUILDERS"]["Autoconf"] = Builder(action=Action(AutoconfAction, "Running autoconf ..."))
-   env["BUILDERS"]["AutomakeConfigure"] = Builder(action=Action(ConfigureAction, "Configure using Automake ..."))
-   env["BUILDERS"]["Automake"] = Builder(action=Action(BuildAction, "Build using Automake ..."))
+   env["BUILDERS"]["Autoconf"] = SCons.Script.Builder(action=SCons.Script.Action(AutoconfAction, "Running autoconf ..."))
+   env["BUILDERS"]["AutomakeConfigure"] = SCons.Script.Builder(action=SCons.Script.Action(ConfigureAction, "Configure using Automake ..."))
+   env["BUILDERS"]["Automake"] = SCons.Script.Builder(action=SCons.Script.Action(BuildAction, "Build using Automake ..."))
 
    # Check if we need to reconfigure
-   if not GetOption("clean"):
+   if not SCons.Script.GetOption("clean"):
       if not os.path.isdir(blddir):
          try:
             os.makedirs(blddir)
@@ -116,7 +117,7 @@ def SetupEnvironment(env, settings):
                         break
             except:
                doconf = True
-      if doconf or int(ARGUMENTS.get("reconfigure", "0")) != 0:
+      if doconf or int(SCons.Script.ARGUMENTS.get("reconfigure", "0")) != 0:
          # Only rewrite cfgc when strictly needed
          if doconf:
             with open(cfgc, "w") as f:

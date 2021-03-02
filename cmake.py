@@ -25,7 +25,7 @@ import shutil
 import pprint
 import subprocess
 import excons
-from SCons.Script import *
+import SCons.Script # pylint: disable=import-error
 
 
 InstallExp = re.compile(r"^--\s+(Installing|Up-to-date):\s+([^\s].*)$")
@@ -67,7 +67,7 @@ def Outputs(name):
    return lst
 
 def Configure(name, topdir=None, opts={}, min_mscver=None, flags=None):
-   if GetOption("clean"):
+   if SCons.Script.GetOption("clean"):
       return True
 
    if topdir is None:
@@ -75,8 +75,6 @@ def Configure(name, topdir=None, opts={}, min_mscver=None, flags=None):
 
    bld = BuildDir(name)
    relpath = os.path.relpath(topdir, bld)
-
-   success = False
 
    cmd = "cd \"%s\" %s cmake " % (bld, CmdSep)
    if sys.platform == "win32":
@@ -134,7 +132,7 @@ def ParseOutputsInLines(lines, outfiles):
             outfiles.add(f)
 
 def Build(name, config=None, target=None):
-   if GetOption("clean"):
+   if SCons.Script.GetOption("clean"):
       return True
 
    ccf = ConfigCachePath(name)
@@ -143,7 +141,6 @@ def Build(name, config=None, target=None):
    if not os.path.isfile(ccf):
       return False
 
-   success = False
    outfiles = set()
 
    if config is None:
@@ -155,7 +152,7 @@ def Build(name, config=None, target=None):
    cmd = "cd \"%s\" %s cmake --build . --config %s --target %s" % (BuildDir(name), CmdSep, config, target)
 
    extraargs = ""
-   njobs = GetOption("num_jobs")
+   njobs = SCons.Script.GetOption("num_jobs")
    if njobs > 1:
       if sys.platform == "win32":
          extraargs += " /m:%d" % njobs
@@ -199,7 +196,7 @@ def Build(name, config=None, target=None):
       return False
 
 def CleanOne(name):
-   if not GetOption("clean"):
+   if not SCons.Script.GetOption("clean"):
       return
 
    # Remove output files
@@ -226,15 +223,15 @@ def CleanOne(name):
       excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, excons.out_dir), tool="cmake")
 
 def Clean():
-   if not GetOption("clean"):
+   if not SCons.Script.GetOption("clean"):
       return
 
    allnames = map(lambda x: ".".join(os.path.basename(x).split(".")[:-2]), glob.glob(excons.out_dir + "/*.cmake.outputs"))
 
-   if len(COMMAND_LINE_TARGETS) == 0:
+   if len(SCons.Script.COMMAND_LINE_TARGETS) == 0:
       names = allnames[:]
    else:
-      names = COMMAND_LINE_TARGETS
+      names = SCons.Script.COMMAND_LINE_TARGETS
 
    for name in names:
       CleanOne(name)

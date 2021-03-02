@@ -1,7 +1,27 @@
+# Copyright (C) 2017~  Gaetan Guidet
+#
+# This file is part of excons.
+#
+# excons is free software; you can redistribute it and/or modify it
+# under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation; either version 2.1 of the License, or (at
+# your option) any later version.
+#
+# excons is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+# USA.
+
+import os
 import excons
 import pprint
 import excons.cmake as cmake
-from SCons.Script import *
+import SCons.Script # pylint: disable=import-error
 
 
 def DummyScanner(node, env, path):
@@ -33,7 +53,7 @@ def SetupEnvironment(env, settings):
    cexts = [".c", ".h", ".cc", ".hh", ".cpp", ".hpp", ".cxx", ".hxx"]
 
    # Override default C/C++ file scanner to avoid SCons being too nosy
-   env.Prepend(SCANNERS=Scanner(function=DummyScanner, skeys=cexts))
+   env.Prepend(SCANNERS=SCons.Script.Scanner(function=DummyScanner, skeys=cexts))
    env["CMAKE_PROJECT"] = name
    env["CMAKE_TOPDIR"] = excons.abspath(settings.get("cmake-root", "."))
    env["CMAKE_OPTIONS"] = opts
@@ -43,11 +63,11 @@ def SetupEnvironment(env, settings):
    env["CMAKE_TARGET"] = settings.get("cmake-target", "install")
    env["CMAKE_CACHE"] = cmakec
    env["CMAKE_CONFIG_CACHE"] = cfgc
-   env["BUILDERS"]["CMakeConfigure"] = Builder(action=Action(ConfigureAction, "Configure using CMake ..."))
-   env["BUILDERS"]["CMake"] = Builder(action=Action(BuildAction, "Build using CMake ..."))
+   env["BUILDERS"]["CMakeConfigure"] = SCons.Script.Builder(action=SCons.Script.Action(ConfigureAction, "Configure using CMake ..."))
+   env["BUILDERS"]["CMake"] = SCons.Script.Builder(action=SCons.Script.Action(BuildAction, "Build using CMake ..."))
 
    # Check if we need to reconfigure
-   if not GetOption("clean"):
+   if not SCons.Script.GetOption("clean"):
       if not os.path.isdir(blddir):
          try:
             os.makedirs(blddir)
@@ -71,7 +91,7 @@ def SetupEnvironment(env, settings):
                         break
             except:
                doconf = True
-      if doconf or int(ARGUMENTS.get("reconfigure", "0")) != 0:
+      if doconf or int(SCons.Script.ARGUMENTS.get("reconfigure", "0")) != 0:
          # Only rewrite cfgc when strictly needed
          if doconf:
             with open(cfgc, "w") as f:

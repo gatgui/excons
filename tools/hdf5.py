@@ -17,7 +17,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
-from SCons.Script import *
 import os
 import re
 import sys
@@ -46,7 +45,7 @@ def GetOptionsString():
   hdf5-static=0|1      : Use HDF5 static library     [1]"""
 
 def Require(hl=False, verbose=False):
-  global ThreadSafe_exp, Szlib_exp, Zlib_exp, hdf5_confs
+  global ThreadSafe_exp, Szip_exp, Zlib_exp, hdf5_confs
 
   hdf5_inc, hdf5_lib = excons.GetDirs("hdf5")
 

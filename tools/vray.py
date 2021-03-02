@@ -1,4 +1,4 @@
-# Copyright (C) 2015  Gaetan Guidet
+# Copyright (C) 2015~  Gaetan Guidet
 #
 # This file is part of excons.
 #
@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
-from SCons.Script import *
+import SCons.Script # pylint: disable=import-error
 import excons
 import glob
 import sys
@@ -37,7 +37,7 @@ def FindFileIn(filename, directory):
   return None
 
 def PluginExt():
-  if str(Platform()) == "win32":
+  if str(SCons.Script.Platform()) == "win32":
     return ".dll"
   else:
     return ".so"

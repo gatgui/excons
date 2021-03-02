@@ -1,4 +1,4 @@
-# Copyright (C) 2010  Gaetan Guidet
+# Copyright (C) 2010~  Gaetan Guidet
 #
 # This file is part of excons.
 #
@@ -17,11 +17,11 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
-from SCons.Script import *
 import sys
 import excons
 import re
 import os
+import SCons.Script # pylint: disable=import-error
 
 
 def GetOptionsString():
@@ -29,9 +29,9 @@ def GetOptionsString():
   with-nuke=<str> : Nuke version or install directory []"""
 
 def PluginExt():
-  if str(Platform()) == "darwin":
+  if str(SCons.Script.Platform()) == "darwin":
     return ".dylib"
-  elif str(Platform()) == "win32":
+  elif str(SCons.Script.Platform()) == "win32":
     return ".dll"
   else:
     return ".so"
