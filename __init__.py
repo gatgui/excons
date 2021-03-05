@@ -41,6 +41,7 @@ out_dir = None
 mode_dir = None
 arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
 mscver = None
+gccver = None
 no_arch = False
 warnl = "all"
 issued_warnings = set()
@@ -65,7 +66,7 @@ def glob(pat):
 def InitGlobals(output_dir=".", force=False):
   global args_cache, args_cache_path, args_no_cache
   global bld_dir, out_dir, mode_dir, arch_dir
-  global mscver, no_arch, warnl, issued_warnings, printed_messages
+  global mscver, gccver, no_arch, warnl, issued_warnings, printed_messages
   global all_targets, all_progress
   global ignore_help, help_targets, help_options
   global ext_types
@@ -100,6 +101,7 @@ def InitGlobals(output_dir=".", force=False):
     mode_dir = None
     arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
     mscver = None
+    gccver = None
     no_arch = False  # Whether or not to create architecture in output directory
     warnl = "all"  # Warning level
     issued_warnings = set()
@@ -673,7 +675,7 @@ def NormalizedRelativePaths(paths, baseDirectory):
   return map(lambda x: NormalizedRelativePath(x, baseDirectory), paths)
 
 def MakeBaseEnv(noarch=None, output_dir="."):
-  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, warnl, ext_types
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver, gccver, no_arch, warnl, ext_types
   
   InitGlobals(output_dir, force=(int(SCons.Script.ARGUMENTS.get("shared-build", "1")) == 0))
 
@@ -852,6 +854,11 @@ def MakeBaseEnv(noarch=None, output_dir="."):
       SetupRelease = SetupMSVCReleaseWithDebug
     
   else:
+    p = subprocess.Popen(["gcc", "-dumpversion"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    out, _ = p.communicate()
+    if p.returncode == 0:
+      gccver = out.strip()
+
     env = SCons.Script.Environment(ENV={"PATH": os.environ["PATH"]})
     cppflags = " -fPIC -pipe -pthread"
     if warnl == "none":
@@ -1294,7 +1301,7 @@ def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=No
   return rv
 
 def DeclareTargets(env, prjs):
-  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets, all_progress, ext_types, help_targets
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver, gccver, no_arch, args_no_cache, args_cache, all_targets, all_progress, ext_types, help_targets
 
   all_projs = {}
   
@@ -1426,6 +1433,9 @@ def DeclareTargets(env, prjs):
         msvcver = env.get("MSVC_VERSION", None)
         if msvcver:
           odir = joinpath(odir, "msvc-%s" % msvcver)
+      else:
+        if gccver:
+          odir = joinpath(odir, "gcc-%s" % gccver)
       if "bldprefix" in settings:
         odir = joinpath(odir, settings["bldprefix"])
       
