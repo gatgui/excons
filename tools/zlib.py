@@ -1,4 +1,4 @@
-# Copyright (C) 2014  Gaetan Guidet
+# Copyright (C) 2014~  Gaetan Guidet
 #
 # This file is part of excons.
 #
@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
-from SCons.Script import *
+import SCons.Script # pylint: disable=import-error
 import excons
 
 def GetOptionsString():
@@ -45,7 +45,7 @@ def Require(env):
   
   static = (excons.GetArgument("zlib-static", 0, int) != 0)
 
-  if str(Platform()) != "win32":
+  if str(SCons.Script.Platform()) != "win32":
     zlib_name = excons.GetArgument("zlib-name", None)
     if not zlib_name:
       zlib_name = "%sz%s" % (excons.GetArgument("zlib-prefix", ""), excons.GetArgument("zlib-suffix", ""))

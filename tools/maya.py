@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Gaetan Guidet
+# Copyright (C) 2013~  Gaetan Guidet
 #
 # This file is part of excons.
 #
@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
-from SCons.Script import *
+import SCons.Script # pylint: disable=import-error
 import excons
 import sys
 import re
@@ -52,9 +52,9 @@ def SetupMscver():
           excons.SetArgument("mscver", mscver)
 
 def PluginExt():
-  if str(Platform()) == "darwin":
+  if str(SCons.Script.Platform()) == "darwin":
     return ".bundle"
-  elif str(Platform()) == "win32":
+  elif str(SCons.Script.Platform()) == "win32":
     return ".mll"
   else:
     return ".so"
@@ -67,7 +67,7 @@ def GetMayaRoot(noWarn=False):
   mayaspec = excons.GetArgument("with-maya")
   
   if "MAYA_LOCATION" in os.environ:
-    if not "with-maya" in ARGUMENTS:
+    if not "with-maya" in SCons.Script.ARGUMENTS:
       # MAYA_LOCATION environment is set and with-maya is either undefined or read from cache
       excons.PrintOnce("Using MAYA_LOCATION environment.", tool="maya")
       mayadir = os.environ["MAYA_LOCATION"]
@@ -117,7 +117,7 @@ def GetMayaInc(mayadir):
   mdk = (None if not require_mdk else excons.GetArgument("with-mayadevkit"))
   
   if "MAYA_INCLUDE" in os.environ:
-    if not require_mdk or "with-mayadevkit" not in ARGUMENTS:
+    if not require_mdk or "with-mayadevkit" not in SCons.Script.ARGUMENTS:
       # MAYA_INCLUDE environment is set and maya is older than 2016 or with-mayadevkit is either undefined or read from cache
       excons.PrintOnce("Using MAYA_INCLUDE environment.", tool="maya")
       mayainc = os.environ["MAYA_INCLUDE"]

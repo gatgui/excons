@@ -1,4 +1,4 @@
-# Copyright (C) 2013  Gaetan Guidet
+# Copyright (C) 2013~  Gaetan Guidet
 #
 # This file is part of excons.
 #
@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
-from SCons.Script import *
+import SCons.Script # pylint: disable=import-error
 import excons
 import sys
 import re
@@ -30,9 +30,9 @@ def GetOptionsString():
   with-arnold-lib=<path> : Arnold libraries directory. [<root>/bin or <prefix>/lib]"""
 
 def PluginExt():
-  if str(Platform()) == "darwin":
+  if str(SCons.Script.Platform()) == "darwin":
     return ".dylib"
-  elif str(Platform()) == "win32":
+  elif str(SCons.Script.Platform()) == "win32":
     return ".dll"
   else:
     return ".so"

@@ -25,7 +25,7 @@ import shutil
 import pprint
 import subprocess
 import excons
-from SCons.Script import *
+import SCons.Script # pylint: disable=import-error
 
 
 InstallExp = re.compile(r"^.*?bin/install\s+((-c|-d|(-m\s+\d{3}))\s+)*(.*?)((['\"]?)(%s.*)\6)$" % os.path.abspath(excons.OutputBaseDirectory()))
@@ -67,7 +67,7 @@ def Outputs(name):
    return lst
 
 def Configure(name, topdir=None, opts={}):
-   if GetOption("clean"):
+   if SCons.Script.GetOption("clean"):
       return True
 
    if topdir is None:
@@ -75,8 +75,6 @@ def Configure(name, topdir=None, opts={}):
 
    bld = BuildDir(name)
    relpath = os.path.relpath(topdir, bld)
-
-   success = False
 
    cmd = "cd \"%s\"; %s/configure " % (bld, relpath)
    for k, v in opts.iteritems():
@@ -123,7 +121,7 @@ def ParseOutputsInLines(lines, outfiles, symlinks):
                #print("SYMLINK - %s -> %s" % (src, dst))
 
 def Build(name, target=None):
-   if GetOption("clean"):
+   if SCons.Script.GetOption("clean"):
       return True
 
    ccf = ConfigCachePath(name)
@@ -134,11 +132,10 @@ def Build(name, target=None):
 
    outfiles = set()
    symlinks = {}
-   success = False
 
    if target is None:
       target = "install"
-   njobs = GetOption("num_jobs")
+   njobs = SCons.Script.GetOption("num_jobs")
 
    cmd = "cd \"%s\"; make" % BuildDir(name)
    if njobs > 1:
@@ -185,7 +182,7 @@ def Build(name, target=None):
 
 
 def CleanOne(name):
-   if not GetOption("clean"):
+   if not SCons.Script.GetOption("clean"):
       return
 
    # Remove output files
@@ -213,15 +210,15 @@ def CleanOne(name):
       excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(path, excons.out_dir), tool="automake")
 
 def Clean():
-   if not GetOption("clean"):
+   if not SCons.Script.GetOption("clean"):
       return
 
    allnames = map(lambda x: ".".join(os.path.basename(x).split(".")[:-2]), glob.glob(excons.out_dir + "/*.automake.outputs"))
 
-   if len(COMMAND_LINE_TARGETS) == 0:
+   if len(SCons.Script.COMMAND_LINE_TARGETS) == 0:
       names = allnames[:]
    else:
-      names = COMMAND_LINE_TARGETS
+      names = SCons.Script.COMMAND_LINE_TARGETS
 
    for name in names:
       CleanOne(name)
@@ -241,6 +238,6 @@ def ExternalLibRequire(configOpts, name, libnameFunc=None, definesFunc=None, ext
          flagName = name
          excons.PrintOnce("Use Automake flag '%s' for external dependency '%s'" % (flagName, name))
 
-      configOpts["--with-%s" % flag] = "%s,%s" % (rv["incdir"], rv["libdir"])
+      configOpts["--with-%s" % flagName] = "%s,%s" % (rv["incdir"], rv["libdir"])
 
    return rv

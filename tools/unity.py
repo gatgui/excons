@@ -1,4 +1,4 @@
-# Copyright (C) 2015  Gaetan Guidet
+# Copyright (C) 2015~ Gaetan Guidet
 #
 # This file is part of excons.
 #

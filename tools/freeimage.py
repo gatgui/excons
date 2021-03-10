@@ -1,4 +1,4 @@
-# Copyright (C) 2010  Gaetan Guidet
+# Copyright (C) 2010~  Gaetan Guidet
 #
 # This file is part of excons.
 #
@@ -17,7 +17,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
-from SCons.Script import *
 import excons
 
 def GetOptionsString():

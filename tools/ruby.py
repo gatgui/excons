@@ -1,4 +1,4 @@
-# Copyright (C) 2009, 2010  Gaetan Guidet
+# Copyright (C) 2009~  Gaetan Guidet
 #
 # This file is part of excons.
 #
@@ -18,11 +18,10 @@
 # USA.
 
 import os
-from SCons.Script import *
-from string import Template
+import string
 
 def Require(e):
-  rb_conf = Template("ruby -e \"print (if require 'rbconfig' then Config else RbConfig end)::CONFIG['$flag']\"")
+  rb_conf = string.Template("ruby -e \"print (if require 'rbconfig' then Config else RbConfig end)::CONFIG['$flag']\"")
   e.Append(CPPPATH=[os.popen(rb_conf.substitute(flag='archdir')).read()])
   e.Append(LIBPATH=[os.popen(rb_conf.substitute(flag='libdir')).read()])
   e.Append(LIBS=[os.popen(rb_conf.substitute(flag='RUBY_SO_NAME')).read()])
@@ -31,5 +30,5 @@ def ModulePrefix():
   return "lib/ruby/"
 
 def ModuleExtension():
-  rb_conf = Template("ruby -e \"require 'rbconfig'; print Config::CONFIG['$flag']\"")
+  rb_conf = string.Template("ruby -e \"require 'rbconfig'; print Config::CONFIG['$flag']\"")
   return ('.' + os.popen(rb_conf.substitute(flag='DLEXT')).read())

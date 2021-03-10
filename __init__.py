@@ -1,4 +1,4 @@
-# Copyright (C) 2009, 2010  Gaetan Guidet
+# Copyright (C) 2009~  Gaetan Guidet
 #
 # This file is part of excons.
 #
@@ -26,7 +26,7 @@ import imp
 import atexit
 import string
 import subprocess
-from SCons.Script import *
+import SCons.Script # pylint: disable=import-error
 
 
 VCD = set([".git", ".hg", ".svn"])
@@ -41,6 +41,7 @@ out_dir = None
 mode_dir = None
 arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
 mscver = None
+gccver = None
 no_arch = False
 warnl = "all"
 issued_warnings = set()
@@ -65,7 +66,7 @@ def glob(pat):
 def InitGlobals(output_dir=".", force=False):
   global args_cache, args_cache_path, args_no_cache
   global bld_dir, out_dir, mode_dir, arch_dir
-  global mscver, no_arch, warnl, issued_warnings
+  global mscver, gccver, no_arch, warnl, issued_warnings, printed_messages
   global all_targets, all_progress
   global ignore_help, help_targets, help_options
   global ext_types
@@ -100,6 +101,7 @@ def InitGlobals(output_dir=".", force=False):
     mode_dir = None
     arch_dir = "x86" if platform.architecture()[0] == '32bit' else "x64"
     mscver = None
+    gccver = None
     no_arch = False  # Whether or not to create architecture in output directory
     warnl = "all"  # Warning level
     issued_warnings = set()
@@ -174,13 +176,13 @@ def GetArgument(key, default=None, convert=None):
   global args_cache, args_cache_path, args_no_cache, args_cache_echo
   
   if args_no_cache:
-    rv = ARGUMENTS.get(key, default)
+    rv = SCons.Script.ARGUMENTS.get(key, default)
   
   else:
     if args_cache is None:
       # First call to GetArgument (as args_no_cache is False by default)
       
-      if int(ARGUMENTS.get("no-cache", "0")):
+      if int(SCons.Script.ARGUMENTS.get("no-cache", "0")):
         args_no_cache = True
         return GetArgument(key, default, convert)
       
@@ -212,7 +214,7 @@ def GetArgument(key, default=None, convert=None):
     # What if cache was modified in the meantime
     # => happens when using SConscript("path/to/another/SConstruct")
     
-    rv = ARGUMENTS.get(key, None)
+    rv = SCons.Script.ARGUMENTS.get(key, None)
     
     if rv is None:
       if args_cache:
@@ -236,7 +238,7 @@ def GetArgument(key, default=None, convert=None):
 def SetArgument(key, value, cache=False):
   global args_cache, args_no_cache
   
-  ARGUMENTS[key] = str(value)
+  SCons.Script.ARGUMENTS[key] = str(value)
   
   if not args_no_cache and cache:
     if args_cache is None:
@@ -284,7 +286,7 @@ def Which(target):
   return None
 
 def NoConsole(env):
-  if str(Platform()) == "win32":
+  if str(SCons.Script.Platform()) == "win32":
     env.Append(LINKFLAGS=" /subsystem:windows /entry:mainCRTStartup")
 
 def ParseStackSize(s):
@@ -455,7 +457,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
       prefix = None
     else:
       # This won't update cache
-      prefixsrc = ("flag" if prefixflag in ARGUMENTS else "cache")
+      prefixsrc = ("flag" if prefixflag in SCons.Script.ARGUMENTS else "cache")
       prefixinc = "%s/%s" % (prefix, incdirname)
       prefixlib = "%s/%s" % (prefix, libdirname)
       mode = (GetArgument("libdir-arch", "none") if libdirarch is None else libdirarch)
@@ -475,7 +477,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
       errorwarn("Invalid %s include directory %s." % (name, inc))
       inc = None
     else:
-      incsrc = ("flag" if incflag in ARGUMENTS else "cache")
+      incsrc = ("flag" if incflag in SCons.Script.ARGUMENTS else "cache")
       if incsrc == "cache" and prefixsrc == "flag":
         inc = prefixinc
         incsrc = "flag"
@@ -506,7 +508,7 @@ def GetDirs(name, incdirname="include", libdirname="lib", libdirarch=None, noexc
       errorwarn("Invalid %s library directory %s." % (name, lib))
       lib = None
     else:
-      libsrc = ("flag" if libflag in ARGUMENTS else "cache")
+      libsrc = ("flag" if libflag in SCons.Script.ARGUMENTS else "cache")
       if libsrc == "cache" and prefixsrc == "flag":
         lib = prefixlib
         libsrc = "flag"
@@ -673,9 +675,9 @@ def NormalizedRelativePaths(paths, baseDirectory):
   return map(lambda x: NormalizedRelativePath(x, baseDirectory), paths)
 
 def MakeBaseEnv(noarch=None, output_dir="."):
-  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, warnl, ext_types
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver, gccver, no_arch, warnl, ext_types
   
-  InitGlobals(output_dir, force=(int(ARGUMENTS.get("shared-build", "1")) == 0))
+  InitGlobals(output_dir, force=(int(SCons.Script.ARGUMENTS.get("shared-build", "1")) == 0))
 
   no_arch = (GetArgument("no-arch", 1, int) == 1)
   
@@ -720,14 +722,14 @@ def MakeBaseEnv(noarch=None, output_dir="."):
   
   def SetupGCCDebug(env):
     if arch_dir == "x64":
-      if str(Platform()) == "darwin":
+      if str(SCons.Script.Platform()) == "darwin":
         env.Append(CCFLAGS="-arch x86_64")
         env.Append(LINKFLAGS="-arch x86_64")
       else:
         env.Append(CCFLAGS="-m64")
         env.Append(LINKFLAGS="-m64")
     else:
-      if str(Platform()) == "darwin":
+      if str(SCons.Script.Platform()) == "darwin":
         env.Append(CCFLAGS="-arch i386")
         env.Append(LINKFLAGS="-arch i386")
       else:
@@ -739,14 +741,14 @@ def MakeBaseEnv(noarch=None, output_dir="."):
   
   def SetupGCCRelease(env):
     if arch_dir == "x64":
-      if str(Platform()) == "darwin":
+      if str(SCons.Script.Platform()) == "darwin":
         env.Append(CCFLAGS="-arch x86_64")
         env.Append(LINKFLAGS="-arch x86_64")
       else:
         env.Append(CCFLAGS="-m64")
         env.Append(LINKFLAGS="-m64")
     else:
-      if str(Platform()) == "darwin":
+      if str(SCons.Script.Platform()) == "darwin":
         env.Append(CCFLAGS="-arch i386")
         env.Append(LINKFLAGS="-arch i386")
       else:
@@ -757,21 +759,21 @@ def MakeBaseEnv(noarch=None, output_dir="."):
     env.Append(CPPDEFINES=["NDEBUG"])
     
     if GetArgument("strip", 0, int):
-      if str(Platform()) == "darwin":
+      if str(SCons.Script.Platform()) == "darwin":
         env.Append(LINKFLAGS=" -Wl,-dead_strip")
       else:
         env.Append(LINKFLAGS=" -s")
   
   def SetupGCCReleaseWithDebug(env):
     if arch_dir == "x64":
-      if str(Platform()) == "darwin":
+      if str(SCons.Script.Platform()) == "darwin":
         env.Append(CCFLAGS="-arch x86_64")
         env.Append(LINKFLAGS="-arch x86_64")
       else:
         env.Append(CCFLAGS="-m64")
         env.Append(LINKFLAGS="-m64")
     else:
-      if str(Platform()) == "darwin":
+      if str(SCons.Script.Platform()) == "darwin":
         env.Append(CCFLAGS="-arch i386")
         env.Append(LINKFLAGS="-arch i386")
       else:
@@ -784,7 +786,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
   SetupRelease = None
   SetupDebug = None
   
-  if str(Platform()) == "win32":
+  if str(SCons.Script.Platform()) == "win32":
     vcvars = GetArgument("with-vcvars", os.environ.get("MSVC_USE_SCRIPT", ""))
     mscver = GetArgument("mscver", os.environ.get("MSVC_DEFAULT_VERSION", "10.0"))
     msvsarch = "amd64" if arch_dir == "x64" else "x86"
@@ -792,13 +794,13 @@ def MakeBaseEnv(noarch=None, output_dir="."):
       if float(mscver) < 14.0:
         WarnOnce("Specified compiler version doesn't fully cover C++11. Use mscver=14.0 at least.")
     if not vcvars or not os.path.isfile(vcvars):
-      env = Environment(ENV={"PATH": os.environ["PATH"], "TMP": os.environ["TEMP"]}, MSVC_VERSION=mscver, MSVS_VERSION=mscver, MSVS_ARCH=msvsarch, TARGET_ARCH=msvsarch)
+      env = SCons.Script.Environment(ENV={"PATH": os.environ["PATH"], "TMP": os.environ["TEMP"]}, MSVC_VERSION=mscver, MSVS_VERSION=mscver, MSVS_ARCH=msvsarch, TARGET_ARCH=msvsarch)
     else:
       if (" " in vcvars or "\t" in vcvars) and not vcvars.startswith('"'):
         vcvars = "\"%s\"" % vcvars
       # Too bad this doesn't work
       #vcvars += " %s -vcvars_ver=%s" % (msvsarch, mscver)
-      env = Environment(ENV={"PATH": os.environ["PATH"], "TMP": os.environ["TEMP"]}, MSVC_VERSION=mscver, TARGET_ARCH=msvsarch, MSVC_USE_SCRIPT=vcvars)
+      env = SCons.Script.Environment(ENV={"PATH": os.environ["PATH"], "TMP": os.environ["TEMP"]}, MSVC_VERSION=mscver, TARGET_ARCH=msvsarch, MSVC_USE_SCRIPT=vcvars)
     # XP:    _WIN32_WINNT=0x0500
     # Vista: _WIN32_WINNT=0x0600
     winnt = "_WIN32_WINNT=0x0400"
@@ -852,7 +854,12 @@ def MakeBaseEnv(noarch=None, output_dir="."):
       SetupRelease = SetupMSVCReleaseWithDebug
     
   else:
-    env = Environment(ENV={"PATH": os.environ["PATH"]})
+    p = subprocess.Popen(["gcc", "-dumpversion"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    out, _ = p.communicate()
+    if p.returncode == 0:
+      gccver = out.strip()
+
+    env = SCons.Script.Environment(ENV={"PATH": os.environ["PATH"]})
     cppflags = " -fPIC -pipe -pthread"
     if warnl == "none":
       cppflags += " -w"
@@ -869,7 +876,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
     if GetArgument("with-debug-info", 0, int):
       SetupRelease = SetupGCCReleaseWithDebug
     
-    if str(Platform()) == "darwin":
+    if str(SCons.Script.Platform()) == "darwin":
       env.Append(CCFLAGS=" -fno-common -DPIC")
       if os.path.exists("/opt/local"):
         env.Append(CPPPATH=["/opt/local/include"])
@@ -906,10 +913,10 @@ def MakeBaseEnv(noarch=None, output_dir="."):
       relsrcpath = os.path.relpath(srcpath, tgtdir)
       cmd = "cd %s; ln -s %s %s" % (tgtdir, relsrcpath, os.path.basename(tgtpath))
       p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-      out, err = p.communicate()
+      _, err = p.communicate()
       if p.returncode != 0:
         print("symlink failed: %s" % err)
-    builder = Builder(action=symlink)
+    builder = SCons.Script.Builder(action=symlink)
     env.Append(BUILDERS={"Symlink" : builder})
   
   if GetArgument("debug", 0, int):
@@ -952,7 +959,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
         
         break
   
-  Progress(BuildProgress)
+  SCons.Script.Progress(BuildProgress)
   
   # Build output
   try:
@@ -977,7 +984,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
   newstrs["LDMODULECOMSTR"] = CLink + "$PROGRESS Linking $TARGET ..." + CReset
   newstrs["ARCOMSTR"] = CLink + "$PROGRESS Archiving $TARGET ..." + CReset
   newstrs["RANLIBCOMSTR"] = CLink + "$PROGRESS Indexing $TARGET ..." + CReset
-  show_cmds = (int(ARGUMENTS.get("show-cmds", "0")) != 0)
+  show_cmds = (int(SCons.Script.ARGUMENTS.get("show-cmds", "0")) != 0)
   
   def PrintCmd(s, target, source, env):
     sys.stdout.write("%s\n" % env.subst(s))
@@ -1061,31 +1068,31 @@ def Call(path, targets=None, overrides={}, imp=[], keepflags=[]):
   check_cache = (not args_no_cache and args_cache is not None)
 
   # Store current arguments cache state
-  old_keys = set(ARGUMENTS.keys())
+  old_keys = set(SCons.Script.ARGUMENTS.keys())
   if check_cache:
     old_cached_keys = set(args_cache.keys())
   for k, v in overrides.iteritems():
-    old_vals[k] = ARGUMENTS.get(k, None)
-    ARGUMENTS[k] = str(v)
+    old_vals[k] = SCons.Script.ARGUMENTS.get(k, None)
+    SCons.Script.ARGUMENTS[k] = str(v)
     if check_cache:
       old_cached_vals[k] = args_cache.get(k, None)
 
   if targets is not None:
     if type(targets) in (str, unicode):
       for target in filter(lambda x: len(x)>0, map(lambda y: y.strip(), targets.split(" "))):
-        BUILD_TARGETS.append(target)
+        SCons.Script.BUILD_TARGETS.append(target)
     else:
       for target in targets:
-        BUILD_TARGETS.append(target)
+        SCons.Script.BUILD_TARGETS.append(target)
 
-  SConscript(s)
+  SCons.Script.SConscript(s)
 
   # Restore old values
   for k, v in old_vals.iteritems():
     if v is None:
-      del(ARGUMENTS[k])
+      del(SCons.Script.ARGUMENTS[k])
     else:
-      ARGUMENTS[k] = v
+      SCons.Script.ARGUMENTS[k] = v
   if check_cache:
     for k, v in old_cached_vals.iteritems():
       if v is None:
@@ -1107,16 +1114,16 @@ def Call(path, targets=None, overrides={}, imp=[], keepflags=[]):
             pass
     return False
 
-  for k in ARGUMENTS.keys():
+  for k in SCons.Script.ARGUMENTS.keys():
     if not k in old_keys and not _keepkey(k):
-      del(ARGUMENTS[k])
+      del(SCons.Script.ARGUMENTS[k])
   if check_cache:
     for k in args_cache.keys():
       if not k in old_cached_keys and not _keepkey(k):
         args_cache.remove(k)
 
   for name in imp:
-    Import(name)
+    SCons.Script.Import(name)
 
   ignore_help = cur_ignore_help
 
@@ -1203,7 +1210,7 @@ AVAILABLE TARGETS\n"""
 def SetHelp(help):
   global ignore_help
   if not ignore_help:
-    Help(help)
+    SCons.Script.Help(help)
 
 @atexit.register
 def SyncCache():
@@ -1294,7 +1301,7 @@ def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=No
   return rv
 
 def DeclareTargets(env, prjs):
-  global bld_dir, out_dir, mode_dir, arch_dir, mscver, no_arch, args_no_cache, args_cache, all_targets, all_progress, ext_types, help_targets
+  global bld_dir, out_dir, mode_dir, arch_dir, mscver, gccver, no_arch, args_no_cache, args_cache, all_targets, all_progress, ext_types, help_targets
 
   all_projs = {}
   
@@ -1422,10 +1429,13 @@ def DeclareTargets(env, prjs):
       odir = joinpath(bld_dir, mode_dir, sys.platform, arch_dir, prj)
       
       # On windows, also msvc-9.0
-      if str(Platform()) == "win32":
+      if str(SCons.Script.Platform()) == "win32":
         msvcver = env.get("MSVC_VERSION", None)
         if msvcver:
           odir = joinpath(odir, "msvc-%s" % msvcver)
+      else:
+        if gccver:
+          odir = joinpath(odir, "gcc-%s" % gccver)
       if "bldprefix" in settings:
         odir = joinpath(odir, settings["bldprefix"])
       
@@ -1433,7 +1443,7 @@ def DeclareTargets(env, prjs):
       if settings["type"] in ["program", "testprograms", "staticlib", "install"]:
         shared = False
       
-      if str(Platform()) != "win32":
+      if str(SCons.Script.Platform()) != "win32":
         symvis = settings.get("symvis", None)
         if symvis is None:
           symvis = ("hidden" if settings["type"] != "sharedlib" else "default")
@@ -1495,7 +1505,7 @@ def DeclareTargets(env, prjs):
         
         sout = []
         
-        if str(Platform()) == "win32":
+        if str(SCons.Script.Platform()) == "win32":
           baseoutdir = joinpath(out_dir, mode_dir)
           if not no_arch:
             baseoutdir = joinpath(baseoutdir, arch_dir)
@@ -1532,7 +1542,7 @@ def DeclareTargets(env, prjs):
           penv['no_import_lib'] = 1
           penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
           pout = penv.SharedLibrary(outbn, objs)
-          implib = File(mode_dir + ("/" if no_arch else "/%s" % arch_dir) + "/lib" + ("/%s/" % prefix if prefix else "/") + prj + ".lib")
+          implib = SCons.Script.File(mode_dir + ("/" if no_arch else "/%s" % arch_dir) + "/lib" + ("/%s/" % prefix if prefix else "/") + prj + ".lib")
           # Create a fake target for implib
           penv.Depends(implib, pout[0])
           pout.append(implib)
@@ -1655,7 +1665,7 @@ def DeclareTargets(env, prjs):
         add_deps(pout)
         
         # Cleanup
-        if str(Platform()) == "win32":
+        if str(SCons.Script.Platform()) == "win32":
           if float(mscver) > 7.1 and float(mscver) < 10.0:
             penv.Clean(pout, outbn+".exe.manifest")
           if GetArgument("debug", 0, int):
@@ -1727,7 +1737,7 @@ def DeclareTargets(env, prjs):
           pout.extend(prg)
           
           # Cleanup
-          if str(Platform()) == "win32":
+          if str(SCons.Script.Platform()) == "win32":
             if float(mscver) > 7.1 and float(mscver) < 10.0:
               penv.Clean(prg, outbn+".exe.manifest")
             if GetArgument("debug", 0, int):
@@ -1746,7 +1756,7 @@ def DeclareTargets(env, prjs):
         elif prefix:
           outmoddir += "/" + prefix
         
-        if str(Platform()) == "win32":
+        if str(SCons.Script.Platform()) == "win32":
           outbn = outmoddir + "/" + prj
           penv["SHLIBPREFIX"] = ""
           if "ext" in settings:
@@ -1773,7 +1783,7 @@ def DeclareTargets(env, prjs):
           if "ext" in settings:
             penv["LDMODULESUFFIX"] = settings["ext"]
           else:
-            if str(Platform()) == "darwin":
+            if str(SCons.Script.Platform()) == "darwin":
               penv["LDMODULESUFFIX"] = ".bundle"
           
           SetRPath(penv, settings)
@@ -1844,13 +1854,13 @@ def DeclareTargets(env, prjs):
         tgts = all_projs.get(prj, [])
         tgts.extend(pout)
         all_projs[prj] = tgts
-        Alias(prj, tgts)
+        SCons.Script.Alias(prj, tgts)
 
         if alias != prj:
           tgts = all_projs.get(alias, [])
           tgts.extend(pout)
           all_projs[alias] = tgts
-          Alias(alias, tgts)
+          SCons.Script.Alias(alias, tgts)
 
   for name, targets in all_projs.iteritems():
     if name in all_targets:
@@ -1884,12 +1894,12 @@ def GetTargetOutputFiles(env, target, builders=None, verbose=False):
 # 'targets' is a dictionary like the one returned by DeclareTargets function
 #           key=target name, value=list of SCons targets
 def ConservativeClean(env, targetname, targets=None):
-  if GetOption("clean"):
+  if SCons.Script.GetOption("clean"):
     if targets is None and "EXCONS_TARGETS" in env:
       print("Get targets from environment.")
       targets = env["EXCONS_TARGETS"]
-    if targetname in COMMAND_LINE_TARGETS:
-      targetnames = filter(lambda x: x != targetname, COMMAND_LINE_TARGETS)
+    if targetname in SCons.Script.COMMAND_LINE_TARGETS:
+      targetnames = filter(lambda x: x != targetname, SCons.Script.COMMAND_LINE_TARGETS)
       if len(targetnames) == 0:
         # if not other target specified keep all of them
         targetnames = targets.keys()
@@ -1971,7 +1981,7 @@ class EcoUtils(object):
     try:
       return EcoUtils.KeyOrder.index(item[0])
     except:
-      return len(korder)
+      return len(EcoUtils.KeyOrder)
 
   @staticmethod
   def SortedDict(d):
@@ -1993,7 +2003,7 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
 
   # limit ecosystem distribution to command line specified targets
   # => how to take into account default targets?
-  cltgts = cmdtargets = COMMAND_LINE_TARGETS[:]
+  cltgts = SCons.Script.COMMAND_LINE_TARGETS[:]
   if "eco" in cltgts:
     cltgts.remove("eco")
   if len(cltgts) > 0:
@@ -2050,7 +2060,7 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
 
   distenv = env.Clone()
 
-  distdir = ARGUMENTS.get(dirflag, defaultdir)
+  distdir = SCons.Script.ARGUMENTS.get(dirflag, defaultdir)
   if not os.path.isabs(distdir):
     distdir = out_dir + "/" + distdir
   verdir = "%s/%s/%s" % (distdir, name, version)
@@ -2064,9 +2074,9 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
         pass
       pprint.pprint(ecod, stream=f, indent=1, width=1)
       f.write("\n")
-    Alias("eco", distenv.InstallAs(distdir + "/%s_%s.env" % (name, version.replace(".", "_")), ecofile + ".tmp"))
+    SCons.Script.Alias("eco", distenv.InstallAs(distdir + "/%s_%s.env" % (name, version.replace(".", "_")), ecofile + ".tmp"))
   else:
-    Alias("eco", distenv.InstallAs(distdir + "/%s_%s.env" % (name, version.replace(".", "_")), ecofile))
+    SCons.Script.Alias("eco", distenv.InstallAs(distdir + "/%s_%s.env" % (name, version.replace(".", "_")), ecofile))
 
   def install_files(dstdir, src):
     if os.path.islink(src):
@@ -2074,13 +2084,13 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
       if not os.path.isabs(lnksrc):
         lnksrc = dstdir + "/" + lnksrc
         lnkdst = dstdir + "/" + os.path.basename(src)
-        Alias("eco", distenv.Symlink(lnkdst, lnksrc))
+        SCons.Script.Alias("eco", distenv.Symlink(lnkdst, lnksrc))
     elif os.path.isdir(src):
       bn = os.path.basename(src)
       for item in os.listdir(src):
         install_files(dstdir + "/" + bn, src + "/" + item)
     else:
-      Alias("eco", distenv.Install(dstdir, src))
+      SCons.Script.Alias("eco", distenv.Install(dstdir, src))
 
   for targetname, subdir in targetdirs.iteritems():
     if os.path.isabs(subdir):
@@ -2100,7 +2110,7 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
         install_files(dstdir, str(target))
 
   # Also add version directory to 'eco' alias for additional install targets
-  Alias("eco", verdir)
+  SCons.Script.Alias("eco", verdir)
 
   distenv.Clean("eco", verdir)
 

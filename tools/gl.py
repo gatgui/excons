@@ -1,4 +1,4 @@
-# Copyright (C) 2009, 2010  Gaetan Guidet
+# Copyright (C) 2009~  Gaetan Guidet
 #
 # This file is part of excons.
 #
@@ -17,13 +17,13 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 # USA.
 
-from SCons.Script import *
+import SCons.Script # pylint: disable=import-error
 
 def Require(env):
-  if str(Platform()) == "win32":
+  if str(SCons.Script.Platform()) == "win32":
     env.Append(LIBS=["glu32", "opengl32", "user32", "gdi32"])
   
-  elif str(Platform()) == "darwin":
+  elif str(SCons.Script.Platform()) == "darwin":
     env.Append(LINKFLAGS=" -framework OpenGL")
   
   else:
