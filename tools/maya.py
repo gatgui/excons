@@ -32,7 +32,8 @@ _maya_mscver = {"2013": "9.0",
                 "2017": "11.0",
                 "2018": "14.0",
                 "2019": "14.0",
-                "2020": "14.1"}
+                "2020": "14.1",
+                "2022": "14.2"}
 
 def GetOptionsString():
   return """MAYA OPTIONS
@@ -42,7 +43,9 @@ def GetOptionsString():
 def SetupMscver():
   if sys.platform == "win32":
     excons.InitGlobals()
-    mscver = excons.GetArgument("mscver", None)
+    # bypass the arguments cache by using ARGUMENTS rather than
+    #   calling excons.GetArgument
+    mscver = SCons.Script.ARGUMENTS.get("mscver", None)
     if mscver is None:
       mayaver = Version(nice=True)
       if mayaver is not None:
