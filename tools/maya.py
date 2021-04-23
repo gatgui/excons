@@ -19,6 +19,7 @@
 
 import SCons.Script # pylint: disable=import-error
 import excons
+import excons.devtoolset
 import sys
 import re
 import os
@@ -34,6 +35,10 @@ _maya_mscver = {"2013": "9.0",
                 "2019": "14.0",
                 "2020": "14.1",
                 "2022": "14.2"}
+
+_maya_gccver = {"2019": "6",
+                "2020": "6",
+                "2022": "6"}
 
 def GetOptionsString():
   return """MAYA OPTIONS
@@ -53,6 +58,20 @@ def SetupMscver():
         if mscver is not None:
           print("Using msvc %s" % mscver)
           excons.SetArgument("mscver", mscver)
+
+def SetupGccver():
+  if sys.platform.startswith("linux"):
+    excons.InitGlobals()
+    # bypass the arguments cache by using ARGUMENTS rather than
+    #   calling excons.GetArgument
+    gccver = SCons.Script.ARGUMENTS.get("with-devtoolset", None)
+    if gccver is None:
+      mayaver = Version(nice=True)
+      if mayaver is not None:
+        gccver = _maya_gccver.get(mayaver, None)
+        if gccver is not None:
+          print("Using gcc %s" % excons.devtoolset.GetGCCFullVer(gccver))
+          excons.SetArgument("with-devtoolset", gccver)
 
 def PluginExt():
   if str(SCons.Script.Platform()) == "darwin":

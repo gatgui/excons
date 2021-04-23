@@ -27,6 +27,7 @@ import atexit
 import string
 import subprocess
 import SCons.Script # pylint: disable=import-error
+from . import devtoolset
 
 
 VCD = set([".git", ".hg", ".svn"])
@@ -854,12 +855,15 @@ def MakeBaseEnv(noarch=None, output_dir="."):
       SetupRelease = SetupMSVCReleaseWithDebug
     
   else:
-    p = subprocess.Popen(["gcc", "-dumpversion"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    out, _ = p.communicate()
-    if p.returncode == 0:
-      gccver = out.strip()
+    gccver = GetArgument("with-devtoolset", "")
 
-    env = SCons.Script.Environment(ENV={"PATH": os.environ["PATH"]})
+    #print("Using GCC: %s" % devtoolset.GetGCCFullVer(gccver))
+
+    _vars = devtoolset.GetDevtoolsetEnv(gccver, merge=True)
+    if not _vars:
+      _vars = {"PATH": os.environ["PATH"]}
+
+    env = SCons.Script.Environment(ENV=_vars)
     cppflags = " -fPIC -pipe -pthread"
     if warnl == "none":
       cppflags += " -w"

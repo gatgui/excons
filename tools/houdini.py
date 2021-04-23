@@ -19,6 +19,7 @@
 
 import SCons.Script # pylint: disable=import-error
 import excons
+import excons.devtoolset
 import sys
 import re
 import os
@@ -27,7 +28,16 @@ import subprocess
 _hou_mscver = {"15.0": "11.0",
                "15.5": "14.0",
                "16.0": "14.0",
-               "16.5": "14.0"}
+               "16.5": "14.0",
+               "17.0": "14.1",
+               "17.5": "14.1",
+               "18.0": "14.1",
+               "18.5": "14.1"}
+
+_hou_gccver = {"17.0": "6",
+               "17.5": "6",
+               "18.0": "6",
+               "18.5": "6"}
 
 def GetOptionsString():
   return """HOUDINI OPTIONS
@@ -44,6 +54,20 @@ def SetupMscver():
         if mscver is not None:
           print("Using msvc %s" % mscver)
           excons.SetArgument("mscver", mscver)
+
+def SetupGccver():
+  if sys.platform.startswith("linux"):
+    excons.InitGlobals()
+    # bypass the arguments cache by using ARGUMENTS rather than
+    #   calling excons.GetArgument
+    gccver = SCons.Script.ARGUMENTS.get("with-devtoolset", None)
+    if gccver is None:
+      mayaver = Version(full=False)
+      if mayaver is not None:
+        gccver = _hou_gccver.get(mayaver, None)
+        if gccver is not None:
+          print("Using gcc %s" % excons.devtoolset.GetGCCFullVer(gccver))
+          excons.SetArgument("with-devtoolset", gccver)
 
 def PluginExt():
   if str(SCons.Script.Platform()) == "darwin":
