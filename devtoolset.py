@@ -17,6 +17,8 @@ def GetDevtoolsetEnv(toolsetver, merge=False):
         lines = filter(lambda y: toolsetname in y, map(lambda x: x.strip(), out.split("\n")))
         matches = filter(lambda y: y is not None, map(lambda x: re.match("^([^=]+)=(.*)$", x), lines))
         ret = dict([(m.group(1), filter(lambda w: toolsetname in w, m.group(2).split(os.pathsep))) for m in matches])
+      else:
+        raise Exception("Invalid devtoolset: %s" % toolsetname)
       _VarsCache[toolsetname] = ret
     if ret:
       env = {}
