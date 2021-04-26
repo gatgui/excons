@@ -855,11 +855,12 @@ def MakeBaseEnv(noarch=None, output_dir="."):
       SetupRelease = SetupMSVCReleaseWithDebug
     
   else:
-    gccver = GetArgument("with-devtoolset", "")
+    toolsetver = GetArgument("with-devtoolset", "")
 
-    #print("Using GCC: %s" % devtoolset.GetGCCFullVer(gccver))
+    gccver = devtoolset.GetGCCFullVer(toolsetver)
+    #print("Using GCC: %s" % gccver)
 
-    _vars = devtoolset.GetDevtoolsetEnv(gccver, merge=True)
+    _vars = devtoolset.GetDevtoolsetEnv(toolsetver, merge=True)
     if not _vars:
       _vars = {"PATH": os.environ["PATH"]}
 
