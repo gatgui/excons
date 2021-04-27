@@ -64,7 +64,7 @@ def SetupGccver():
     if gccver is None:
       mayaver = Version(full=False)
       if mayaver is not None:
-        gccver = _hou_gccver.get(mayaver, None)
+        gccver = _hou_gccver.get(mayaver, "")
         if gccver is not None:
           print("Using gcc %s" % excons.devtoolset.GetGCCFullVer(gccver))
           excons.SetArgument("devtoolset", gccver)
