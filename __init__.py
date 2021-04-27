@@ -18,14 +18,15 @@
 # USA.
 
 import os
-import glob as _glob
-import platform
 import re
 import sys
 import imp
 import atexit
 import string
+import platform
+import contextlib
 import subprocess
+import glob as _glob
 import SCons.Script # pylint: disable=import-error
 from . import devtoolset
 
@@ -54,6 +55,93 @@ help_targets = {}
 help_options = {}
 ext_types = {}
 
+@contextlib.contextmanager
+def toggle_help(on):
+  global ignore_help
+
+  _ignore_help = ignore_help
+  ignore_help = on
+  try:
+    yield
+  except:
+    raise sys.exc_info()
+  finally:
+    ignore_help = _ignore_help
+
+@contextlib.contextmanager
+def toggle_args_cache(on):
+  global args_no_cache
+
+  _args_no_cache = args_no_cache
+  args_no_cache = on
+  try:
+    yield
+  except:
+    raise sys.exc_info()
+  finally:
+    args_no_cache = _args_no_cache
+
+@contextlib.contextmanager
+def preserve_arguments(overrides, keep):
+  global args_no_cache, args_cache
+
+  old_vals = {}
+  old_keys = set()
+  old_cached_vals = {}
+  old_cached_keys = set()
+
+  check_cache = (not args_no_cache and args_cache is not None)
+
+  old_keys = set(SCons.Script.ARGUMENTS.keys())
+  if check_cache:
+    old_cached_keys = set(args_cache.keys())
+
+  for k, v in overrides.iteritems():
+    old_vals[k] = SCons.Script.ARGUMENTS.get(k, None)
+    if check_cache:
+      old_cached_vals[k] = args_cache.get(k, None)
+    SCons.Script.ARGUMENTS[k] = str(v)
+
+  try:
+    yield
+  except:
+    raise sys.exc_info()
+  finally:
+    # Restore old values
+    for k, v in old_vals.iteritems():
+      if v is None:
+        del(SCons.Script.ARGUMENTS[k])
+      else:
+        SCons.Script.ARGUMENTS[k] = v
+    if check_cache:
+      for k, v in old_cached_vals.iteritems():
+        if v is None:
+          args_cache.remove(k)
+        else:
+          args_cache[k] = v
+
+    # Remove newly introduced keys unless stated otherwise
+    def _keepkey(k):
+      for e in keep:
+        if isinstance(e, basestring):
+          if e in k:
+            return True
+        else:
+            try:
+              m = e.search(k)
+              if m is not None:
+                return True
+            except:
+              pass
+      return False
+
+    for k in SCons.Script.ARGUMENTS.keys():
+      if not k in old_keys and not _keepkey(k):
+        del(SCons.Script.ARGUMENTS[k])
+    if check_cache:
+      for k in args_cache.keys():
+        if not k in old_cached_keys and not _keepkey(k):
+          args_cache.remove(k)
 
 def abspath(path):
   return os.path.abspath(path).replace("\\", "/")
@@ -677,8 +765,9 @@ def NormalizedRelativePaths(paths, baseDirectory):
 
 def MakeBaseEnv(noarch=None, output_dir="."):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, gccver, no_arch, warnl, ext_types
-  
-  InitGlobals(output_dir, force=(int(SCons.Script.ARGUMENTS.get("shared-build", "1")) == 0))
+
+  with toggle_args_cache(False):
+    InitGlobals(output_dir, force=(GetArgument("shared-build", "1", int) == 0))
 
   no_arch = (GetArgument("no-arch", 1, int) == 1)
   
@@ -855,7 +944,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
       SetupRelease = SetupMSVCReleaseWithDebug
     
   else:
-    toolsetver = GetArgument("with-devtoolset", "")
+    toolsetver = GetArgument("devtoolset", "")
 
     gccver = devtoolset.GetGCCFullVer(toolsetver)
     #print("Using GCC: %s" % gccver)
@@ -989,7 +1078,8 @@ def MakeBaseEnv(noarch=None, output_dir="."):
   newstrs["LDMODULECOMSTR"] = CLink + "$PROGRESS Linking $TARGET ..." + CReset
   newstrs["ARCOMSTR"] = CLink + "$PROGRESS Archiving $TARGET ..." + CReset
   newstrs["RANLIBCOMSTR"] = CLink + "$PROGRESS Indexing $TARGET ..." + CReset
-  show_cmds = (int(SCons.Script.ARGUMENTS.get("show-cmds", "0")) != 0)
+  with toggle_args_cache(False):
+    show_cmds = (GetArgument("show-cmds", "0", int) != 0)
   
   def PrintCmd(s, target, source, env):
     sys.stdout.write("%s\n" % env.subst(s))
@@ -1035,11 +1125,6 @@ def BuildBaseDirectory():
   return joinpath(bld_dir, mode_dir, sys.platform, arch_dir)
 
 def Call(path, targets=None, overrides={}, imp=[], keepflags=[]):
-  global ignore_help, args_no_cache, args_cache
-
-  cur_ignore_help = ignore_help
-  ignore_help = True
-
   s = path + "/SConstruct"
   if not os.path.isfile(s):
     s = path + "/SConscript"
@@ -1066,71 +1151,19 @@ def Call(path, targets=None, overrides={}, imp=[], keepflags=[]):
       else:
         return
 
-  old_vals = {}
-  old_keys = set()
-  old_cached_vals = {}
-  old_cached_keys = set()
-  check_cache = (not args_no_cache and args_cache is not None)
-
-  # Store current arguments cache state
-  old_keys = set(SCons.Script.ARGUMENTS.keys())
-  if check_cache:
-    old_cached_keys = set(args_cache.keys())
-  for k, v in overrides.iteritems():
-    old_vals[k] = SCons.Script.ARGUMENTS.get(k, None)
-    SCons.Script.ARGUMENTS[k] = str(v)
-    if check_cache:
-      old_cached_vals[k] = args_cache.get(k, None)
-
-  if targets is not None:
-    if type(targets) in (str, unicode):
-      for target in filter(lambda x: len(x)>0, map(lambda y: y.strip(), targets.split(" "))):
-        SCons.Script.BUILD_TARGETS.append(target)
-    else:
-      for target in targets:
-        SCons.Script.BUILD_TARGETS.append(target)
-
-  SCons.Script.SConscript(s)
-
-  # Restore old values
-  for k, v in old_vals.iteritems():
-    if v is None:
-      del(SCons.Script.ARGUMENTS[k])
-    else:
-      SCons.Script.ARGUMENTS[k] = v
-  if check_cache:
-    for k, v in old_cached_vals.iteritems():
-      if v is None:
-        args_cache.remove(k)
+  with toggle_help(False), preserve_arguments(overrides, keepflags):
+    if targets is not None:
+      if type(targets) in (str, unicode):
+        for target in filter(lambda x: len(x)>0, map(lambda y: y.strip(), targets.split(" "))):
+          SCons.Script.BUILD_TARGETS.append(target)
       else:
-        args_cache[k] = v
-  # Remove newly introduced keys
-  def _keepkey(k):
-    for e in keepflags:
-      if type(e) in (str, unicode):
-        if e in k:
-          return True
-      else:
-          try:
-            m = e.search(k)
-            if m is not None:
-              return True
-          except:
-            pass
-    return False
+        for target in targets:
+          SCons.Script.BUILD_TARGETS.append(target)
 
-  for k in SCons.Script.ARGUMENTS.keys():
-    if not k in old_keys and not _keepkey(k):
-      del(SCons.Script.ARGUMENTS[k])
-  if check_cache:
-    for k in args_cache.keys():
-      if not k in old_cached_keys and not _keepkey(k):
-        args_cache.remove(k)
+    SCons.Script.SConscript(s)
 
-  for name in imp:
-    SCons.Script.Import(name)
-
-  ignore_help = cur_ignore_help
+    for name in imp:
+      SCons.Script.Import(name)
 
 def GetOptionsString():
   return """GENERIC OPTIONS
@@ -2065,7 +2098,8 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
 
   distenv = env.Clone()
 
-  distdir = SCons.Script.ARGUMENTS.get(dirflag, defaultdir)
+  with toggle_args_cache(False):
+    distdir = GetArgument(dirflag, defaultdir)
   if not os.path.isabs(distdir):
     distdir = out_dir + "/" + distdir
   verdir = "%s/%s/%s" % (distdir, name, version)

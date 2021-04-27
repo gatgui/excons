@@ -60,14 +60,20 @@ def SetupGccver():
     excons.InitGlobals()
     # bypass the arguments cache by using ARGUMENTS rather than
     #   calling excons.GetArgument
-    gccver = SCons.Script.ARGUMENTS.get("with-devtoolset", None)
+    gccver = SCons.Script.ARGUMENTS.get("devtoolset", None)
     if gccver is None:
       mayaver = Version(full=False)
       if mayaver is not None:
         gccver = _hou_gccver.get(mayaver, None)
         if gccver is not None:
           print("Using gcc %s" % excons.devtoolset.GetGCCFullVer(gccver))
-          excons.SetArgument("with-devtoolset", gccver)
+          excons.SetArgument("devtoolset", gccver)
+
+def SetupCompiler():
+  if sys.platform == "win32":
+    SetupMscver()
+  else:
+    SetupGccver()
 
 def PluginExt():
   if str(SCons.Script.Platform()) == "darwin":
