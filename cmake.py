@@ -73,7 +73,7 @@ def Configure(name, topdir=None, opts={}, min_mscver=None, flags=None):
    bld = BuildDir(name)
    relpath = os.path.relpath(topdir, bld)
 
-   cmd = "cd \"%s\" %s cmake " % (bld, CmdSep)
+   cmd = "cd \"%s\" %s %s " % (bld, CmdSep, excons.GetArgument("with-cmake", "cmake"))
    if sys.platform == "win32":
       try:
          mscver = float(excons.GetArgument("mscver", "10.0"))
@@ -146,7 +146,7 @@ def Build(name, config=None, target=None):
    if target is None:
       target = "install"
 
-   cmd = "cd \"%s\" %s cmake --build . --config %s --target %s" % (BuildDir(name), CmdSep, config, target)
+   cmd = "cd \"%s\" %s %s --build . --config %s --target %s" % (BuildDir(name), CmdSep, excons.GetArgument("with-cmake", "cmake"), config, target)
 
    extraargs = ""
    njobs = SCons.Script.GetOption("num_jobs")
