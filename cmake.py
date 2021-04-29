@@ -25,6 +25,7 @@ import shutil
 import pprint
 import subprocess
 import excons
+import excons.devtoolset
 import SCons.Script # pylint: disable=import-error
 
 
@@ -74,6 +75,7 @@ def Configure(name, topdir=None, opts={}, min_mscver=None, flags=None):
    relpath = os.path.relpath(topdir, bld)
 
    cmd = "cd \"%s\" %s %s " % (bld, CmdSep, excons.GetArgument("with-cmake", "cmake"))
+   env = None
    if sys.platform == "win32":
       try:
          mscver = float(excons.GetArgument("mscver", "10.0"))
@@ -96,6 +98,11 @@ def Configure(name, topdir=None, opts={}, min_mscver=None, flags=None):
             return False
       except:
          return False
+   else:
+      _env = excons.devtoolset.GetDevtoolsetEnv(excons.GetArgument("devtoolset", ""), merge=True)
+      if _env:
+         env = os.environ.copy()
+         env.update(_env)
    if flags:
       if not cmd.endswith(" "):
          cmd += " "
@@ -114,7 +121,7 @@ def Configure(name, topdir=None, opts={}, min_mscver=None, flags=None):
    cmd += relpath
 
    excons.Print("Run Command: %s" % cmd, tool="cmake")
-   p = subprocess.Popen(cmd, shell=True)
+   p = subprocess.Popen(cmd, env=env, shell=True)
    p.communicate()
 
    return (p.returncode == 0)
@@ -147,6 +154,7 @@ def Build(name, config=None, target=None):
       target = "install"
 
    cmd = "cd \"%s\" %s %s --build . --config %s --target %s" % (BuildDir(name), CmdSep, excons.GetArgument("with-cmake", "cmake"), config, target)
+   env = None
 
    extraargs = ""
    njobs = SCons.Script.GetOption("num_jobs")
@@ -166,8 +174,14 @@ def Build(name, config=None, target=None):
    if extraargs and (sys.platform != "win32" or float(excons.GetArgument("mscver", "10.0")) >= 10.0):
       cmd += " --" + extraargs
 
+   if sys.platform != "win32":
+      _env = excons.devtoolset.GetDevtoolsetEnv(excons.GetArgument("devtoolset", ""), merge=True)
+      if _env:
+         env = os.environ.copy()
+         env.update(_env)
+
    excons.Print("Run Command: %s" % cmd, tool="cmake")
-   p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+   p = subprocess.Popen(cmd, shell=True, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
    buf = ""
    while p.poll() is None:

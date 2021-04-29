@@ -25,6 +25,7 @@ import shutil
 import pprint
 import subprocess
 import excons
+import excons.devtoolset
 import SCons.Script # pylint: disable=import-error
 
 
@@ -82,8 +83,15 @@ def Configure(name, topdir=None, opts={}):
          cmd += "%s=%s " % (k, ("\"%s\"" % v if type(v) in (str, unicode) else v))
    cmd += "--prefix=\"%s\""  % excons.OutputBaseDirectory()
 
+   env = None
+   if sys.platform != "win32":
+      _env = excons.devtoolset.GetDevtoolsetEnv(excons.GetArgument("devtoolset", ""), merge=True)
+      if _env:
+         env = os.environ.copy()
+         env.update(_env)
+
    excons.Print("Run Command: %s" % cmd, tool="automake")
-   p = subprocess.Popen(cmd, shell=True)
+   p = subprocess.Popen(cmd, env=env, shell=True)
    p.communicate()
 
    return (p.returncode == 0)
@@ -141,8 +149,15 @@ def Build(name, target=None):
       cmd += " V=1"
    cmd += " %s" % target
 
+   env = None
+   if sys.platform != "win32":
+      _env = excons.devtoolset.GetDevtoolsetEnv(excons.GetArgument("devtoolset", ""), merge=True)
+      if _env:
+         env = os.environ.copy()
+         env.update(_env)
+
    excons.Print("Run Command: %s" % cmd, tool="automake")
-   p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+   p = subprocess.Popen(cmd, shell=True, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
    buf = ""
    while p.poll() is None:
@@ -192,7 +207,13 @@ def CleanOne(name):
    # Remove build temporary files      
    buildDir = BuildDir(name)
    if os.path.isdir(buildDir):
-      subprocess.Popen("cd \"%s\"; make distclean" % buildDir, shell=True).communicate()
+      env = None
+      if sys.platform != "win32":
+         _env = excons.devtoolset.GetDevtoolsetEnv(excons.GetArgument("devtoolset", ""), merge=True)
+         if _env:
+            env = os.environ.copy()
+            env.update(_env)
+      subprocess.Popen("cd \"%s\"; make distclean" % buildDir, shell=True, env=env).communicate()
       shutil.rmtree(buildDir)
       excons.Print("Removed: '%s'" % excons.NormalizedRelativePath(buildDir, excons.out_dir), tool="automake")
 
