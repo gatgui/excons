@@ -60,7 +60,7 @@ def toggle_help(on):
   global ignore_help
 
   _ignore_help = ignore_help
-  ignore_help = on
+  ignore_help = (not on)
   try:
     yield
   except:
@@ -73,7 +73,7 @@ def toggle_args_cache(on):
   global args_no_cache
 
   _args_no_cache = args_no_cache
-  args_no_cache = on
+  args_no_cache = (not on)
   try:
     yield
   except:
