@@ -45,10 +45,7 @@ def AdditionalConfigureDependencies(name):
    return ConfigExtraDeps.get(name, [])
 
 def BuildDir(name):
-   buildDir = excons.BuildBaseDirectory() + "/" + name
-   if sys.platform == "win32":
-      buildDir += "/msvc-%s" % excons.GetArgument("mscver", "10.0")
-   return buildDir
+   return excons.BuildBaseDirectory() + "/" + name
 
 def ConfigCachePath(name):
    return os.path.abspath(excons.out_dir + "/%s.cmake.config" % name)

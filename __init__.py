@@ -1120,9 +1120,16 @@ def OutputBaseDirectory():
     return joinpath(out_dir, mode_dir)
 
 def BuildBaseDirectory():
-  global bld_dir, mode_dir, arch_dir
+  global bld_dir, mode_dir, arch_dir, mscver, gccver
 
-  return joinpath(bld_dir, mode_dir, sys.platform, arch_dir)
+  odir = joinpath(bld_dir, mode_dir, sys.platform, arch_dir)
+  if str(SCons.Script.Platform()) == "win32":
+    if mscver:
+      odir = joinpath(odir, "msvc-%s" % mscver)
+  else:
+    if gccver:
+      odir = joinpath(odir, "gcc-%s" % gccver)
+  return odir
 
 def Call(path, targets=None, overrides={}, imp=[], keepflags=[]):
   s = path + "/SConstruct"
@@ -1463,17 +1470,8 @@ def DeclareTargets(env, prjs):
       if "custom" in settings:
         for customcall in settings["custom"]:
           customcall(penv)
-      
-      odir = joinpath(bld_dir, mode_dir, sys.platform, arch_dir, prj)
-      
-      # On windows, also msvc-9.0
-      if str(SCons.Script.Platform()) == "win32":
-        msvcver = env.get("MSVC_VERSION", None)
-        if msvcver:
-          odir = joinpath(odir, "msvc-%s" % msvcver)
-      else:
-        if gccver:
-          odir = joinpath(odir, "gcc-%s" % gccver)
+
+      odir = joinpath(BuildBaseDirectory(), prj)
       if "bldprefix" in settings:
         odir = joinpath(odir, settings["bldprefix"])
       
