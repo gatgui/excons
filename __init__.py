@@ -82,6 +82,24 @@ def toggle_args_cache(on):
     args_no_cache = _args_no_cache
 
 @contextlib.contextmanager
+def preserve_targets(targets):
+   if targets is not None:
+      _targets = SCons.Script.BUILD_TARGETS[:]
+      if isinstance(targets, basestring):
+         SCons.Script.BUILD_TARGETS = filter(lambda x: len(x)>0, map(lambda y: y.strip(), targets.split(" ")))
+      else:
+         SCons.Script.BUILD_TARGETS = targets
+   else:
+      _targets = None
+   try:
+      yield
+   except:
+      raise sys.exc_info()
+   finally:
+      if _targets is not None:
+         SCons.Script.BUILD_TARGETS = _targets
+
+@contextlib.contextmanager
 def preserve_arguments(overrides, keep):
   global args_no_cache, args_cache
 
@@ -1158,15 +1176,7 @@ def Call(path, targets=None, overrides={}, imp=[], keepflags=[]):
       else:
         return
 
-  with toggle_help(False), preserve_arguments(overrides, keepflags):
-    if targets is not None:
-      if type(targets) in (str, unicode):
-        for target in filter(lambda x: len(x)>0, map(lambda y: y.strip(), targets.split(" "))):
-          SCons.Script.BUILD_TARGETS.append(target)
-      else:
-        for target in targets:
-          SCons.Script.BUILD_TARGETS.append(target)
-
+  with toggle_help(False), preserve_arguments(overrides, keepflags), preserve_targets(targets):
     SCons.Script.SConscript(s)
 
     for name in imp:
