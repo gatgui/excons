@@ -84,11 +84,11 @@ def toggle_args_cache(on):
 @contextlib.contextmanager
 def preserve_targets(targets):
    if targets is not None:
-      _targets = SCons.Script.BUILD_TARGETS[:]
+      _targets = SCons.Script.COMMAND_LINE_TARGETS[:]
       if isinstance(targets, basestring):
-         SCons.Script.BUILD_TARGETS = filter(lambda x: len(x)>0, map(lambda y: y.strip(), targets.split(" ")))
+         SCons.Script.COMMAND_LINE_TARGETS = filter(lambda x: len(x)>0, map(lambda y: y.strip(), targets.split(" ")))
       else:
-         SCons.Script.BUILD_TARGETS = targets
+         SCons.Script.COMMAND_LINE_TARGETS = targets
    else:
       _targets = None
    try:
@@ -97,7 +97,7 @@ def preserve_targets(targets):
       raise
    finally:
       if _targets is not None:
-         SCons.Script.BUILD_TARGETS = _targets
+         SCons.Script.COMMAND_LINE_TARGETS = _targets
 
 @contextlib.contextmanager
 def preserve_arguments(overrides, keep):
