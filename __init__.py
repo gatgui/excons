@@ -64,7 +64,7 @@ def toggle_help(on):
   try:
     yield
   except:
-    raise sys.exc_info()
+    raise
   finally:
     ignore_help = _ignore_help
 
@@ -77,7 +77,7 @@ def toggle_args_cache(on):
   try:
     yield
   except:
-    raise sys.exc_info()
+    raise
   finally:
     args_no_cache = _args_no_cache
 
@@ -94,7 +94,7 @@ def preserve_targets(targets):
    try:
       yield
    except:
-      raise sys.exc_info()
+      raise
    finally:
       if _targets is not None:
          SCons.Script.BUILD_TARGETS = _targets
@@ -123,7 +123,7 @@ def preserve_arguments(overrides, keep):
   try:
     yield
   except:
-    raise sys.exc_info()
+    raise
   finally:
     # Restore old values
     for k, v in old_vals.iteritems():
