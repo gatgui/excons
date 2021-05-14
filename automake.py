@@ -26,6 +26,7 @@ import pprint
 import subprocess
 import excons
 import excons.devtoolset
+from excons.cmake import VC_Filter
 import SCons.Script # pylint: disable=import-error
 
 
@@ -61,7 +62,7 @@ def Outputs(name):
       cofd = os.path.dirname(cof)
       with open(cof, "r") as f:
          lines = filter(lambda y: len(y)>0 and os.path.isfile(os.path.join(cofd, y)), map(lambda x: x.strip(), f.readlines()))
-         lst = map(lambda x: excons.out_dir + "/" + x, lines)
+         lst = filter(VC_Filter, map(lambda x: excons.out_dir + "/" + x, lines))
    return lst
 
 def Configure(name, topdir=None, opts={}):
@@ -172,7 +173,7 @@ def Build(name, target=None):
 
    if p.returncode == 0:
       with open(cof, "w") as f:
-         lst = list(outfiles)
+         lst = filter(VC_Filter, outfiles)
          # Add symlinks
          ll = len(lst)
          for i in xrange(ll):

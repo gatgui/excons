@@ -33,6 +33,25 @@ InstallExp = re.compile(r"^--\s+(Installing|Up-to-date):\s+([^\s].*)$")
 CmdSep = ("&&" if sys.platform == "win32" else ";")
 ConfigExtraDeps = {}
 
+# Avoid listing microsoft runtime dlls:
+#  - concrtXXX.dll
+#  - msvcpXXX.dll
+#  - vcruntimeXXX.dll
+_VC_ignores_by_ext = {"dll": set(["concrt", "msvcp", "msvcr", "vcruntime"])}
+
+def VC_Filter(path):
+   global _VC_ignores_by_ext
+
+   bn = os.path.basename(path)
+   key = os.path.splitext(bn)[-1][1:].lower()
+   prefices = _VC_ignores_by_ext.get(key, [])
+
+   for prefix in prefices:
+      if bn.startswith(prefix):
+         return False
+
+   return True
+
 def AddConfigureDependencies(name, deps):
    global ConfigExtraDeps
 
@@ -61,7 +80,7 @@ def Outputs(name):
       cofd = os.path.dirname(cof)
       with open(cof, "r") as f:
          lines = filter(lambda y: len(y)>0 and os.path.isfile(os.path.join(cofd, y)), map(lambda x: x.strip(), f.readlines()))
-         lst = map(lambda x: excons.out_dir + "/" + x, lines)
+         lst = filter(VC_Filter, map(lambda x: excons.out_dir + "/" + x, lines))
    return lst
 
 def Configure(name, topdir=None, opts={}, min_mscver=None, flags=None):
@@ -197,7 +216,7 @@ def Build(name, config=None, target=None):
    # Write list of outputed files
    if p.returncode == 0:
       with open(cof, "w") as f:
-         lst = list(outfiles)
+         lst = filter(VC_Filter, outfiles)
          lst.sort()
          f.write("\n".join(excons.NormalizedRelativePaths(lst, excons.out_dir)))
       return True
