@@ -5,6 +5,10 @@ import subprocess
 
 _VarsCache = {}
 
+# Note: GCC>=5 on linux breaks stdc++ library ABI
+#       the "_GLIBCXX_USE_CXX11_ABI" can be set to revert it to the old ABI
+#       -> "-D_GLIBCXX_USE_CXX11_ABI=0"
+
 def GetDevtoolsetEnv(toolsetver, merge=False):
   if toolsetver and sys.platform.startswith("linux"):
     toolsetname = "devtoolset-%s" % toolsetver
