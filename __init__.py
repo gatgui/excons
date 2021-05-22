@@ -1490,10 +1490,17 @@ def DeclareTargets(env, prjs):
         shared = False
       
       if str(SCons.Script.Platform()) != "win32":
-        symvis = settings.get("symvis", None)
+        # Allow overriding of the symbol visibility from command line
+        #   using 'force-symvis=default|hidden' flag
+        symvis = GetArgument("force-symvis", None)
         if symvis is None:
+          # Check project settings
+          symvis = settings.get("symvis", None)
+        if symvis is None:
+          # Default symbol visibility to 'hidden' for anything but shared libraries
           symvis = ("hidden" if settings["type"] != "sharedlib" else "default")
         if symvis == "hidden":
+          # Note: some compiler may not have this flag
           penv.Append(CCFLAGS=["-fvisibility=hidden"])
       
       objs = []
