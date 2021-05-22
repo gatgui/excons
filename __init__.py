@@ -1097,7 +1097,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
   newstrs["ARCOMSTR"] = CLink + "$PROGRESS Archiving $TARGET ..." + CReset
   newstrs["RANLIBCOMSTR"] = CLink + "$PROGRESS Indexing $TARGET ..." + CReset
   with toggle_args_cache(False):
-    show_cmds = (GetArgument("show-cmds", "0", int) != 0)
+    show_cmds = (int(SCons.Script.ARGUMENTS.get("show-cmds", "0")) != 0)
   
   def PrintCmd(s, target, source, env):
     sys.stdout.write("%s\n" % env.subst(s))
@@ -1184,31 +1184,48 @@ def Call(path, targets=None, overrides={}, imp=[], keepflags=[]):
 
 def GetOptionsString():
   return """GENERIC OPTIONS
-  no-cache=0|1                   : Ignore excons flag cache    [0]
-  debug=0|1                      : Build in debug mode         [0]
-  with-debug-info=0|1            : Build with debug info       [0]
-  stack-size=<str>               : Setup stack size in bytes   [system default]
-                                   Letters 'k', and 'm' can be used
-                                   to specify kilobytes and megabytes
-  warnings=none|std|all          : Warning level               [all]
-  warnings-as-errors=0|1         : Treat warnings as errors    [0]
-  libdir-arch=none|subdir|suffix : Modify behaviour of the library folder name use by default
-                                   for 'with-<name>=<prefix>' flag    [none]
-                                   When set to 'subdir', use '<prefix>/lib/x86' or '<prefix>/lib/x64'
-                                   When set to 'suffix', use '<prefix>/lib' or '<prefix>/lib64'
-  show-cmds=0|1                  : Show build commands         [0]
-  mscver=<float>                 : Visual C runtime version    [10.0] (windows)
-  no-console=0|1                 : Use window subsystem        [0]    (windows)
-  strip=0|1                      : Strip dead code             [0]    (osx/linux)
-  use-c++11=0|1                  : Compile code as C++ 11      [0]    (osx/linux)
-  use-stdc++=0|1                 : Use libstdc++ for C++ 11    [0]    (osx)
+  no-cache=0|1                    : Ignore excons flag cache                                         [0]
+  debug=0|1                       : Build in debug mode                                              [0]
+  shared-build=0|1                : Use same output and intermediate file directories for submodules [1]
+  with-debug-info=0|1             : Build with debug info                                            [0]
+  stack-size=<str>                : Setup stack size in bytes                                        [system default]
+                                    Letters 'k', and 'm' can be used
+                                    to specify kilobytes and megabytes
+  warnings=none|std|all           : Warning level                                                    [all]
+  warnings-as-errors=0|1          : Treat warnings as errors                                         [0]
+  libdir-arch=none|subdir|suffix  : Modify behaviour of the library folder name use by default
+                                    for 'with-<name>=<prefix>' flag                                  [none]
+                                    When set to 'subdir', use '<prefix>/lib/x86' or '<prefix>/lib/x64'
+                                    When set to 'suffix', use '<prefix>/lib' or '<prefix>/lib64'
+  show-cmds=0|1                   : Show build commands                                              [0]
+  mscver=<float>                  : Visual C runtime version                                         [10.0] (windows)
+  with-vcvars=<str>               : Specify Visual Studio variables setup script                            (windows)
+  no-console=0|1                  : Use window subsystem                                             [0]    (windows)
+  devtoolset=<str>                : SCL developer toolset version                                           (linux)
+  strip=0|1                       : Strip dead code                                                  [0]    (linux/mac)
+  use-c++11=0|1                   : Compile code as C++ 11                                           [0]    (linux/mac)
+  use-stdc++=0|1                  : Use libstdc++ for C++ 11                                         [0]    (mac)
+  force-symvis=default|hidden     : Force compiler default symbol visibility                                (linux/mac)
+  force-xxx-symvis=defalut|hidden : Force compiler default symbol visibility for 'xxx'                      (linux/mac)
+                                    where xxx can be one of the following:
+                                      - target name
+                                      - target alias
+                                      - target type (staticlib, sharedlib, dynamicmodule, program, testprograms)
+                                    The most specific flag take will take precendence
+
+                                    NOTE: - This flag has no influence on non-SCons targets (cmake, automake)
+                                          - Be aware that shared libraries do not always tag the symbols to be exported with
+                                            proper __attribute__((visibility("default"))) on unix. gcc compiler doesn't
+                                            hide symbols by default as microsoft compiler does. Forcing default visibility
+                                            to hidden when building such library will most likely generate an un-usable library.
 
 DEPRECATED OPTIONS
-  no-arch=0|1                    : Don't create arch directory [1]
-                                   When enabled, a 'x86' or 'x64' sub-directory
-                                   will be added to build output structure
-  x64=0|1                        : Build 64bits binaries       [1]
-  x86=0|1                        : Build 32bits binaries       [0]"""
+  no-arch=0|1                     : Don't create arch directory                                      [1]
+                                    When enabled, a 'x86' or 'x64' sub-directory
+                                    will be added to build output structure
+  x64=0|1                         : Build 64bits binaries                                            [1]
+  x86=0|1                         : Build 32bits binaries                                            [0]
+"""
 
 def IgnoreHelp():
   global ignore_help
@@ -1491,8 +1508,18 @@ def DeclareTargets(env, prjs):
       
       if str(SCons.Script.Platform()) != "win32":
         # Allow overriding of the symbol visibility from command line
-        #   using 'force-symvis=default|hidden' flag
-        symvis = GetArgument("force-symvis", None)
+        #   using 'force-<targetname>-symvis=default|hidden' or
+        #         'force-<targetalias>-symvis=default|hidden' or
+        #         'force-<targettype>-symvis=default|hidden' or
+        #         'force-symvis=default|hidden' flag
+        flags = ["force-%s-symvis" % prj]
+        if alias != prj:
+          flags.append("force-%s-symvis" % alias)
+        flags.extend(["force-%s-symvis" % settings["type"], "force-symvis"])
+        for flag in flags:
+           symvis = SCons.Script.ARGUMENTS.get(flag, None)
+           if symvis is not None:
+              break
         if symvis is None:
           # Check project settings
           symvis = settings.get("symvis", None)
