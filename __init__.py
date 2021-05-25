@@ -1528,10 +1528,9 @@ def DeclareTargets(env, prjs):
           symvis = ("hidden" if settings["type"] != "sharedlib" else "default")
         if symvis == "hidden":
           # Note: some compiler may not have this flag
+          penv.Append(CCFLAGS=["-fvisibility=hidden"])
           if settings.get("inlvis", "hidden") == "hidden":
-            penv.Append(CCFLAGS=["-fvisibility=hidden", "-fvisibility-inlines-hidden"])
-          else:
-            penv.Append(CCFLAGS=["-fvisibility=hidden"])
+            penv.Append(CXXFLAGS=["-fvisibility-inlines-hidden"])
       
       objs = []
       srcs = settings.get("srcs", [])
