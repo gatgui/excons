@@ -1689,7 +1689,7 @@ def DeclareTargets(env, prjs):
               if not os.path.isfile(vmap):
                 excons.WarnOnce("Invalid version script file: %s" % vmap)
               else:
-                penv.Append(SHLINKFLAGS=" -Wl,--version-script=vmap" % vmap)
+                penv.Append(SHLINKFLAGS=" -Wl,--version-script=%s" % vmap)
 
           # Setup rpath
           SetRPath(penv, settings, relpath=relpath)
@@ -1861,7 +1861,15 @@ def DeclareTargets(env, prjs):
           penv["SHLIBPREFIX"] = ""
           if "ext" in settings:
             penv["SHLIBSUFFIX"] = settings["ext"]
-         
+          
+          # Setup module definition file if any
+          vmap = settings.get("vismap", None)
+          if vmap:
+            if not os.path.isfile(vmap):
+              excons.WarnOnce("Invalid module definition file: %s" % vmap)
+            else:
+              penv.Append(SHLINKFLAGS=" /def:%s" % vmap)
+
           # set import lib in build folder
           impbn = joinpath(odir, os.path.basename(prj))
           penv['no_import_lib'] = 1
@@ -1885,6 +1893,15 @@ def DeclareTargets(env, prjs):
           else:
             if str(SCons.Script.Platform()) == "darwin":
               penv["LDMODULESUFFIX"] = ".bundle"
+          
+          # Setup version script
+          if sys.platform != "darwin":
+            vmap = settings.get("vismap", None)
+            if vmap:
+              if not os.path.isfile(vmap):
+                excons.WarnOnce("Invalid version script file: %s" % vmap)
+              else:
+                penv.Append(SHLINKFLAGS=" -Wl,--version-script=%s" % vmap)
           
           SetRPath(penv, settings)
           
