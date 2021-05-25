@@ -1528,7 +1528,10 @@ def DeclareTargets(env, prjs):
           symvis = ("hidden" if settings["type"] != "sharedlib" else "default")
         if symvis == "hidden":
           # Note: some compiler may not have this flag
-          penv.Append(CCFLAGS=["-fvisibility=hidden"])
+          if settings.get("inlvis", "hidden") == "hidden":
+            penv.Append(CCFLAGS=["-fvisibility=hidden", "-fvisibility-inlines-hidden"])
+          else:
+            penv.Append(CCFLAGS=["-fvisibility=hidden"])
       
       objs = []
       srcs = settings.get("srcs", [])
@@ -1619,6 +1622,14 @@ def DeclareTargets(env, prjs):
           except:
             pass
           
+          # Setup module definition file if any
+          vmap = settings.get("vismap", None)
+          if vmap:
+            if not os.path.isfile(vmap):
+              excons.WarnOnce("Invalid module definition file: %s" % vmap)
+            else:
+              penv.Append(SHLINKFLAGS=" /def:%s" % vmap)
+          
           penv['no_import_lib'] = 1
           penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
           pout = penv.SharedLibrary(outbn, objs)
@@ -1671,6 +1682,15 @@ def DeclareTargets(env, prjs):
           else:
             outlibname += (".dylib" if sys.platform == "darwin" else ".so")
           
+          # Setup version script
+          if sys.platform != "darwin":
+            vmap = settings.get("vismap", None)
+            if vmap:
+              if not os.path.isfile(vmap):
+                excons.WarnOnce("Invalid version script file: %s" % vmap)
+              else:
+                penv.Append(SHLINKFLAGS=" -Wl,--version-script=vmap" % vmap)
+
           # Setup rpath
           SetRPath(penv, settings, relpath=relpath)
           
