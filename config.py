@@ -44,31 +44,106 @@ def Write(name, opts):
          f.write("%s %s\n" % (k, v))
       f.write("\n")
 
-def GenerateFile(outpath, inpath, opts, pattern=None):
+def GenerateFile(outpath, inpath, opts, pattern=None, optgroup=None, converters={}):
+   # Converters must convert opts value to strings
+   # When no defined, str() is used
    if pattern is not None:
+      if optgroup is None:
+         raise Exception("Please specify 'optgroup' when using a custom pattern")
       phexp = re.compile(pattern)
+      qualifiergrp = None
    else:
-      phexp = re.compile(r"@([^@]+)@")
+      # @VAR_NAME@
+      # @VAR_NAME.defined@
+      # @VAR_NAME.undefined@
+      # @VAR_NAME.equal(otherval)@
+      # @VAR_NAME.not_equal(otherval)@
+      # @VAR_NAME.match(expr)@
+      # @VAR_NAME.not_match(expr)@
+      # @VAR_NAME.greater(numeric)@
+      # @VAR_NAME.greater_or_equal(numeric)@
+      # @VAR_NAME.lesser(numeric)@
+      # @VAR_NAME.lesser_or_equal(numeric)@
+      phexp = re.compile(r"@([^@.]+)(?:\.([^@.]+))?@")
+      qlexp = re.compile(r"defined|undefined|(?:(equal|greater|lesser|greater_or_equal|lesser_or_equal|match|not_equal|not_match)\(([^)]+)\))")
+      optgroup = 1
+      qualifiergrp = 2
+
+   # value -> string
+   def _convertvalue(v):
+      vt = type(v)
+      if vt in converters:
+         return converters[vt](v)
+      elif not isinstance(v, basestring):
+         return str(v)
+      else:
+         return v
+
    with open(outpath, "wb") as outf:
       with open(inpath, "rb") as inf:
          for line in inf.readlines():
-            m = phexp.search(line)
+            remain = line[:]
+            outline = ""
+            m = phexp.search(remain)
             while m is not None:
-               for keyi in xrange(len(m.groups())):
-                  key = m.group(1 + keyi)
-                  if key is None:
-                     continue
-                  elif not key in opts:
-                     excons.WarnOnce("No value for placeholder '%s' in %s" % (key, inpath))
-                  else:
-                     line = line.replace(m.group(0), opts[key])
-                     break
-               m = phexp.search(line)
-            outf.write(line)
+               outline += remain[:m.start()]
+               matched = m.group()
+               remain = remain[m.end():]
 
-def AddGenerator(env, name, opts, pattern=None):
+               key = m.group(optgroup)
+
+               if not key in opts:
+                  val = None
+               else:
+                  val = opts[key]
+
+               if qualifiergrp is not None and m.group(qualifiergrp):
+                  qm = qlexp.match(m.group(qualifiergrp))
+                  if qm is None:
+                     excons.WarnOnce("Invalid qualifier for '%s': %s" % (key, m.group(qualifiergrp)))
+                  else:
+                     qualifier = qm.group(0)
+                     if qualifier == "defined":
+                        val = (val is not None)
+                     elif qualifier == "undefined":
+                        val = (val is None)
+                     else:
+                        qualifier = qm.group(1)
+                        qval = qm.group(2)
+                        if qualifier == "equal":
+                           val = (_convertvalue(val) == qval)
+                        elif qualifier == "not_equal":
+                           val = (_convertvalue(val) != qval)
+                        elif qualifier == "greater":
+                           val = (float(val) > float(qval))
+                        elif qualifier == "greater_or_equal":
+                           val = (float(val) >= float(qval))
+                        elif qualifier == "lesser":
+                           val = (float(val) < float(qval))
+                        elif qualifier == "lesser_or_equal":
+                           val = (float(val) <= float(qval))
+                        elif qualifier == "match":
+                           val = (re.match(qval, val) is not None)
+                        elif qualifier == "not_match":
+                           val = (re.match(qval, val) is None)
+                        else:
+                           excons.WarnOnce("Unexpected qualifier for %s: %s" % (key, qualifier))
+                           val = None
+
+               if val is None:
+                  excons.WarnOnce("No value for placeholder '%s' in %s" % (key, inpath))
+               else:
+                  matched = matched.replace(m.group(0), _convertvalue(val))
+
+               outline += matched
+               m = phexp.search(remain)
+
+            outline += remain
+            outf.write(outline)
+
+def AddGenerator(env, name, opts, pattern=None, converters={}):
    def _ActionFunc(target, source, env):
-      GenerateFile(str(target[0]), str(source[0]), opts, pattern=pattern)
+      GenerateFile(str(target[0]), str(source[0]), opts, pattern=pattern, converters=converters)
       return None
 
    funcname = "%sGenerateFile" % name
