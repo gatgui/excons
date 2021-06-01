@@ -1625,7 +1625,7 @@ def DeclareTargets(env, prjs):
           vmap = settings.get("vismap", None)
           if vmap:
             if not os.path.isfile(vmap):
-              excons.WarnOnce("Invalid module definition file: %s" % vmap)
+              WarnOnce("Invalid module definition file: %s" % vmap)
             else:
               penv.Append(SHLINKFLAGS=" /def:%s" % vmap)
           
@@ -1682,11 +1682,23 @@ def DeclareTargets(env, prjs):
             outlibname += (".dylib" if sys.platform == "darwin" else ".so")
           
           # Setup version script
-          if sys.platform != "darwin":
-            vmap = settings.get("vismap", None)
-            if vmap:
-              if not os.path.isfile(vmap):
-                excons.WarnOnce("Invalid version script file: %s" % vmap)
+          vmap = settings.get("vismap", None)
+          if vmap:
+            incl = None
+            if sys.platform == "darwin":
+              if vmap[0] in ("+", "-"):
+                incl = (vmap[0] == "+")
+                vmap = vmap[1:]
+              else:
+                incl = True
+            if not os.path.isfile(vmap):
+              WarnOnce("Invalid version script file: %s" % vmap)
+            else:
+              if sys.platform == "darwin":
+                if incl:
+                  penv.Append(SHLINKFLAGS=" -Wl,-exported_symbols_list,%s" % vmap)
+                else:
+                  penv.Append(SHLINKFLAGS=" -Wl,-unexported_symbols_list,%s" % vmap)
               else:
                 penv.Append(SHLINKFLAGS=" -Wl,--version-script=%s" % vmap)
 
@@ -1865,7 +1877,7 @@ def DeclareTargets(env, prjs):
           vmap = settings.get("vismap", None)
           if vmap:
             if not os.path.isfile(vmap):
-              excons.WarnOnce("Invalid module definition file: %s" % vmap)
+              WarnOnce("Invalid module definition file: %s" % vmap)
             else:
               penv.Append(SHLINKFLAGS=" /def:%s" % vmap)
 
@@ -1894,11 +1906,23 @@ def DeclareTargets(env, prjs):
               penv["LDMODULESUFFIX"] = ".bundle"
           
           # Setup version script
-          if sys.platform != "darwin":
-            vmap = settings.get("vismap", None)
-            if vmap:
-              if not os.path.isfile(vmap):
-                excons.WarnOnce("Invalid version script file: %s" % vmap)
+          vmap = settings.get("vismap", None)
+          if vmap:
+            incl = None
+            if sys.platform == "darwin":
+              if vmap[0] in ("+", "-"):
+                incl = (vmap[0] == "+")
+                vmap = vmap[1:]
+              else:
+                incl = True
+            if not os.path.isfile(vmap):
+              WarnOnce("Invalid version script file: %s" % vmap)
+            else:
+              if sys.platform == "darwin":
+                if incl:
+                  penv.Append(SHLINKFLAGS=" -Wl,-exported_symbols_list,%s" % vmap)
+                else:
+                  penv.Append(SHLINKFLAGS=" -Wl,-unexported_symbols_list,%s" % vmap)
               else:
                 penv.Append(SHLINKFLAGS=" -Wl,--version-script=%s" % vmap)
           
