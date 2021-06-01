@@ -1696,11 +1696,11 @@ def DeclareTargets(env, prjs):
             else:
               if sys.platform == "darwin":
                 if incl:
-                  penv.Append(SHLINKFLAGS=" -Wl,-exported_symbols_list,%s" % vmap)
+                  penv.Append(LINKFLAGS=" -Wl,-exported_symbols_list,%s" % vmap)
                 else:
-                  penv.Append(SHLINKFLAGS=" -Wl,-unexported_symbols_list,%s" % vmap)
+                  penv.Append(LINKFLAGS=" -Wl,-unexported_symbols_list,%s" % vmap)
               else:
-                penv.Append(SHLINKFLAGS=" -Wl,--version-script=%s" % vmap)
+                penv.Append(LINKFLAGS=" -Wl,--version-script=%s" % vmap)
 
           # Setup rpath
           SetRPath(penv, settings, relpath=relpath)
@@ -1920,11 +1920,11 @@ def DeclareTargets(env, prjs):
             else:
               if sys.platform == "darwin":
                 if incl:
-                  penv.Append(SHLINKFLAGS=" -Wl,-exported_symbols_list,%s" % vmap)
+                  penv.Append(LINKFLAGS=" -Wl,-exported_symbols_list,%s" % vmap)
                 else:
-                  penv.Append(SHLINKFLAGS=" -Wl,-unexported_symbols_list,%s" % vmap)
+                  penv.Append(LINKFLAGS=" -Wl,-unexported_symbols_list,%s" % vmap)
               else:
-                penv.Append(SHLINKFLAGS=" -Wl,--version-script=%s" % vmap)
+                penv.Append(LINKFLAGS=" -Wl,--version-script=%s" % vmap)
           
           SetRPath(penv, settings)
           
