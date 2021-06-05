@@ -1627,7 +1627,7 @@ def DeclareTargets(env, prjs):
             if not os.path.isfile(vmap):
               WarnOnce("Invalid module definition file: %s" % vmap)
             else:
-              penv.Append(SHLINKFLAGS=" /def:%s" % vmap)
+              penv.Append(SHLINKFLAGS=" /def:%s" % abspath(vmap))
           
           penv['no_import_lib'] = 1
           penv.Append(SHLINKFLAGS=" /implib:%s.lib" % impbn)
@@ -1696,11 +1696,11 @@ def DeclareTargets(env, prjs):
             else:
               if sys.platform == "darwin":
                 if incl:
-                  penv.Append(LINKFLAGS=" -Wl,-exported_symbols_list,%s" % vmap)
+                  penv.Append(LINKFLAGS=" -Wl,-exported_symbols_list,%s" % abspath(vmap))
                 else:
-                  penv.Append(LINKFLAGS=" -Wl,-unexported_symbols_list,%s" % vmap)
+                  penv.Append(LINKFLAGS=" -Wl,-unexported_symbols_list,%s" % abspath(vmap))
               else:
-                penv.Append(LINKFLAGS=" -Wl,--version-script=%s" % vmap)
+                penv.Append(LINKFLAGS=" -Wl,--version-script=%s" % abspath(vmap))
 
           # Setup rpath
           SetRPath(penv, settings, relpath=relpath)
@@ -1877,7 +1877,7 @@ def DeclareTargets(env, prjs):
           vmap = settings.get("vismap", None)
           if vmap:
             if not os.path.isfile(vmap):
-              WarnOnce("Invalid module definition file: %s" % vmap)
+              WarnOnce("Invalid module definition file: %s" % abspath(vmap))
             else:
               penv.Append(SHLINKFLAGS=" /def:%s" % vmap)
 
@@ -1920,11 +1920,11 @@ def DeclareTargets(env, prjs):
             else:
               if sys.platform == "darwin":
                 if incl:
-                  penv.Append(LINKFLAGS=" -Wl,-exported_symbols_list,%s" % vmap)
+                  penv.Append(LINKFLAGS=" -Wl,-exported_symbols_list,%s" % abspath(vmap))
                 else:
-                  penv.Append(LINKFLAGS=" -Wl,-unexported_symbols_list,%s" % vmap)
+                  penv.Append(LINKFLAGS=" -Wl,-unexported_symbols_list,%s" % abspath(vmap))
               else:
-                penv.Append(LINKFLAGS=" -Wl,--version-script=%s" % vmap)
+                penv.Append(LINKFLAGS=" -Wl,--version-script=%s" % abspath(vmap))
           
           SetRPath(penv, settings)
           
