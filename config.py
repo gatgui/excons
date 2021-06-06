@@ -44,7 +44,7 @@ def Write(name, opts):
          f.write("%s %s\n" % (k, v))
       f.write("\n")
 
-def GenerateFile(outpath, inpath, opts, pattern=None, optgroup=None, converters={}):
+def GenerateFile(outpath, inpath, opts, pattern=None, optgroup=None, converters={}, replacefuncs=None):
    # Converters must convert opts value to strings
    # When no defined, str() is used
    if pattern is not None:
@@ -82,6 +82,9 @@ def GenerateFile(outpath, inpath, opts, pattern=None, optgroup=None, converters=
    with open(outpath, "wb") as outf:
       with open(inpath, "rb") as inf:
          for line in inf.readlines():
+            if replacefuncs is not None:
+               for replacefunc in replacefuncs:
+                  line = replacefunc(line, opts)
             remain = line[:]
             outline = ""
             m = phexp.search(remain)
@@ -141,9 +144,9 @@ def GenerateFile(outpath, inpath, opts, pattern=None, optgroup=None, converters=
             outline += remain
             outf.write(outline)
 
-def AddGenerator(env, name, opts, pattern=None, converters={}):
+def AddGenerator(env, name, opts, pattern=None, optgroup=None, converters={}, replacefuncs=None):
    def _ActionFunc(target, source, env):
-      GenerateFile(str(target[0]), str(source[0]), opts, pattern=pattern, converters=converters)
+      GenerateFile(str(target[0]), str(source[0]), opts, pattern=pattern, optgroup=optgroup, converters=converters, replacefuncs=replacefuncs)
       return None
 
    funcname = "%sGenerateFile" % name
