@@ -1,21 +1,27 @@
-# Copyright (C) 2009~  Gaetan Guidet
+# MIT License
+#
+# Copyright (c) 2009 Gaetan Guidet
 #
 # This file is part of excons.
 #
-# excons is free software; you can redistribute it and/or modify it
-# under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation; either version 2.1 of the License, or (at
-# your option) any later version.
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# excons is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-# USA.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 
 import os
 import re
@@ -29,6 +35,9 @@ import subprocess
 import glob as _glob
 import SCons.Script # pylint: disable=import-error
 from . import devtoolset
+
+# pylint: disable=bad-indentation,global-statement,bare-except,broad-except
+# pylint: disable=deprecated-lambda,unused-argument,eval-used
 
 
 VCD = set([".git", ".hg", ".svn"])
@@ -312,7 +321,7 @@ def GetArgument(key, default=None, convert=None):
                 for k2, v2 in v.iteritems():
                   print("[excons]  %s = %s" % (k2, v2))
               args_cache.rawset(k, copy.deepcopy(v))
-          except Exception, e:
+          except Exception as e:
             print(e)
             args_cache.clear()
       else:
@@ -420,7 +429,10 @@ def SetStackSize(env, size):
     else:
       env.Append(LINKFLAGS=" -Wl,--stack,0x%x" % size)
 
-def SetRPath(env, settings, relpath=None, rpaths=[""]):
+def SetRPath(env, settings, relpath=None, rpaths=None):
+  if rpaths is None:
+    rpaths = [""]
+
   if sys.platform != "win32":
     osx = (sys.platform == "darwin")
     
@@ -744,8 +756,11 @@ def Link(env, lib, static=False, force=True, silent=False):
         env.Append(LIBPATH=[dn])
       env.Append(LIBS=[ln])
 
-def CollectFiles(directory, patterns, recursive=True, exclude=[]):
+def CollectFiles(directory, patterns, recursive=True, exclude=None  ):
   global VCD
+
+  if exclude is None:
+    exclude = []
 
   allfiles = None
   rv = []
@@ -762,7 +777,7 @@ def CollectFiles(directory, patterns, recursive=True, exclude=[]):
           rv.append(item)
       else:
         allfiles = glob(directory + "/*")
-        rv.extend(filter(lambda x: pattern.match(x) is not None, allfiles))
+        rv.extend(filter(lambda x: pattern.match(x) is not None, allfiles)) # pylint: disable=cell-var-from-loop
 
     if recursive:
       if allfiles is None:
@@ -1081,7 +1096,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
     CComp = Fore.GREEN # + Style.BRIGHT
     CLink = Fore.MAGENTA # + Style.BRIGHT
     CReset = Fore.RESET + Back.RESET + Style.RESET_ALL
-  except Exception, e:
+  except Exception as e:
     PrintOnce("Install 'colorama' python module for colored output ('pip install colorama').")
     CComp = ""
     CLink = ""
@@ -1124,7 +1139,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
       else:
         #mod.SetupEnvironment(env)
         ext_types[extname] = mod.SetupEnvironment
-    except Exception, e:
+    except Exception as e:
       print("Failed to load '%s': %s" % (item, e))
 
   return env
@@ -1149,7 +1164,13 @@ def BuildBaseDirectory():
       odir = joinpath(odir, "gcc-%s" % gccver)
   return odir
 
-def Call(path, targets=None, overrides={}, imp=[], keepflags=[]):
+def Call(path, targets=None, overrides=None, imp=None, keepflags=None): # pylint: disable=redefined-outer-name
+  if overrides is None:
+    overrides = {}
+  if imp is None:
+    imp = []
+  if keepflags is None:
+    keepflags = []
   s = path + "/SConstruct"
   if not os.path.isfile(s):
     s = path + "/SConscript"
@@ -1231,8 +1252,11 @@ def IgnoreHelp():
   global ignore_help
   ignore_help = True
 
-def AddHelpTargets(tgts={}, **kwargs):
+def AddHelpTargets(tgts=None, **kwargs):
   global help_targets
+
+  if tgts is None:
+    tgts = {}
 
   for name, desc in tgts.iteritems():
     help_targets[name] = desc
@@ -1240,8 +1264,11 @@ def AddHelpTargets(tgts={}, **kwargs):
   for name, desc in kwargs.iteritems():
     help_targets[name] = desc
 
-def AddHelpOptions(opts={}, **kwargs):
+def AddHelpOptions(opts=None, **kwargs):
   global help_options
+
+  if opts is None:
+    opts = {}
 
   for name, desc in opts.iteritems():
     help_options[name] = desc
@@ -1252,7 +1279,7 @@ def AddHelpOptions(opts={}, **kwargs):
 def GetHelpString():
   global help_targets, help_options
 
-  help = """USAGE
+  _help = """USAGE
   scons [OPTIONS] TARGET
 
 AVAILABLE TARGETS\n"""
@@ -1267,22 +1294,22 @@ AVAILABLE TARGETS\n"""
   for name in names:
     desc = help_targets[name]
     padding = "" if len(name) >= maxlen else " " * (maxlen - len(name))
-    help += "  %s%s : %s\n" % (name, padding, desc)
+    _help += "  %s%s : %s\n" % (name, padding, desc)
 
   names = help_options.keys()
   names.sort()
   for name in names:
     desc = help_options[name]
-    help += "\n%s\n" % desc
+    _help += "\n%s\n" % desc
 
-  help += "\n%s\n" % GetOptionsString()
+  _help += "\n%s\n" % GetOptionsString()
 
-  return help
+  return _help
 
-def SetHelp(help):
+def SetHelp(_help):
   global ignore_help
   if not ignore_help:
-    SCons.Script.Help(help)
+    SCons.Script.Help(_help)
 
 @atexit.register
 def SyncCache():
@@ -1372,6 +1399,39 @@ def ExternalLibRequire(name, libnameFunc=None, definesFunc=None, extraEnvFunc=No
 
   return rv
 
+def _AddDeps(penv, settings, tgt, all_projs):
+  for k in ("deps", "libs", "staticlibs"):
+    if k in settings:
+      for dep in settings[k]:
+        if dep in all_projs:
+          penv.Depends(tgt, all_projs[dep])
+          # but should not clean all_projs[dep]
+        elif dep in all_targets:
+          penv.Depends(tgt, all_targets[dep])
+        else:
+          if k == "deps":
+            # WarnOnce("Can't find dependent target '%s'. Depend on file." % dep)
+            penv.Depends(tgt, dep)
+
+def _InstallFile(penv, pout, dstdir, filepath, basename=None):
+  if type(filepath) in (str, unicode):
+    if os.path.isfile(filepath):
+      if basename is None:
+        insttgt = penv.Install(dstdir, filepath)
+      else:
+        insttgt = penv.InstallAs(dstdir + "/" + basename, filepath)
+      pout.extend(insttgt)
+    else:
+      dn = dstdir + "/" + (os.path.basename(filepath) if basename is None else basename)
+      for item in glob(filepath + "/*"):
+        _InstallFile(penv, pout, dn, item)
+  else:
+    if basename is None:
+      insttgt = penv.Install(dstdir, filepath)
+    else:
+      insttgt = penv.InstallAs(dstdir + "/" + basename, filepath)
+    pout.extend(insttgt)
+
 def DeclareTargets(env, prjs):
   global bld_dir, out_dir, mode_dir, arch_dir, mscver, gccver, no_arch, args_no_cache, args_cache, all_targets, all_progress, ext_types, help_targets
 
@@ -1401,26 +1461,12 @@ def DeclareTargets(env, prjs):
 
     penv = env.Clone()
 
-    def add_deps(tgt):
-      for k in ("deps", "libs", "staticlibs"):
-        if k in settings:
-          for dep in settings[k]:
-            if dep in all_projs:
-              penv.Depends(tgt, all_projs[dep])
-              # but should not clean all_projs[dep]
-            elif dep in all_targets:
-              penv.Depends(tgt, all_targets[dep])
-            else:
-              if k == "deps":
-                # WarnOnce("Can't find dependent target '%s'. Depend on file." % dep)
-                penv.Depends(tgt, dep)
-
     if settings["type"] in ext_types:
       pout = ext_types[settings["type"]](penv, settings)
       if pout:
         if not prj in help_targets:
           AddHelpTargets({prj: ("Build %s project" % settings["type"]) if not desc else desc})
-        add_deps(pout)
+        _AddDeps(penv, settings, pout, all_projs)
 
     else:
       if fullprefix is not None:
@@ -1733,7 +1779,7 @@ def DeclareTargets(env, prjs):
         
         progress_nodes.add(abspath(str(pout[0])))
         
-        add_deps(pout)
+        _AddDeps(penv, settings, pout, all_projs)
         
         if sout:
           sout.extend(pout)
@@ -1773,7 +1819,7 @@ def DeclareTargets(env, prjs):
         
         progress_nodes.add(abspath(str(pout[0])))
         
-        add_deps(pout)
+        _AddDeps(penv, settings, pout, all_projs)
         
         # Cleanup
         if str(SCons.Script.Platform()) == "win32":
@@ -1803,7 +1849,7 @@ def DeclareTargets(env, prjs):
         
         progress_nodes.add(abspath(str(pout[0])))
         
-        add_deps(pout)
+        _AddDeps(penv, settings, pout, all_projs)
       
       elif settings["type"] == "testprograms":
         if not prj in help_targets:
@@ -1843,7 +1889,7 @@ def DeclareTargets(env, prjs):
           
           progress_nodes.add(abspath(str(prg[0])))
           
-          add_deps(prg)
+          _AddDeps(penv, settings, prg, all_projs)
           
           pout.extend(prg)
           
@@ -1932,7 +1978,7 @@ def DeclareTargets(env, prjs):
         
         progress_nodes.add(abspath(str(pout[0])))
         
-        add_deps(pout)
+        _AddDeps(penv, settings, pout, all_projs)
       
       elif settings["type"] == "install":
         pout = None
@@ -1948,25 +1994,6 @@ def DeclareTargets(env, prjs):
       
       if not pout:
         pout = []
-
-      def install_file(dstdir, filepath, basename=None):
-        if type(filepath) in (str, unicode):
-          if os.path.isfile(filepath):
-            if basename is None:
-              insttgt = penv.Install(dstdir, filepath)
-            else:
-              insttgt = penv.InstallAs(dstdir + "/" + basename, filepath)
-            pout.extend(insttgt)
-          else:
-            dn = dstdir + "/" + (os.path.basename(filepath) if basename is None else basename)
-            for item in glob(filepath + "/*"):
-              install_file(dn, item)
-        else:
-          if basename is None:
-            insttgt = penv.Install(dstdir, filepath)
-          else:
-            insttgt = penv.InstallAs(dstdir + "/" + basename, filepath)
-          pout.extend(insttgt)
       
       if "install" in settings:
         for prefix, files in settings["install"].iteritems():
@@ -1984,7 +2011,7 @@ def DeclareTargets(env, prjs):
             else:
               path = f
               basename = None
-            install_file(dst, path, basename=basename)
+            _InstallFile(penv, pout, dst, path, basename=basename)
       
       if settings["type"] != "install":
         # no progress for 'install' target
@@ -2025,8 +2052,8 @@ def GetTargetOutputFiles(env, target, builders=None, verbose=False):
         print("Ignore builder '%s' output: %s" % (builder_name, node))
     
     for kid in node.all_children():
-      for kid in GetTargetOuptutFilesIter(env, kid):
-        yield kid
+      for ofile in GetTargetOuptutFilesIter(env, kid):
+        yield ofile
   
   node = env.arg2nodes(target, env.fs.Entry)[0]
   return list(GetTargetOuptutFilesIter(env, node))
@@ -2135,8 +2162,11 @@ class EcoUtils(object):
     except:
       return d
 
-def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=None, defaultdir="eco", dirflag="eco-dir", ecoenv={}):
+def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=None, defaultdir="eco", dirflag="eco-dir", ecoenv=None):
   global out_dir
+
+  if ecoenv is None:
+    ecoenv = {}
 
   if targets is None and "EXCONS_TARGETS" in env:
     targets = env["EXCONS_TARGETS"]
@@ -2160,7 +2190,7 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
   try:
     with open(ecofile, "r") as f:
       ecod = eval(f.read())
-  except Exception, e:
+  except Exception as e:
     print("Invalid ecosystem env (%s)" % e)
     return
 

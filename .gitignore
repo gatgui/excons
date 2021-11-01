@@ -1,2 +1,3 @@
 *.pyc
 excons.cache
+.vscode

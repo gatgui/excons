@@ -1,33 +1,40 @@
-# Copyright (C) 2017~  Gaetan Guidet
+# MIT License
+#
+# Copyright (c) 2017 Gaetan Guidet
 #
 # This file is part of excons.
 #
-# excons is free software; you can redistribute it and/or modify it
-# under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation; either version 2.1 of the License, or (at
-# your option) any later version.
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# excons is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-# USA.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 
 import os
 import re
 import sys
 import glob
 import shutil
-import pprint
 import subprocess
 import excons
 import excons.devtoolset
 from excons.cmake import VC_Filter
 import SCons.Script # pylint: disable=import-error
+
+# pylint: disable=bad-indentation,global-statement,deprecated-lambda
 
 
 InstallExp = re.compile(r"^.*?bin/install\s+((-c|-d|(-m\s+\d{3}))\s+)*(.*?)((['\"]?)(%s.*)\6)$" % os.path.abspath(excons.OutputBaseDirectory()))
@@ -65,9 +72,12 @@ def Outputs(name):
          lst = filter(VC_Filter, map(lambda x: excons.out_dir + "/" + x, lines))
    return lst
 
-def Configure(name, topdir=None, opts={}):
+def Configure(name, topdir=None, opts=None):
    if SCons.Script.GetOption("clean"):
       return True
+
+   if opts is None:
+      opts = {}
 
    if topdir is None:
       topdir = os.path.abspath(".")
