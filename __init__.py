@@ -202,7 +202,7 @@ def joinpath(*args):
     return os.path.join(*args).replace("\\", "/") # pylint: disable=no-value-for-parameter
 
 def glob(pat):
-    return map(lambda x: x.replace("\\", "/"), _glob.glob(pat))
+    return [x.replace("\\", "/") for x in _glob.glob(pat)]
 
 def InitGlobals(output_dir=".", force=False):
     global args_cache, args_cache_path, args_no_cache
