@@ -36,7 +36,7 @@ import glob as _glob
 import SCons.Script # pylint: disable=import-error
 from . import devtoolset
 
-# pylint: disable=global-statement, global-variable-not-assigned
+# pylint: disable=global-statement
 # pylint: disable=bare-except, broad-except
 # pylint: disable=eval-used
 # pylint: disable=no-member
@@ -139,8 +139,6 @@ def preserve_targets(targets):
 
 @contextlib.contextmanager
 def preserve_arguments(overrides, keep):
-    global args_no_cache, args_cache
-
     old_vals = {}
     old_keys = set()
     old_cached_vals = {}
@@ -272,7 +270,7 @@ class Cache(dict):
             if args_cache_path:
                 if args_cache_echo:
                     print("[excons] Write excons.cache: %s" % args_cache_path)
-                with io.open(args_cache_path, "w", encoding="UTF-8") as f:
+                with io.open(args_cache_path, "w", newline="\n", encoding="UTF-8") as f:
                     pprint.pprint(self, f)
                     f.write("\n")
                 self.updated = False
@@ -336,7 +334,7 @@ def GetArgument(key, default=None, convert=None):
                     import ast
                     import copy
 
-                    with io.open(args_cache_path, "r", encoding="UTF-8") as f:
+                    with io.open(args_cache_path, "r", newline="\n", encoding="UTF-8") as f:
                         cc = f.read()
 
                     try:
@@ -2211,7 +2209,7 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
     ecod = {}
 
     try:
-        with io.open(ecofile, "r", encoding="UTF-8") as f:
+        with io.open(ecofile, "r", newline="\n", encoding="UTF-8") as f:
             ecod = eval(f.read())
     except Exception as e:
         print("Invalid ecosystem env (%s)" % e)
@@ -2260,7 +2258,7 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
     verdir = "%s/%s/%s" % (distdir, name, version)
 
     if updenv:
-        with io.open(ecofile+".tmp", "w", encoding="UTF-8") as f:
+        with io.open(ecofile+".tmp", "w", newline="\n", encoding="UTF-8") as f:
             import pprint
             try:
                 ecod = EcoUtils.SortedDict(ecod)
