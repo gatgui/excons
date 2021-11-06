@@ -25,9 +25,7 @@
 
 import SCons.Script # pylint: disable=import-error
 
-# pylint: disable=bad-indentation
-
 
 def Require(env):
-  if str(SCons.Script.Platform()) != "win32":
-    env.Append(LIBS=["dl"])
+    if str(SCons.Script.Platform()) != "win32":
+        env.Append(LIBS=["dl"])
