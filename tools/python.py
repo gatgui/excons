@@ -373,6 +373,9 @@ def CythonGenerate(e, pyx, h=None, c=None, incdirs=None, cpp=False, cte=None, di
 
     if float(Version()) < 3:
         directives["language_level"] = 2
+    else:
+        # really?
+        directives["language_level"] = 3
 
     if not _cython:
         excons.PrintOnce("No 'cython' to generate %s" % pyx, tool="python")
