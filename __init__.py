@@ -1056,7 +1056,7 @@ def MakeBaseEnv(noarch=None, output_dir="."):
                 SetArgument("use-c++11", 1)
                 env.Append(CXXFLAGS=" -std=c++11")
 
-        def symlink(source, target, _):
+        def symlink(source, target, env):
             srcpath = str(source[0])
             tgtpath = str(target[0])
             tgtdir = os.path.dirname(tgtpath)
