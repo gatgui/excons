@@ -69,7 +69,7 @@ else:
         return imp.load_source(modname, path)
 
     def iteritems(d):
-        for k, v in iteritems(d):
+        for k, v in d.iteritems():
             yield k, v
 
     anystring = basestring # pylint: disable=undefined-variable
