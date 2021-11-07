@@ -26,34 +26,32 @@
 import sys
 import excons
 
-# pylint: disable=bad-indentation
-
 
 def Require(env):
-  linc, llib = excons.GetDirs("lua")
-  if linc:
-    env.Append(CPPPATH=[linc])
-  if llib:
-    env.Append(LIBPATH=[llib])
+    linc, llib = excons.GetDirs("lua")
+    if linc:
+        env.Append(CPPPATH=[linc])
+    if llib:
+        env.Append(LIBPATH=[llib])
 
-  if sys.platform == "win32":
-    env.Append(CPPDEFINES=["LUA_BUILD_AS_DLL"])
-    env.Append(LIBS=["lua51"])
-  
-  else:
-    env.Append(LIBS=["lua"])
-  
-  #elif sys.platform == "darwin":
-  #  # Do not link lua static lib [would duplicate core]
-  #  # But add linkflags so OSX doesn't complain about unresolved symbols
-  #  env.Append(LINKFLAGS = " -undefined dynamic_lookup")
-  #else:
-  #  # Do not link lua static lib [would duplicate core]
-  #  # Only do it for final executable [using LinkLUA]
-  #  pass
+    if sys.platform == "win32":
+        env.Append(CPPDEFINES=["LUA_BUILD_AS_DLL"])
+        env.Append(LIBS=["lua51"])
+
+    else:
+        env.Append(LIBS=["lua"])
+
+    #elif sys.platform == "darwin":
+    #  # Do not link lua static lib [would duplicate core]
+    #  # But add linkflags so OSX doesn't complain about unresolved symbols
+    #  env.Append(LINKFLAGS = " -undefined dynamic_lookup")
+    #else:
+    #  # Do not link lua static lib [would duplicate core]
+    #  # Only do it for final executable [using LinkLUA]
+    #  pass
 
 def ModulePrefix():
-  return "lib/lua/"
+    return "lib/lua/"
 
 def ModuleExtension():
-  return ".so"
+    return ".so"

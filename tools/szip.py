@@ -26,11 +26,9 @@
 import sys
 import excons
 
-# pylint: disable=bad-indentation
-
 
 def GetOptionsString():
-  return """SZIP OPTIONS
+    return """SZIP OPTIONS
   with-szip=<path>     : SZIP root directory.
   with-szip-inc=<path> : SZIP headers directory.     [<root>/include]
   with-szip-lib=<path> : SZIP libraries directory.   [<root>/lib]
@@ -43,25 +41,25 @@ def GetOptionsString():
                          (ignored when szip-name is set)"""
 
 def Require(env):
-  szip_inc, szip_lib = excons.GetDirs("szip")
-  
-  if szip_inc:
-    env.Append(CPPPATH=[szip_inc])
-  
-  if szip_lib:
-    env.Append(LIBPATH=[szip_lib])
-  
-  szip_static = (excons.GetArgument("szip-static", 0, int) != 0)
+    szip_inc, szip_lib = excons.GetDirs("szip")
 
-  if not szip_static:
-    env.Append(CPPDEFINES=["SZ_BUILT_AS_DYNAMIC_LIB"])
-  
-  szip_libname = excons.GetArgument("szip-name", None)
-  if not szip_libname:
-    szip_libprefix = excons.GetArgument("szip-prefix", "")
-    szip_libsuffix = excons.GetArgument("szip-suffix", "")
-    szip_libname = "%s%s%s" % (szip_libprefix, ("sz" if sys.platform != "win32" else "libszip"), szip_libsuffix)
-  
-  excons.Link(env, szip_libname, static=szip_static, force=True, silent=True)
+    if szip_inc:
+        env.Append(CPPPATH=[szip_inc])
 
-  excons.AddHelpOptions(szip=GetOptionsString())
+    if szip_lib:
+        env.Append(LIBPATH=[szip_lib])
+
+    szip_static = (excons.GetArgument("szip-static", 0, int) != 0)
+
+    if not szip_static:
+        env.Append(CPPDEFINES=["SZ_BUILT_AS_DYNAMIC_LIB"])
+
+    szip_libname = excons.GetArgument("szip-name", None)
+    if not szip_libname:
+        szip_libprefix = excons.GetArgument("szip-prefix", "")
+        szip_libsuffix = excons.GetArgument("szip-suffix", "")
+        szip_libname = "%s%s%s" % (szip_libprefix, ("sz" if sys.platform != "win32" else "libszip"), szip_libsuffix)
+
+    excons.Link(env, szip_libname, static=szip_static, force=True, silent=True)
+
+    excons.AddHelpOptions(szip=GetOptionsString())

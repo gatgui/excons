@@ -29,11 +29,9 @@ import excons
 import excons.tools.zlib
 import excons.tools.ilmbase
 
-# pylint: disable=bad-indentation
-
 
 def GetOptionsString():
-   return """OPENEXR OPTIONS
+    return """OPENEXR OPTIONS
   with-openexr=<path>     : OpenEXR root directory.
   with-openexr-inc=<path> : OpenEXR headers directory.     [<root>/include]
   with-openexr-lib=<path> : OpenEXR libraries directory.   [<root>/lib]
@@ -45,36 +43,36 @@ def GetOptionsString():
                             (ignored when openexr-name is set)"""
 
 def Require(ilmbase=False, zlib=False):
-   openexr_libprefix = excons.GetArgument("openexr-prefix", "")
-   openexr_libsuffix = excons.GetArgument("openexr-suffix", "")
+    openexr_libprefix = excons.GetArgument("openexr-prefix", "")
+    openexr_libsuffix = excons.GetArgument("openexr-suffix", "")
 
-   openexr_libname = excons.GetArgument("openexr-name", "%sIlmImf%s" % (openexr_libprefix, openexr_libsuffix))
+    openexr_libname = excons.GetArgument("openexr-name", "%sIlmImf%s" % (openexr_libprefix, openexr_libsuffix))
 
-   openexr_inc, openexr_lib = excons.GetDirs("openexr")
-   if openexr_inc and not openexr_inc.endswith("OpenEXR"):
-      openexr_inc += "/OpenEXR"
+    openexr_inc, openexr_lib = excons.GetDirs("openexr")
+    if openexr_inc and not openexr_inc.endswith("OpenEXR"):
+        openexr_inc += "/OpenEXR"
 
-   openexr_static = (excons.GetArgument("openexr-static", 0, int) != 0)
+    openexr_static = (excons.GetArgument("openexr-static", 0, int) != 0)
 
-   excons.AddHelpOptions(openexr=GetOptionsString())
-   
-   def _RequireOpenEXR(env):
-      if sys.platform == "win32" and not openexr_static:
-         env.Append(CPPDEFINES=["OPENEXR_DLL"])
+    excons.AddHelpOptions(openexr=GetOptionsString())
 
-      if openexr_inc:
-         env.Append(CPPPATH=[openexr_inc, os.path.dirname(openexr_inc)])
+    def _RequireOpenEXR(env):
+        if sys.platform == "win32" and not openexr_static:
+            env.Append(CPPDEFINES=["OPENEXR_DLL"])
 
-      if openexr_lib:
-         env.Append(LIBPATH=[openexr_lib])
+        if openexr_inc:
+            env.Append(CPPPATH=[openexr_inc, os.path.dirname(openexr_inc)])
 
-      excons.Link(env, openexr_libname, static=openexr_static, force=True, silent=True)
+        if openexr_lib:
+            env.Append(LIBPATH=[openexr_lib])
 
-      if ilmbase:
-         excons.tools.ilmbase.Require()(env)
+        excons.Link(env, openexr_libname, static=openexr_static, force=True, silent=True)
 
-      if zlib:
-         excons.tools.zlib.Require(env)
+        if ilmbase:
+            excons.tools.ilmbase.Require()(env)
 
-   return _RequireOpenEXR
+        if zlib:
+            excons.tools.zlib.Require(env)
+
+    return _RequireOpenEXR
 

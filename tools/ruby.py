@@ -26,18 +26,16 @@
 import os
 import string
 
-# pylint: disable=bad-indentation
-
 
 def Require(e):
-  rb_conf = string.Template("ruby -e \"print (if require 'rbconfig' then Config else RbConfig end)::CONFIG['$flag']\"")
-  e.Append(CPPPATH=[os.popen(rb_conf.substitute(flag='archdir')).read()])
-  e.Append(LIBPATH=[os.popen(rb_conf.substitute(flag='libdir')).read()])
-  e.Append(LIBS=[os.popen(rb_conf.substitute(flag='RUBY_SO_NAME')).read()])
+    rb_conf = string.Template("ruby -e \"print (if require 'rbconfig' then Config else RbConfig end)::CONFIG['$flag']\"")
+    e.Append(CPPPATH=[os.popen(rb_conf.substitute(flag='archdir')).read()])
+    e.Append(LIBPATH=[os.popen(rb_conf.substitute(flag='libdir')).read()])
+    e.Append(LIBS=[os.popen(rb_conf.substitute(flag='RUBY_SO_NAME')).read()])
 
 def ModulePrefix():
-  return "lib/ruby/"
+    return "lib/ruby/"
 
 def ModuleExtension():
-  rb_conf = string.Template("ruby -e \"require 'rbconfig'; print Config::CONFIG['$flag']\"")
-  return ('.' + os.popen(rb_conf.substitute(flag='DLEXT')).read())
+    rb_conf = string.Template("ruby -e \"require 'rbconfig'; print Config::CONFIG['$flag']\"")
+    return ('.' + os.popen(rb_conf.substitute(flag='DLEXT')).read())

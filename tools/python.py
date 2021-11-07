@@ -285,7 +285,7 @@ def Require(e, ignoreLinkFlags=False):
     pyver = distutils.sysconfig.get_python_version()
     e.Append(CCFLAGS=" -DPY_VER=%s" % pyver)
     e.Append(CPPPATH=[distutils.sysconfig.get_python_inc()])
-    
+
     if distutils.sysconfig.get_config_var("PYTHONFRAMEWORK"):
         if not ignoreLinkFlags:
             fwdir = distutils.sysconfig.get_config_var("PYTHONFRAMEWORKPREFIX")
@@ -342,9 +342,9 @@ def RequireCython(e):
         excons.PrintOnce("Use \"%s\" found in %s." % (cython, path), tool="python")
 
     _cython = cython
-    
+
     cython_include_re = re.compile(r"^include\s+([\"'])(\S+)\1", re.MULTILINE)
-    
+
     def scan_cython_includes(node, env, path):
         if hasattr(node, "get_text_contents"):
             lst = [m[1] for m in cython_include_re.findall(node.get_text_contents())]
@@ -354,7 +354,7 @@ def RequireCython(e):
             return lst
         else:
             return []
-    
+
     e.Append(SCANNERS=SCons.Script.Scanner(function=scan_cython_includes, skeys=".pyx"))
 
     return True

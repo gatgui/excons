@@ -26,11 +26,9 @@
 import SCons.Script # pylint: disable=import-error
 import excons
 
-# pylint: disable=bad-indentation
-
 
 def GetOptionsString():
-  return """ZLIB OPTIONS
+    return """ZLIB OPTIONS
   with-zlib=<path>     : Zlib root directory.
   with-zlib-inc=<path> : Zlib headers directory.           [<root>/include]
   with-zlib-lib=<path> : Zlib libraries directory.         [<root>/lib]
@@ -41,38 +39,38 @@ def GetOptionsString():
                          (ignored when zlib-name is set)
   zlib-suffix=<str>    : Default Zlib library name suffix. []
                          (ignored when zlib-name is set)"""
-                         
+
 
 def Require(env):
-  zlibinc, zliblib = excons.GetDirs("zlib")
-  
-  if zlibinc:
-    env.Append(CPPPATH=[zlibinc])
-  
-  if zliblib:
-    env.Append(LIBPATH=[zliblib])
-  
-  static = (excons.GetArgument("zlib-static", 0, int) != 0)
+    zlibinc, zliblib = excons.GetDirs("zlib")
 
-  if str(SCons.Script.Platform()) != "win32":
-    zlib_name = excons.GetArgument("zlib-name", None)
-    if not zlib_name:
-      zlib_name = "%sz%s" % (excons.GetArgument("zlib-prefix", ""), excons.GetArgument("zlib-suffix", ""))
-  
-  else:
-    if static:
-      zlib_name = excons.GetArgument("zlib-name", None)
-      if not zlib_name:
-        zlib_name = "zlib%s" % excons.GetArgument("zlib-suffix", "")
-    
+    if zlibinc:
+        env.Append(CPPPATH=[zlibinc])
+
+    if zliblib:
+        env.Append(LIBPATH=[zliblib])
+
+    static = (excons.GetArgument("zlib-static", 0, int) != 0)
+
+    if str(SCons.Script.Platform()) != "win32":
+        zlib_name = excons.GetArgument("zlib-name", None)
+        if not zlib_name:
+            zlib_name = "%sz%s" % (excons.GetArgument("zlib-prefix", ""), excons.GetArgument("zlib-suffix", ""))
+
     else:
-      zlib_name = excons.GetArgument("zlib-name", None)
-      if not zlib_name:
-        zlib_name = "zdll%s" % excons.GetArgument("zlib-suffix", "")
-      
-      env.Append(CPPDEFINES=["ZLIB_DLL"])
-  
-  excons.Link(env, zlib_name, static=static, force=True, silent=True)
-  
-  excons.AddHelpOptions(zlib=GetOptionsString())
+        if static:
+            zlib_name = excons.GetArgument("zlib-name", None)
+            if not zlib_name:
+                zlib_name = "zlib%s" % excons.GetArgument("zlib-suffix", "")
+
+        else:
+            zlib_name = excons.GetArgument("zlib-name", None)
+            if not zlib_name:
+                zlib_name = "zdll%s" % excons.GetArgument("zlib-suffix", "")
+
+            env.Append(CPPDEFINES=["ZLIB_DLL"])
+
+    excons.Link(env, zlib_name, static=static, force=True, silent=True)
+
+    excons.AddHelpOptions(zlib=GetOptionsString())
 

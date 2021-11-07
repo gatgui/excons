@@ -27,6 +27,7 @@ import SCons.Script # pylint: disable=import-error
 import excons
 import sys
 import re
+import io
 import os
 
 
@@ -59,21 +60,20 @@ def Version(asString=True, compat=False):
 
     if os.path.isfile(ai_version):
         defexp = re.compile(r"^\s*#define\s+AI_VERSION_(ARCH_NUM|MAJOR_NUM|MINOR_NUM|FIX)\s+([^\s]+)")
-        f = open(ai_version, "r")
-        for line in f.readlines():
-            m = defexp.match(line)
-            if m:
-                which = m.group(1)
-                if which == "ARCH_NUM":
-                    varch = int(m.group(2))
-                elif which == "MAJOR_NUM":
-                    vmaj = int(m.group(2))
-                elif which == "MINOR_NUM":
-                    vmin = int(m.group(2))
-                elif which == "FIX":
-                    m = re.search(r"\d+", m.group(2))
-                    vpatch = (0 if m is None else int(m.group(0)))
-        f.close()
+        with io.open(ai_version, "r", encoding="UTF-8", newline="\n") as f:
+            for line in f.readlines():
+                m = defexp.match(line)
+                if m:
+                    which = m.group(1)
+                    if which == "ARCH_NUM":
+                        varch = int(m.group(2))
+                    elif which == "MAJOR_NUM":
+                        vmaj = int(m.group(2))
+                    elif which == "MINOR_NUM":
+                        vmin = int(m.group(2))
+                    elif which == "FIX":
+                        m = re.search(r"\d+", m.group(2))
+                        vpatch = (0 if m is None else int(m.group(0)))
 
     rv = (varch, vmaj, vmin, vpatch)
 

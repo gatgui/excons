@@ -24,33 +24,32 @@
 
 
 import os
+import io
 import sys
 import shutil
 import excons
 
-# pylint: disable=bad-indentation,unused-argument,bare-except
 
+def MakeBundle(target=None, source=None, env=None): # pylint: disable=unused-argument
+    binaryPath = str(target[0])
 
-def MakeBundle(target=None, source=None, env=None):
-  binaryPath = str(target[0])
-  
-  excons.PrintOnce("MakeBundle for \"%s\"" % binaryPath, tool="openfx")
-  
-  outPath = excons.joinpath(os.path.dirname(binaryPath), "openfx")
-  ofxName = os.path.basename(binaryPath)
-  BundleDir = excons.joinpath(outPath, ofxName+".bundle")
-  ContentsDir = excons.joinpath(BundleDir, "Contents")
-  
-  try:
-    os.makedirs(ContentsDir)
-  except:
-    pass
-  
-  BinaryDir = None
-  
-  if sys.platform == "darwin":
-    plistPath = excons.joinpath(ContentsDir, "Info.plist")
-    plist = """
+    excons.PrintOnce("MakeBundle for \"%s\"" % binaryPath, tool="openfx")
+
+    outPath = excons.joinpath(os.path.dirname(binaryPath), "openfx")
+    ofxName = os.path.basename(binaryPath)
+    BundleDir = excons.joinpath(outPath, ofxName+".bundle")
+    ContentsDir = excons.joinpath(BundleDir, "Contents")
+
+    try:
+        os.makedirs(ContentsDir)
+    except: # pylint: disable=bare-except
+        pass
+
+    BinaryDir = None
+
+    if sys.platform == "darwin":
+        plistPath = excons.joinpath(ContentsDir, "Info.plist")
+        plist = """
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -68,39 +67,38 @@ def MakeBundle(target=None, source=None, env=None):
 </dict>
 </plist>
 """ % ofxName
-    
-    f = open(plistPath, "w")
-    f.write(plist)
-    f.close()
-    
-    if env["TARGET_ARCH"] == "x64" and "OFX_NEW_PACKAGE" in env and env["OFX_NEW_PACKAGE"]:
-      BinaryDir = excons.joinpath(ContentsDir, "MacOS-x86-64")
-      
+
+        with io.open(plistPath, "w", encoding="UTF-8", newline="\n") as f:
+            f.write(plist)
+
+        if env["TARGET_ARCH"] == "x64" and "OFX_NEW_PACKAGE" in env and env["OFX_NEW_PACKAGE"]:
+            BinaryDir = excons.joinpath(ContentsDir, "MacOS-x86-64")
+
+        else:
+            BinaryDir = excons.joinpath(ContentsDir, "MacOS")
+
+    elif sys.platform in ["win32", "cygwin"]:
+        #if pyplat.architecture()[0] == '64bit':
+        if env["TARGET_ARCH"] == "x64":
+            BinaryDir = excons.joinpath(ContentsDir, "Win64")
+
+        else:
+            BinaryDir = excons.joinpath(ContentsDir, "Win32")
+
     else:
-      BinaryDir = excons.joinpath(ContentsDir, "MacOS")
-  
-  elif sys.platform in ["win32", "cygwin"]:
-    #if pyplat.architecture()[0] == '64bit':
-    if env["TARGET_ARCH"] == "x64":
-      BinaryDir = excons.joinpath(ContentsDir, "Win64")
-      
-    else:
-      BinaryDir = excons.joinpath(ContentsDir, "Win32")
-  
-  else:
-    #if pyplat.architecture()[0] == '64bit':
-    if env["TARGET_ARCH"] == "x64":
-      BinaryDir = excons.joinpath(ContentsDir, "Linux-x86-64")
-      
-    else:
-      BinaryDir = excons.joinpath(ContentsDir, "Linux-x86")
-  
-  try:
-    os.mkdir(BinaryDir)
-  except:
-    pass
-  
-  shutil.copy(binaryPath, BinaryDir)
-  
-  # Doesn't seem to work
-  env.Clean(target, BundleDir)
+        #if pyplat.architecture()[0] == '64bit':
+        if env["TARGET_ARCH"] == "x64":
+            BinaryDir = excons.joinpath(ContentsDir, "Linux-x86-64")
+
+        else:
+            BinaryDir = excons.joinpath(ContentsDir, "Linux-x86")
+
+    try:
+        os.mkdir(BinaryDir)
+    except: # pylint: disable=bare-except
+        pass
+
+    shutil.copy(binaryPath, BinaryDir)
+
+    # Doesn't seem to work
+    env.Clean(target, BundleDir)

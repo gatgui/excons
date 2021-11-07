@@ -26,11 +26,9 @@
 import sys
 import excons
 
-# pylint: disable=bad-indentation
-
 
 def GetOptionsString():
-  return """GLEW OPTIONS
+    return """GLEW OPTIONS
   with-glew=<path>     : GLEW root directory.
   with-glew-inc=<path> : GLEW headers directory.     [<root>/include]
   with-glew-lib=<path> : GLEW libraries directory.   [<root>/lib]
@@ -47,43 +45,43 @@ def GetOptionsString():
                          (additional 'mx' suffix to library name unless glew-name is set)"""
 
 def Require(env):
-  glew_inc, glew_lib = excons.GetDirs("glew")
-  glew_static = (excons.GetArgument("glew-static", 1, int) != 0)
-  glew_no_glu = (excons.GetArgument("glew-noglu", 1, int) != 0)
-  glew_mx = (excons.GetArgument("glew-mx", 0, int) != 0)
-  
-  if glew_inc:
-    env.Append(CPPPATH=[glew_inc])
-  
-  if glew_lib:
-    env.Append(LIBPATH=[glew_lib])
-  
-  defs = []
-  
-  if glew_no_glu:
-    defs.append("GLEW_NO_GLU")
-  
-  if glew_static:
-    defs.append("GLEW_STATIC")
-  
-  if glew_mx:
-    defs.append("GLEW_MX")
-  
-  env.Append(CPPDEFINES=defs)
+    glew_inc, glew_lib = excons.GetDirs("glew")
+    glew_static = (excons.GetArgument("glew-static", 1, int) != 0)
+    glew_no_glu = (excons.GetArgument("glew-noglu", 1, int) != 0)
+    glew_mx = (excons.GetArgument("glew-mx", 0, int) != 0)
 
-  glew_libname = excons.GetArgument("glew-name", None)
-  if not glew_libname:
-    glew_libprefix = excons.GetArgument("glew-prefix", "")
-    glew_libsuffix = excons.GetArgument("glew-suffix", "")
-    
-    glew_libname = glew_libprefix + ("glew32" if sys.platform == "win32" else "GLEW") + glew_libsuffix
-    
+    if glew_inc:
+        env.Append(CPPPATH=[glew_inc])
+
+    if glew_lib:
+        env.Append(LIBPATH=[glew_lib])
+
+    defs = []
+
+    if glew_no_glu:
+        defs.append("GLEW_NO_GLU")
+
+    if glew_static:
+        defs.append("GLEW_STATIC")
+
     if glew_mx:
-      glew_libname += "mx"
+        defs.append("GLEW_MX")
 
-    if sys.platform == "win32" and glew_static:
-      glew_libname += "s"
+    env.Append(CPPDEFINES=defs)
 
-  excons.Link(env, glew_libname, static=glew_static, force=True, silent=True)
-  
-  excons.AddHelpOptions(glew=GetOptionsString())
+    glew_libname = excons.GetArgument("glew-name", None)
+    if not glew_libname:
+        glew_libprefix = excons.GetArgument("glew-prefix", "")
+        glew_libsuffix = excons.GetArgument("glew-suffix", "")
+
+        glew_libname = glew_libprefix + ("glew32" if sys.platform == "win32" else "GLEW") + glew_libsuffix
+
+        if glew_mx:
+            glew_libname += "mx"
+
+        if sys.platform == "win32" and glew_static:
+            glew_libname += "s"
+
+    excons.Link(env, glew_libname, static=glew_static, force=True, silent=True)
+
+    excons.AddHelpOptions(glew=GetOptionsString())
