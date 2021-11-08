@@ -36,7 +36,8 @@ from excons.cmake import VC_Filter
 import SCons.Script # pylint: disable=import-error
 
 
-InstallExp = re.compile(r"^.*?bin/install\s+((-c|-d|(-m\s+\d{3}))\s+)*(.*?)((['\"]?)(%s.*)\6)$" % os.path.abspath(excons.OutputBaseDirectory()))
+__OutDir = os.path.abspath(excons.OutputBaseDirectory()).replace("\\", "/")
+InstallExp = re.compile(r"^.*?bin/install\s+((-c|-d|(-m\s+\d{3}))\s+)*(.*?)((['\"]?)(%s.*)\6)$" % __OutDir)
 SymlinkExp = re.compile(r"ln\s+((-s|-f)\s+)*([^|&}{;]*)")
 ConfigExtraDeps = {}
 
