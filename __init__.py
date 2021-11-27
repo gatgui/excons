@@ -27,6 +27,7 @@ import os
 import re
 import io
 import sys
+import pprint
 import atexit
 import string
 import platform
@@ -261,18 +262,37 @@ class Cache(dict):
         super(Cache, self).__setitem__(sys.platform, {})
         self.updated = False
 
+    def clear(self):
+        super(Cache, self).clear()
+        super(Cache, self).__setitem__(sys.platform, {})
+        self.updated = False
+
     def write(self):
         global args_cache_path, args_cache_echo
 
         if self.updated:
-            import pprint
-
             if args_cache_path:
                 if args_cache_echo:
                     print("[excons] Write excons.cache: %s" % args_cache_path)
                 with io.open(args_cache_path, "w", newline="\n", encoding="UTF-8") as f:
-                    pprint.pprint(self, f)
-                    f.write("\n")
+                    f.write(u"{\n")
+                    firstplat = True
+                    for pn in self:
+                        if not firstplat:
+                            f.write(u",\n")
+                        f.write(u"  %s:\n" % repr(pn))
+                        f.write(u"  {\n")
+                        pd = super(Cache, self).__getitem__(pn)
+                        firstkey = True
+                        for k in pd:
+                            v = pd[k]
+                            if not firstkey:
+                                f.write(u",\n")
+                            f.write(u"    %s: %s" % (repr(k), repr(v)))
+                            firstkey = False
+                        f.write(u"\n  }")
+                        firstplat = False
+                    f.write(u"\n}\n")
                 self.updated = False
             else:
                 print("[excons] Cannot write arguments cache: Invalid path.")
@@ -345,7 +365,8 @@ def GetArgument(key, default=None, convert=None):
                                     print("[excons]  %s = %s" % (k2, v2))
                             args_cache.rawset(k, copy.deepcopy(v))
                     except Exception as e:
-                        print(e)
+                        if len(cc.strip()) > 0:
+                            print(e)
                         args_cache.clear()
             else:
                 print("[excons] Cannot read '%s' from cache: Invalid cache path." % key)
@@ -356,12 +377,12 @@ def GetArgument(key, default=None, convert=None):
         rv = SCons.Script.ARGUMENTS.get(key, None)
 
         if rv is None:
-            if args_cache:
+            if args_cache is not None:
                 rv = args_cache.get(key, None)
             if rv is None:
                 return default
         else:
-            if args_cache:
+            if args_cache is not None:
                 args_cache[key] = rv
 
     if convert:
@@ -2259,7 +2280,6 @@ def EcosystemDist(env, ecofile, targetdirs, name=None, version=None, targets=Non
 
     if updenv:
         with io.open(ecofile+".tmp", "w", newline="\n", encoding="UTF-8") as f:
-            import pprint
             try:
                 ecod = EcoUtils.SortedDict(ecod)
             except:
