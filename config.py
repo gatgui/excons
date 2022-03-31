@@ -24,11 +24,43 @@
 
 
 import os
+import sys
 import re
 import io
 import excons
 import SCons.Script # pylint: disable=import-error
 
+if sys.version_info[0] > 2:
+    import types
+    import importlib.machinery
+
+    def load_source(path, name=None):
+        modname = (name or os.path.splitext(os.path.basename(path))[0])
+        loader = importlib.machinery.SourceFileLoader(modname, path)
+        _mod = types.ModuleType(loader.name)
+        loader.exec_module(_mod)
+        return _mod
+
+    def iteritems(d):
+        for k, v in d.items():
+            yield k, v
+
+    anystring = str
+
+    xrange = range
+
+else:
+    import imp # pylint: disable=deprecated-module
+
+    def load_source(path, name=None):
+        modname = (name or os.path.splitext(os.path.basename(path))[0])
+        return imp.load_source(modname, path)
+
+    def iteritems(d):
+        for k, v in d.iteritems():
+            yield k, v
+
+    anystring = basestring # pylint: disable=undefined-variable
 
 def GetPath(name):
     return excons.joinpath(excons.out_dir, "%s.status" % name)
@@ -47,7 +79,7 @@ def HasChanged(name, opts):
 
 def Write(name, opts):
     with io.open(GetPath(name), "w", newline="\n", encoding="UTF-8") as f:
-        for k, v in opts.iteritems():
+        for k, v in iteritems(opts):
             f.write("%s %s\n" % (k, v))
         f.write("\n")
 
