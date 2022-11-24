@@ -42,7 +42,7 @@ def _GetPythonVersionOSX(pythonPath):
     # i.e.  with-python=/System/Library/Frameworks/Python.framework
     p = subprocess.Popen("ls -l %s/Versions | grep Current" % pythonPath, shell=True, stdout=subprocess.PIPE)
     out, _ = p.communicate()
-    m = re.search(r"Current\s+->\s+(%s/Versions/)?([0-9\.]+)" % pythonPath, out)
+    m = re.search(r"Current\s+->\s+(%s/Versions/)?([0-9\.]+)" % pythonPath, out.decode("ascii") if sys.version_info.major >= 3 else out)
     if m is not None:
         return m.group(2)
     return None
@@ -63,7 +63,7 @@ def _GetPythonVersionUNIX(pythonPath):
     # i.e.  with-python=/usr/local/bin/python
     p = subprocess.Popen("ldd %s | grep libpython" % pythonPath, shell=True, stdout=subprocess.PIPE)
     out, _ = p.communicate()
-    m = re.search(r"libpython([0-9\.]+)\.so", out)
+    m = re.search(r"libpython([0-9\.]+)\.so", out.decode("ascii") if sys.version_info.major >= 3 else out)
     if m is not None:
         return m.group(1)
     return None
