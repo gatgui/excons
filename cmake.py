@@ -134,7 +134,7 @@ def Configure(name, topdir=None, opts=None, min_mscver=None, flags=None):
         cmd += flags
         if not flags.endswith(" "):
             cmd += " "
-    for k, v in opts.iteritems():
+    for k, v in excons.iteritems(opts):
         cmd += "-D%s=%s " % (k, ("\"%s\"" % v if isinstance(v, excons.anystring) else v))
     cmd += "-DCMAKE_INSTALL_PREFIX=\"%s\" "  % excons.OutputBaseDirectory()
     if sys.platform != "win32":
@@ -279,7 +279,7 @@ def ExternalLibRequire(configOpts, name, libnameFunc=None, definesFunc=None, ext
     if req is not None:
         defines = ("" if definesFunc is None else definesFunc(rv["static"]))
         if defines:
-            extraflags = " ".join(map(lambda x: "-D%s" % x, defines))
+            extraflags = " ".join(["-D%s" % x for x in defines])
             configOpts["CMAKE_CPP_FLAGS"] = "%s %s" % (configOpts.get("CMAKE_CPP_FLAGS", ""), extraflags)
 
         if varPrefix is None:

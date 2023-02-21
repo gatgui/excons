@@ -47,7 +47,7 @@ def HasChanged(name, opts):
 
 def Write(name, opts):
     with io.open(GetPath(name), "w", newline="\n", encoding="UTF-8") as f:
-        for k, v in opts.iteritems():
+        for k, v in excons.iteritems(opts):
             f.write("%s %s\n" % (k, v))
         f.write("\n")
 

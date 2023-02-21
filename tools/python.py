@@ -63,7 +63,7 @@ def _GetPythonVersionUNIX(pythonPath):
     # i.e.  with-python=/usr/local/bin/python
     p = subprocess.Popen("ldd %s | grep libpython" % pythonPath, shell=True, stdout=subprocess.PIPE)
     out, _ = p.communicate()
-    m = re.search(r"libpython([0-9\.]+)\.so", out.decode("ascii") if sys.version_info.major >= 3 else out)
+    m = re.search(r"libpython([0-9\.]+m?)\.so", out.decode("ascii") if sys.version_info.major >= 3 else out)
     if m is not None:
         return m.group(1)
     return None
@@ -209,7 +209,7 @@ def _GetPythonSpec(specString):
 
         if spec is None:
             specErr += "\n"
-            excons.PrintOnce("Invalid python specification \"%s\".%sAborting build." % (specErr, specString), tool="python")
+            excons.PrintOnce("[1] Invalid python specification \"%s\".%sAborting build." % (specErr, specString), tool="python")
             sys.exit(1)
 
     # check setup validity
@@ -219,24 +219,29 @@ def _GetPythonSpec(specString):
             if fwdir is None:
                 # directly linking version specific framework
                 if not os.path.isdir(incdir) or not os.path.isfile(fw):
+                    excons.PrintOnce("Cannot find incdir '%s' or fw '%s'" % (incdir, fw), tool="python")
                     spec = None
             else:
                 if not os.path.isdir(incdir) or not os.path.isdir(fwdir):
+                    excons.PrintOnce("Cannot find incdir '%s' or fwdir '%s'" % (incdir, fwdir), tool="python")
                     spec = None
         else:
             ver, incdir, libdir, lib = spec
             if not os.path.isdir(incdir) or not os.path.isdir(libdir):
+                excons.PrintOnce("Cannot find incdir '%s' or libdir '%s'" % (incdir, libdir), tool="python")
                 spec = None
             else:
                 if plat == "win32":
                     if not os.path.isfile(excons.joinpath(libdir, "%s.lib" % lib)):
+                        excons.PrintOnce("Cannot find '%s'" % (excons.joinpath(libdir, "%s.lib" % lib)), tool="python")
                         spec = None
                 else:
                     if not os.path.isfile(os.path.join(libdir, "lib%s.so" % lib)):
+                        excons.PrintOnce("Cannot find '%s'" % os.path.join(libdir, "lib%s.so" % lib), tool="python")
                         spec = None
 
         if spec is None:
-            excons.PrintOnce("Invalid python specification \"%s\". Aborting build." % specString, tool="python")
+            excons.PrintOnce("[2] Invalid python specification \"%s\". Aborting build." % specString, tool="python")
             sys.exit(1)
 
     excons.PrintOnce("Resolved python for \"%s\": %s" % (specString, ('<current>' if spec is None else spec)), tool="python")
@@ -389,7 +394,7 @@ def CythonGenerate(e, pyx, h=None, c=None, incdirs=None, cpp=False, cte=None, di
 
     cteflags = "".join([" -E %s=%s" % (k, v) for k, v in cte.items()])
     dirflags = "".join([" --directive %s=%s" % (k, v) for k, v in directives.items()])
-    cmd = _cython + " " + " ".join(map(lambda x: "-I %s" % x, incdirs)) + (" --cplus" if cpp else "") + cteflags + dirflags + " --embed-positions -o $TARGET $SOURCE"
+    cmd = _cython + " " + " ".join(["-I %s" % x for x in incdirs]) + (" --cplus" if cpp else "") + cteflags + dirflags + " --embed-positions -o $TARGET $SOURCE"
 
     # Command seems to fail if PATH and PYTHONPATH are not set
     ec = e.Clone()

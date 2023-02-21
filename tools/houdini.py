@@ -195,7 +195,7 @@ def Require(env):
     cmd = "\"%s\" -c" % hcustom
     p = subprocess.Popen(cmd, shell=True, env=hcustomenv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, _ = p.communicate()
-    ccflags = out.strip()
+    ccflags = out.decode("ascii").strip() if sys.version_info.major > 2 else out.strip()
     if not "DLLEXPORT" in ccflags:
         if sys.platform == "win32":
             ccflags += ' /DDLLEXPORT="__declspec(dllexport)"'
@@ -209,7 +209,7 @@ def Require(env):
     cmd = "\"%s\" -m" % hcustom
     p = subprocess.Popen(cmd, shell=True, env=hcustomenv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, _ = p.communicate()
-    linkflags = out.strip()
+    linkflags = out.decode("ascii").strip() if sys.version_info.major > 2 else out.strip()
     if sys.platform == "win32":
         linkflags = re.sub(r"-link\s+", "", linkflags)
     elif sys.platform != "darwin":
