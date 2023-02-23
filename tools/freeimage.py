@@ -25,11 +25,9 @@
 
 import excons
 
-# pylint: disable=bad-indentation
-
 
 def GetOptionsString():
-  return """FREEIMAGE OPTIONS
+    return """FREEIMAGE OPTIONS
   with-freeimage=<path>     : FreeImage root directory.
   with-freeimage-inc=<path> : FreeImage headers directory.     [<root>/include]
   with-freeimage-lib=<path> : FreeImage libraries directory.   [<root>/lib]
@@ -41,24 +39,24 @@ def GetOptionsString():
                               (ignored when freeimage-name is set)"""
 
 def Require(env):
-  fiinc, filib = excons.GetDirs("freeimage")
-  
-  if fiinc:
-    env.Append(CPPPATH=[fiinc])
-  
-  if filib:
-    env.Append(LIBPATH=[filib])
-  
-  static = (excons.GetArgument("freeimage-static", 0, int) != 0)
-  if static:
-    env.Append(CPPDEFINES=["FREEIMAGE_LIB"])
-  
-  filibname = excons.GetArgument("freeimage-name", None)
-  if not filibname:
-    filibprefix = excons.GetArgument("freeimage-prefix", "")
-    filibsuffix = excons.GetArgument("freeimage-suffix", "")
-    filibname = "%sfreeimage%s" % (filibprefix, filibsuffix)
-  
-  excons.Link(env, filibname, static=static, force=True, silent=True)
-  
-  excons.AddHelpOptions(freeimage=GetOptionsString())
+    fiinc, filib = excons.GetDirs("freeimage")
+
+    if fiinc:
+        env.Append(CPPPATH=[fiinc])
+
+    if filib:
+        env.Append(LIBPATH=[filib])
+
+    static = (excons.GetArgument("freeimage-static", 0, int) != 0)
+    if static:
+        env.Append(CPPDEFINES=["FREEIMAGE_LIB"])
+
+    filibname = excons.GetArgument("freeimage-name", None)
+    if not filibname:
+        filibprefix = excons.GetArgument("freeimage-prefix", "")
+        filibsuffix = excons.GetArgument("freeimage-suffix", "")
+        filibname = "%sfreeimage%s" % (filibprefix, filibsuffix)
+
+    excons.Link(env, filibname, static=static, force=True, silent=True)
+
+    excons.AddHelpOptions(freeimage=GetOptionsString())

@@ -25,11 +25,9 @@
 
 import excons
 
-# pylint: disable=bad-indentation
-
 
 def GetOptionsString():
-  return """TBB OPTIONS
+    return """TBB OPTIONS
   with-tbb=<path>     : TBB root directory.
   with-tbb-inc=<path> : TBB headers directory.     [<root>/include]
   with-tbb-lib=<path> : TBB libraries directory.   [<root>/lib]
@@ -41,22 +39,22 @@ def GetOptionsString():
                         (ignored when tbb-name is set)"""
 
 def Require(env):
-  tbbinc, tbblib = excons.GetDirs("tbb")
-  
-  if tbbinc:
-    env.Append(CPPPATH=[tbbinc])
-  
-  if tbblib:
-    env.Append(LIBPATH=[tbblib])
-  
-  static = (excons.GetArgument("tbb-static", 0, int) != 0)
-  # Any specific defines?
-  #env.Append(CPPDEFINES=[])
-  
-  tbblibname = excons.GetArgument("tbb-name", None)
-  if not tbblibname:
-    tbblibname = "%stbb%s" % (excons.GetArgument("tbb-prefix", ""), excons.GetArgument("tbb-suffix", ""))
+    tbbinc, tbblib = excons.GetDirs("tbb")
 
-  excons.Link(env, tbblibname, static=static, force=True, silent=True)
+    if tbbinc:
+        env.Append(CPPPATH=[tbbinc])
 
-  excons.AddHelpOptions(tbb=GetOptionsString())
+    if tbblib:
+        env.Append(LIBPATH=[tbblib])
+
+    static = (excons.GetArgument("tbb-static", 0, int) != 0)
+    # Any specific defines?
+    #env.Append(CPPDEFINES=[])
+
+    tbblibname = excons.GetArgument("tbb-name", None)
+    if not tbblibname:
+        tbblibname = "%stbb%s" % (excons.GetArgument("tbb-prefix", ""), excons.GetArgument("tbb-suffix", ""))
+
+    excons.Link(env, tbblibname, static=static, force=True, silent=True)
+
+    excons.AddHelpOptions(tbb=GetOptionsString())

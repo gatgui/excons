@@ -25,15 +25,13 @@
 
 import SCons.Script # pylint: disable=import-error
 
-# pylint: disable=bad-indentation
-
 
 def Require(env):
-  if str(SCons.Script.Platform()) == "win32":
-    env.Append(LIBS=["glu32", "opengl32", "user32", "gdi32"])
-  
-  elif str(SCons.Script.Platform()) == "darwin":
-    env.Append(LINKFLAGS=" -framework OpenGL")
-  
-  else:
-    env.Append(LIBS=["GLU", "GL"])
+    if str(SCons.Script.Platform()) == "win32":
+        env.Append(LIBS=["glu32", "opengl32", "user32", "gdi32"])
+
+    elif str(SCons.Script.Platform()) == "darwin":
+        env.Append(LINKFLAGS=" -framework OpenGL")
+
+    else:
+        env.Append(LIBS=["GLU", "GL"])

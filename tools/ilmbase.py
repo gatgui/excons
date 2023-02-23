@@ -27,11 +27,9 @@ import excons
 import os
 import sys
 
-# pylint: disable=bad-indentation
-
 
 def GetOptionsString():
-   return """ILMBASE OPTIONS
+    return """ILMBASE OPTIONS
   with-ilmbase=<path>     : IlmBase root directory.
   with-ilmbase-inc=<path> : IlmBase headers directory.   [<root>/include]
   with-ilmbase-lib=<path> : IlmBase libraries directory. [<root>/lib]
@@ -47,91 +45,91 @@ def GetOptionsString():
   ilmbase-python-suffix=<str>    : PyIlmBase library name suffix. [inherit from ilmbase]"""
 
 def Require(ilmthread=None, iexmath=None, python=None, halfonly=False):
-   
-   if not halfonly:
-      if ilmthread is None:
-         ilmthread = (excons.GetArgument("ilmbase-thread", 1, int) != 0)
 
-      if iexmath is None:
-         iexmath = (excons.GetArgument("ilmbase-iexmath", 1, int) != 0)
+    if not halfonly:
+        if ilmthread is None:
+            ilmthread = (excons.GetArgument("ilmbase-thread", 1, int) != 0)
 
-      if python is None:
-         python = (excons.GetArgument("ilmbase-python", 0, int) != 0)
-   
-   else:
-      ilmthread = False
-      iexmath = False
-      python = False
+        if iexmath is None:
+            iexmath = (excons.GetArgument("ilmbase-iexmath", 1, int) != 0)
 
-   ilmbase_libsuffix = excons.GetArgument("ilmbase-suffix", "")
-   ilmbase_libprefix = excons.GetArgument("ilmbase-prefix", "")
+        if python is None:
+            python = (excons.GetArgument("ilmbase-python", 0, int) != 0)
 
-   pyilmbase_inc, pyilmbase_lib, pyilmbase_libprefix, pyilmbase_libsuffix = "", "", "", ""
-   if python:
-      pyilmbase_inc, pyilmbase_lib = excons.GetDirs("ilmbase-python")
-      if pyilmbase_inc and not pyilmbase_inc.endswith("OpenEXR"):
-         pyilmbase_inc += "/OpenEXR"
-      pyilmbase_libprefix = excons.GetArgument("ilmbase-python-prefix", ilmbase_libprefix)
-      pyilmbase_libsuffix = excons.GetArgument("ilmbase-python-suffix", ilmbase_libsuffix)
+    else:
+        ilmthread = False
+        iexmath = False
+        python = False
 
-   ilmbase_inc, ilmbase_lib = excons.GetDirs("ilmbase")
-   if ilmbase_inc and not ilmbase_inc.endswith("OpenEXR"):
-      ilmbase_inc += "/OpenEXR"
+    ilmbase_libsuffix = excons.GetArgument("ilmbase-suffix", "")
+    ilmbase_libprefix = excons.GetArgument("ilmbase-prefix", "")
 
-   static = (excons.GetArgument("ilmbase-static", 0, int) != 0)
+    pyilmbase_inc, pyilmbase_lib, pyilmbase_libprefix, pyilmbase_libsuffix = "", "", "", ""
+    if python:
+        pyilmbase_inc, pyilmbase_lib = excons.GetDirs("ilmbase-python")
+        if pyilmbase_inc and not pyilmbase_inc.endswith("OpenEXR"):
+            pyilmbase_inc += "/OpenEXR"
+        pyilmbase_libprefix = excons.GetArgument("ilmbase-python-prefix", ilmbase_libprefix)
+        pyilmbase_libsuffix = excons.GetArgument("ilmbase-python-suffix", ilmbase_libsuffix)
 
-   pystatic = static
-   if python:
-      pystatic = (excons.GetArgument("ilmbase-python-static", (1 if static else 0), int) != 0)
+    ilmbase_inc, ilmbase_lib = excons.GetDirs("ilmbase")
+    if ilmbase_inc and not ilmbase_inc.endswith("OpenEXR"):
+        ilmbase_inc += "/OpenEXR"
 
-   excons.AddHelpOptions(ilmbase=GetOptionsString())
+    static = (excons.GetArgument("ilmbase-static", 0, int) != 0)
 
-   def _RealRequire(env):
-      # Add python bindings first
-      if python:
-         if pystatic:
-            env.Append(CPPDEFINES=["PLATFORM_BUILD_STATIC"])
-         if sys.platform != "win32":
-            env.Append(CPPDEFINES=["PLATFORM_VISIBILITY_AVAILABLE"])
+    pystatic = static
+    if python:
+        pystatic = (excons.GetArgument("ilmbase-python-static", (1 if static else 0), int) != 0)
 
-         if pyilmbase_inc:
-            env.Append(CPPPATH=[pyilmbase_inc, os.path.dirname(pyilmbase_inc)])
-         
-         if pyilmbase_lib:
-            env.Append(LIBPATH=[pyilmbase_lib])
-         
-         excons.Link(env, "%sPyImath%s" % (pyilmbase_libprefix, pyilmbase_libsuffix), static=pystatic, silent=True)
-         excons.Link(env, "%sPyIex%s" % (pyilmbase_libprefix, pyilmbase_libsuffix), static=pystatic, silent=True)
+    excons.AddHelpOptions(ilmbase=GetOptionsString())
 
-      if ilmbase_inc:
-         env.Append(CPPPATH=[ilmbase_inc, os.path.dirname(ilmbase_inc)])
-      
-      if ilmbase_lib:
-         env.Append(LIBPATH=[ilmbase_lib])
+    def _RealRequire(env):
+        # Add python bindings first
+        if python:
+            if pystatic:
+                env.Append(CPPDEFINES=["PLATFORM_BUILD_STATIC"])
+            if sys.platform != "win32":
+                env.Append(CPPDEFINES=["PLATFORM_VISIBILITY_AVAILABLE"])
 
-      if sys.platform == "win32" and not static:
-         env.Append(CPPDEFINES=["OPENEXR_DLL"])
-      
-      if ilmthread:
-         # ilmthread will be False if halfonly is True
-         libname = "%sIlmThread%s" % (ilmbase_libprefix, ilmbase_libsuffix)
-         excons.Link(env, libname, static=static, force=True, silent=True)
-      
-      if not halfonly:
-         libname = "%sImath%s" % (ilmbase_libprefix, ilmbase_libsuffix)
-         excons.Link(env, libname, static=static, force=True, silent=True)
-      
-      if iexmath:
-         # iexmath will be False if halfonly is True
-         libname = "%sIexMath%s" % (ilmbase_libprefix, ilmbase_libsuffix)
-         excons.Link(env, libname, static=static, force=True, silent=True)
-      
-      if not halfonly:
-         libname = "%sIex%s" % (ilmbase_libprefix, ilmbase_libsuffix)
-         excons.Link(env, libname, static=static, force=True, silent=True)
-      
-      libname = "%sHalf%s" % (ilmbase_libprefix, ilmbase_libsuffix)
-      excons.Link(env, libname, static=static, force=True, silent=True)
+            if pyilmbase_inc:
+                env.Append(CPPPATH=[pyilmbase_inc, os.path.dirname(pyilmbase_inc)])
 
-   return _RealRequire
+            if pyilmbase_lib:
+                env.Append(LIBPATH=[pyilmbase_lib])
+
+            excons.Link(env, "%sPyImath%s" % (pyilmbase_libprefix, pyilmbase_libsuffix), static=pystatic, silent=True)
+            excons.Link(env, "%sPyIex%s" % (pyilmbase_libprefix, pyilmbase_libsuffix), static=pystatic, silent=True)
+
+        if ilmbase_inc:
+            env.Append(CPPPATH=[ilmbase_inc, os.path.dirname(ilmbase_inc)])
+
+        if ilmbase_lib:
+            env.Append(LIBPATH=[ilmbase_lib])
+
+        if sys.platform == "win32" and not static:
+            env.Append(CPPDEFINES=["OPENEXR_DLL"])
+
+        if ilmthread:
+            # ilmthread will be False if halfonly is True
+            libname = "%sIlmThread%s" % (ilmbase_libprefix, ilmbase_libsuffix)
+            excons.Link(env, libname, static=static, force=True, silent=True)
+
+        if not halfonly:
+            libname = "%sImath%s" % (ilmbase_libprefix, ilmbase_libsuffix)
+            excons.Link(env, libname, static=static, force=True, silent=True)
+
+        if iexmath:
+            # iexmath will be False if halfonly is True
+            libname = "%sIexMath%s" % (ilmbase_libprefix, ilmbase_libsuffix)
+            excons.Link(env, libname, static=static, force=True, silent=True)
+
+        if not halfonly:
+            libname = "%sIex%s" % (ilmbase_libprefix, ilmbase_libsuffix)
+            excons.Link(env, libname, static=static, force=True, silent=True)
+
+        libname = "%sHalf%s" % (ilmbase_libprefix, ilmbase_libsuffix)
+        excons.Link(env, libname, static=static, force=True, silent=True)
+
+    return _RealRequire
 

@@ -28,64 +28,62 @@ import excons
 import sys
 import re
 import os
-
-# pylint: disable=bad-indentation
+import io
 
 
 def GetOptionsString():
-   return """MTOA OPTIONS
+    return """MTOA OPTIONS
   with-mtoa=<path>     : MtoA root.
   with-mtoa-inc=<path> : MtoA headers directory.   [<root>/include]
   with-mtoa-lib=<path> : MtoA libraries directory. [<root>/bin or <root>/lib]"""
 
 def ExtensionExt():
-  if str(SCons.Script.Platform()) == "darwin":
-    return ".dylib"
-  elif str(SCons.Script.Platform()) == "win32":
-    return ".dll"
-  else:
-    return ".so"
+    if str(SCons.Script.Platform()) == "darwin":
+        return ".dylib"
+    elif str(SCons.Script.Platform()) == "win32":
+        return ".dll"
+    else:
+        return ".so"
 
 def Version(asString=True, compat=False):
-   mtoa_inc, mtoa_lib = excons.GetDirs("mtoa", libdirname=("lib" if sys.platform == "win32" else "bin"))
-   if mtoa_inc and mtoa_lib:
-      versionh = excons.joinpath(mtoa_inc, "utils", "Version.h")
-      varch, vmaj, vmin = 0, 0, 0
-      if os.path.isfile(versionh):
-         defexp = re.compile(r"^\s*#define\s+MTOA_(ARCH|MAJOR|MINOR)_VERSION_NUM\s+([^\s]+)")
-         f = open(versionh, "r")
-         for line in f.readlines():
-            m = defexp.match(line)
-            if m:
-               which = m.group(1)
-               if which == "ARCH":
-                  varch = int(m.group(2))
-               elif which == "MAJOR":
-                  vmaj = int(m.group(2))
-               elif which == "MINOR":
-                  vmin = int(m.group(2))
-         f.close()
-      if compat:
-         rv = (varch, vmaj)
-         return ("%s.%s" % rv if asString else rv)
-      else:
-         rv = (varch, vmaj, vmin)
-         return ("%s.%s.%s" % rv if asString else rv)
-   else:
-      if compat:
-         return ("0.0" if asString else (0, 0))
-      else:
-         return ("0.0.0" if asString else (0, 0, 0))
+    mtoa_inc, mtoa_lib = excons.GetDirs("mtoa", libdirname=("lib" if sys.platform == "win32" else "bin"))
+    if mtoa_inc and mtoa_lib:
+        versionh = excons.joinpath(mtoa_inc, "utils", "Version.h")
+        varch, vmaj, vmin = 0, 0, 0
+        if os.path.isfile(versionh):
+            defexp = re.compile(r"^\s*#define\s+MTOA_(ARCH|MAJOR|MINOR)_VERSION_NUM\s+([^\s]+)")
+            with io.open(versionh, "r", encoding="UTF-8", newline="\n") as f:
+                for line in f.readlines():
+                    m = defexp.match(line)
+                    if m:
+                        which = m.group(1)
+                        if which == "ARCH":
+                            varch = int(m.group(2))
+                        elif which == "MAJOR":
+                            vmaj = int(m.group(2))
+                        elif which == "MINOR":
+                            vmin = int(m.group(2))
+        if compat:
+            rv = (varch, vmaj)
+            return ("%s.%s" % rv if asString else rv)
+        else:
+            rv = (varch, vmaj, vmin)
+            return ("%s.%s.%s" % rv if asString else rv)
+    else:
+        if compat:
+            return ("0.0" if asString else (0, 0))
+        else:
+            return ("0.0.0" if asString else (0, 0, 0))
 
 def Require(env):
-   mtoa_inc, mtoa_lib = excons.GetDirs("mtoa", libdirname=("lib" if sys.platform == "win32" else "bin"))
-   if sys.platform == "darwin":
-      env.Append(CPPDEFINES=["_DARWIN"])
-   elif sys.platform == "win32":
-      env.Append(CPPDEFINES=["_WIN32"])
-   else:
-      env.Append(CPPDEFINES=["_LINUX"])
-   env.Append(CPPPATH=[mtoa_inc])
-   env.Append(LIBPATH=[mtoa_lib])
-   excons.Link(env, "mtoa_api", static=False, force=True, silent=True)
-   excons.AddHelpOptions(mtoa=GetOptionsString())
+    mtoa_inc, mtoa_lib = excons.GetDirs("mtoa", libdirname=("lib" if sys.platform == "win32" else "bin"))
+    if sys.platform == "darwin":
+        env.Append(CPPDEFINES=["_DARWIN"])
+    elif sys.platform == "win32":
+        env.Append(CPPDEFINES=["_WIN32"])
+    else:
+        env.Append(CPPDEFINES=["_LINUX"])
+    env.Append(CPPPATH=[mtoa_inc])
+    env.Append(LIBPATH=[mtoa_lib])
+    excons.Link(env, "mtoa_api", static=False, force=True, silent=True)
+    excons.AddHelpOptions(mtoa=GetOptionsString())
