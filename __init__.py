@@ -188,11 +188,13 @@ def preserve_arguments(overrides, keep):
                     pass
         return False
 
-    for k in SCons.Script.ARGUMENTS.keys():
+    SCons.Script.ARGUMENTS_cp = SCons.Script.ARGUMENTS.copy()
+    for k in SCons.Script.ARGUMENTS_cp.keys():
         if not k in old_keys and not _keepkey(k):
             del(SCons.Script.ARGUMENTS[k])
     if check_cache:
-        for k in args_cache.keys():
+        args_cache_cp = args_cache.copy()
+        for k in args_cache_cp.keys():
             if not k in old_cached_keys and not _keepkey(k):
                 args_cache.remove(k)
 
@@ -312,7 +314,8 @@ class Cache(dict):
 
     def remove(self, k):
         pd = super(Cache, self).__getitem__(sys.platform)
-        if k in pd:
+        pd_cp = pd.copy()
+        if k in pd_cp:
             if args_cache_echo:
                 print("[excons] Delete cache: %s" % k)
             del(pd[k])
