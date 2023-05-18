@@ -45,13 +45,15 @@ _maya_mscver = {
     "2020": "14.1",
     "2022": "14.2",
     "2023": "14.2",
+    "2024": "14.3"
 }
 
 _maya_gccver = {
     "2019": "6",
     "2020": "6",
     "2022": "9",
-    "2023": "9"
+    "2023": "9",
+    "2024": "11"
 }
 
 def GetOptionsString():
@@ -266,8 +268,12 @@ def Require(env):
         else:
             maya_ver = Version(asString=False, nice=True)
             # Starting Maya 2018, Maya API is using C++11 standard
-            if maya_ver and maya_ver >= 2018:
+            if maya_ver and maya_ver in [2018, 2019, 2020]:
                 env.Append(CPPFLAGS=" -std=c++11")
+            # Starting Maya 2022, Maya API is using C++14 standard
+            # Not sure about Maya 2024
+            elif maya_ver and maya_ver >= 2022:
+                env.Append(CPPFLAGS=" -std=c++14")
 
             env.Append(CPPDEFINES=["LINUX"])
             env.Append(CPPFLAGS=" -fno-strict-aliasing -Wno-comment -Wno-sign-compare -funsigned-char -Wno-reorder -fno-gnu-keywords -pthread")
