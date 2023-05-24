@@ -90,12 +90,12 @@ def SetupEnvironment(env, settings):
             with io.open(cfgc, "r", encoding="UTF-8", newline="\n") as f:
                 try:
                     d = eval(f.read()) # pylint: disable=eval-used
-                    for k, v in d.iteritems():
+                    for k, v in excons.iteritems(d):
                         if not k in opts or opts[k] != v:
                             doconf = True
                             break
                     if not doconf:
-                        for k, v in opts.iteritems():
+                        for k, v in excons.iteritems(opts):
                             if not k in d:
                                 doconf = True
                                 break
@@ -121,7 +121,7 @@ def SetupEnvironment(env, settings):
     bins.extend(cout)
 
     expected_outputs = settings.get("cmake-outputs", [])
-    expected_outputs = map(lambda x: (x if os.path.isabs(x) else (excons.OutputBaseDirectory() + "/" + x)), expected_outputs)
+    expected_outputs = [(x if os.path.isabs(x) else (excons.OutputBaseDirectory() + "/" + x)) for x in expected_outputs]
     actual_outputs = cmake.Outputs(name)
     bout = list(set(actual_outputs).union(set(expected_outputs))) + [cmake.OutputsCachePath(name)]
 

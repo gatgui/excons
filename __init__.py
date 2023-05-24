@@ -127,7 +127,7 @@ def preserve_targets(targets):
     if targets is not None:
         _targets = SCons.Script.COMMAND_LINE_TARGETS[:]
         if isinstance(targets, anystring):
-            SCons.Script.COMMAND_LINE_TARGETS = filter(lambda x: len(x)>0, map(lambda y: y.strip(), targets.split(" ")))
+            SCons.Script.COMMAND_LINE_TARGETS = [x.strip() for x in targets.split(" ") if len(x.strip()) > 0]
         else:
             SCons.Script.COMMAND_LINE_TARGETS = targets
     else:
@@ -433,7 +433,7 @@ def Which(target):
         texp = re.compile(target)
 
     if "PATH" in os.environ:
-        paths = filter(lambda x: len(x) > 0, map(lambda x: x.strip(), os.environ["PATH"].split(pathsplit)))
+        paths = [x.strip() for x in os.environ["PATH"].split(pathsplit) if len(x.strip()) > 0]
         for path in paths:
             for item in glob(joinpath(path, "*")):
                 if os.path.isdir(item):
@@ -523,7 +523,7 @@ def SetRPath(env, settings, relpath=None, rpaths=None):
             rpath = "'%s'" % ":".join(all_rpaths)
             env.Append(LINKFLAGS=" -Wl,-rpath,%s,--enable-new-dtags" % rpath)
         else:
-            rpath = ",".join(map(lambda x: "-rpath,%s" % x, all_rpaths))
+            rpath = ",".join(["-rpath,%s" % x for x in all_rpaths])
             env.Append(LINKFLAGS=" -Wl,%s" % rpath)
 
 def Build32():
@@ -838,7 +838,7 @@ def NormalizedRelativePath(path, baseDirectory):
     return os.path.relpath(path, baseDirectory).replace("\\", "/")
 
 def NormalizedRelativePaths(paths, baseDirectory):
-    return map(lambda x: NormalizedRelativePath(x, baseDirectory), paths)
+    return [NormalizedRelativePath(x, baseDirectory) for x in paths]
 
 def MakeBaseEnv(noarch=None, output_dir="."):
     global bld_dir, out_dir, mode_dir, arch_dir, mscver, gccver, no_arch, warnl, ext_types
@@ -1655,8 +1655,7 @@ def DeclareTargets(env, prjs):
                     if prereqs:
                         penv.Depends(obj, prereqs)
 
-            #progress_nodes = set(map(lambda x: abspath(str(x[0])), objs))
-            progress_nodes = set(map(lambda x: abspath(str(x)), objs))
+            progress_nodes = set([abspath(str(x)) for x in objs])
 
             if alias != prj:
                 if not alias in help_targets:

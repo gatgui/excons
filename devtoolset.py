@@ -27,6 +27,7 @@ import os
 import re
 import sys
 import subprocess
+import excons
 
 
 _VarsCache = {}
@@ -44,20 +45,21 @@ def GetDevtoolsetEnv(toolsetver, merge=False):
             p = subprocess.Popen("scl enable %s env" % toolsetname, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             out, _ = p.communicate()
             if p.returncode == 0:
-                lines = filter(lambda y: toolsetname in y, map(lambda x: x.strip(), out.split("\n")))
-                matches = filter(lambda y: y is not None, map(lambda x: re.match("^([^=]+)=(.*)$", x), lines))
-                ret = dict([(m.group(1), filter(lambda w: toolsetname in w, m.group(2).split(os.pathsep))) for m in matches])
+                out_dcd = out.decode("ascii").split("\n") if sys.version_info.major > 2 else out.split("\n")
+                lines = [x.strip() for x in out_dcd if toolsetname in x]
+                matches = [re.match("^([^=]+)=(.*)$", x) for x in lines if x is not None]
+                ret = dict([(m.group(1), [x for x in m.group(2).split(os.pathsep) if toolsetname in x]) for m in matches])
             else:
                 print("Invalid devtoolset: %s (%s)" % (toolsetname, toolsetver))
                 sys.exit(1)
             _VarsCache[toolsetname] = ret
         if ret:
             env = {}
-            for k, v in ret.iteritems():
+            for k, v in excons.iteritems(ret):
                 if merge:
                     _v = os.environ.get(k, None)
                     if _v is not None:
-                        vals = filter(lambda y: len(y) > 0, map(lambda x: x.strip(), _v.split(os.pathsep)))
+                        vals = [x.strip() for x in _v.split(os.pathsep) if len(x) > 0]
                         v.extend(vals)
                 env[k] = os.pathsep.join(v)
             return env
@@ -72,6 +74,6 @@ def GetGCCFullVer(toolsetver):
     p = subprocess.Popen(["gcc", "-dumpversion"], env=_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out, _ = p.communicate()
     if p.returncode == 0:
-        return out.strip()
+        return out.decode("ascii").strip() if sys.version_info.major > 2 else out.strip()
     else:
         return None

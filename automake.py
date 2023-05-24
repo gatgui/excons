@@ -83,7 +83,7 @@ def Configure(name, topdir=None, opts=None):
     relpath = os.path.relpath(topdir, bld)
 
     cmd = "cd \"%s\"; %s/configure " % (bld, relpath)
-    for k, v in opts.iteritems():
+    for k, v in excons.iteritems(opts):
         if type(v) == bool:
             if v:
                 cmd += "%s " % k
@@ -257,7 +257,7 @@ def ExternalLibRequire(configOpts, name, libnameFunc=None, definesFunc=None, ext
     if req is not None:
         defines = ("" if definesFunc is None else definesFunc(rv["static"]))
         if defines:
-            extraflags = " ".join(map(lambda x: "-D%s" % x, defines))
+            extraflags = " ".join(["-D%s" % x for x in defines])
             configOpts["CPPFLAGS"] = "%s %s" % (os.environ.get("CPPFLAGS", ""), extraflags)
 
         if flagName is None:

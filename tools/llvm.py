@@ -30,7 +30,7 @@ import subprocess
 
 
 def _CleanList(lst):
-    return filter(lambda x: len(x) > 0, map(lambda y: y.strip(), lst))
+    return [x.strip() for x in lst if len(x.strip()) > 0]
 
 def _FlagsToList(flags):
     spl1 = flags.split(" ")
@@ -116,7 +116,7 @@ def GetLLVMConfig(components=None):
         p = subprocess.Popen(cmd, **procargs)
         out, _ = p.communicate()
         if p.returncode == 0:
-            llvm_cfg["version_str"] = out.strip()
+            llvm_cfg["version_str"] = out.decode("ascii").strip() if sys.version_info.major > 2 else out.strip()
             spl = llvm_cfg["version_str"].split(".")
             llvm_cfg["version_major"] = int(spl[0])
             llvm_cfg["version_minor"] = int(spl[1])
@@ -130,7 +130,7 @@ def GetLLVMConfig(components=None):
         p = subprocess.Popen(cmd, **procargs)
         out, _ = p.communicate()
         if p.returncode == 0:
-            cppflags = out.strip()
+            cppflags = out.decode("ascii").strip() if sys.version_info.major > 2 else out.strip()
             llvm_cfg["cppflags"] = " " + " ".join(filter(lambda x: not _IsIncludeFlag(x), _FlagsToList(cppflags)))
         else:
             excons.WarnOnce("'%s' command failed." % cmd, tool="llvm")
@@ -140,7 +140,7 @@ def GetLLVMConfig(components=None):
         p = subprocess.Popen(cmd, **procargs)
         out, _ = p.communicate()
         if p.returncode == 0:
-            cxxflags = _FlagsToList(out.strip())
+            cxxflags = _FlagsToList(out.decode("ascii").strip() if sys.version_info.major > 2 else out.strip())
             if sys.platform != "win32":
                 llvm_cfg["rtti"] = (not "-fno-rtti" in cxxflags)
                 llvm_cfg["exceptions"] = (not "-fno-exceptions" in cxxflags)
@@ -160,10 +160,11 @@ def GetLLVMConfig(components=None):
                 excons.WarnOnce("'components' should either be a string or a list of strings.", tool="llvm")
         p = subprocess.Popen(cmd, **procargs)
         out, _ = p.communicate()
-        if p.returncode == 0:      
+        if p.returncode == 0:
             libs = []
-            for l in out.split("\n"):
-                lst = map(_LibName, (_FlagsToList(l) if sys.platform == "win32" else _CleanList(l.split("-l"))))
+            out_dcd = out.decode("ascii").split("\n") if sys.version_info.major > 2 else out.split("\n")
+            for l in out_dcd:
+                lst = [_LibName(x) for x in (_FlagsToList(l) if sys.platform == "win32" else _CleanList(l.split("-l")))]
                 libs.extend(lst)
             llvm_cfg["libs"] = libs
         else:
@@ -175,8 +176,9 @@ def GetLLVMConfig(components=None):
         out, _ = p.communicate()
         if p.returncode == 0:
             libs = []
-            for l in out.split("\n"):
-                lst = map(_LibName, (_FlagsToList(l) if sys.platform == "win32" else _CleanList(l.split("-l"))))
+            out_dcd = out.decode("ascii").split("\n") if sys.version_info.major > 2 else out.split("\n")
+            for l in out_dcd:
+                lst = [_LibName(x) for x in (_FlagsToList(l) if sys.platform == "win32" else _CleanList(l.split("-l")))]
                 libs.extend(lst)
             llvm_cfg["syslibs"] = libs
         else:
@@ -199,7 +201,7 @@ def Require(min_version=None, require_rtti=False, require_exceptions=False, comp
         rmaj, rmin = None, None
         if isinstance(min_version, excons.anystring):
             try:
-                rmaj, rmin = map(int, min_version.split("."))
+                rmaj, rmin = [int(x) for x in min_version.split(".")]
             except Exception as e: # pylint: disable=broad-except
                 excons.WarnOnce("Invalid version requirement '%s' (%s). Skip version check." % (min_version, e), tool="llvm")
         elif type(min_version) in (list, tuple):
