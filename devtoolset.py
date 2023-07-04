@@ -37,7 +37,7 @@ _VarsCache = {}
 #       -> "-D_GLIBCXX_USE_CXX11_ABI=0"
 
 def GetToolsetName(toolsetver):
-    toolstr = "^(\w+\-)?\w+\-%s$" % toolsetver
+    toolstr = "^(dev|gcc-)?toolset-%s$" % toolsetver
     toolexp = re.compile(toolstr)
 
     if toolsetver and sys.platform.startswith("linux"):
