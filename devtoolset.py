@@ -36,9 +36,29 @@ _VarsCache = {}
 #       the "_GLIBCXX_USE_CXX11_ABI" can be set to revert it to the old ABI
 #       -> "-D_GLIBCXX_USE_CXX11_ABI=0"
 
+def GetToolsetName(toolsetver):
+    toolstr = "^(\w+\-)?\w+\-%s$" % toolsetver
+    toolexp = re.compile(toolstr)
+
+    if toolsetver and sys.platform.startswith("linux"):
+        p = subprocess.Popen("scl list-collections", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        out, _ = p.communicate()
+        if p.returncode != 0:
+            p = subprocess.Popen("scl -l", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            out, _ = p.communicate()
+        if p.returncode == 0:
+            for toolset in out.split("\n"):
+                if toolexp.match(toolset):
+                    return toolset
+        else:
+            return ""
+
 def GetDevtoolsetEnv(toolsetver, merge=False):
     if toolsetver and sys.platform.startswith("linux"):
-        toolsetname = "devtoolset-%s" % toolsetver
+        toolsetname = GetToolsetName(toolsetver)
+        if not toolsetname:
+            raise Exception("Failed to get toolsetname")
+
         ret = _VarsCache.get(toolsetname, None)
         if ret is None:
             ret = {}
