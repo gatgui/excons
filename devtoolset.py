@@ -47,7 +47,8 @@ def GetToolsetName(toolsetver):
             p = subprocess.Popen("scl -l", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             out, _ = p.communicate()
         if p.returncode == 0:
-            for toolset in out.split("\n"):
+            out_str = out.decode("ascii") if sys.version_info.major > 2 else out
+            for toolset in out_str.split("\n"):
                 if toolexp.match(toolset):
                     return toolset
         else:
