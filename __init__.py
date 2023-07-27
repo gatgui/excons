@@ -222,13 +222,13 @@ def InitGlobals(output_dir=".", force=False):
         if not output_dir:
             output_dir = "."
 
+        out_dir = abspath(output_dir)
+
     if not os.path.isdir(output_dir):
         try:
             os.makedirs(output_dir)
         except:
             sys.exit(1)
-
-    out_dir = abspath(output_dir)
 
     if args_cache_path is None or force:
         cache_path = abspath("./excons.cache")
