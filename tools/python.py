@@ -110,7 +110,13 @@ def _GetPythonSpec(specString):
                     specErr += "\n  Cannot find python %s in %s" % (ver, searchPath)
 
         elif plat == "win32":
-            pythonPath = "C:\\Python%s" % ver.replace(".", "")
+            # use path from where python is called
+            pythonPath = sys.exec_prefix 
+            # let's assume that if python running from virtualenv use real python path
+            # because virtual env on windows is unreliable > 2.7
+            if "VIRTUAL_ENV" in os.environ:
+                pythonPath = sys.real_prefix if sys.version_info.major < 3 else sys.base_prefix
+
             if os.path.isdir(pythonPath):
                 incdir = excons.joinpath(pythonPath, "include")
                 libdir = excons.joinpath(pythonPath, "libs")
@@ -118,23 +124,14 @@ def _GetPythonSpec(specString):
                 spec = (ver, incdir, libdir, lib)
 
         else:
-            searchPaths = ["/usr", "/usr/local"]
-            for searchPath in searchPaths:
-                pythonPath = excons.joinpath(searchPath, "bin", "python%s" % ver)
-                if not os.path.isfile(pythonPath):
-                    pythonPath = excons.joinpath(searchPath, "python")
-                    if os.path.isfile(pythonPath) and _GetPythonVersionUNIX(pythonPath) == ver:
-                        spec = (ver, searchPath)
-                        break
-                else:
-                    spec = (ver, searchPath)
-                    break
+            searchPath = distutils.sysconfig.get_config_var("BINDIR")
+            spec = (ver, searchPath)
 
             if spec:
                 ver, prefix = spec
-                incdir = excons.joinpath(prefix, "include", "python%s" % ver)
-                libdir = excons.joinpath(prefix, ("lib64" if excons.Build64() else "lib"))
-                lib = "python%s" % ver
+                incdir = distutils.sysconfig.get_python_inc()
+                libdir = distutils.sysconfig.get_config_var("LIBDIR")
+                lib = "python%s" % distutils.sysconfig.get_config_var("LDVERSION")
                 spec = (ver, incdir, libdir, lib)
 
         if spec is None:
@@ -236,8 +233,9 @@ def _GetPythonSpec(specString):
                         excons.PrintOnce("Cannot find '%s'" % (excons.joinpath(libdir, "%s.lib" % lib)), tool="python")
                         spec = None
                 else:
-                    if not os.path.isfile(os.path.join(libdir, "lib%s.so" % lib)):
-                        excons.PrintOnce("Cannot find '%s'" % os.path.join(libdir, "lib%s.so" % lib), tool="python")
+                    ldlib = distutils.sysconfig.get_config_var("LDLIBRARY")
+                    if not distutils.sysconfig.get_config_var("Py_ENABLE_SHARED"):
+                        excons.PrintOnce("Cannot find '%s'" % ldlib, tool="python")
                         spec = None
 
         if spec is None:
@@ -304,6 +302,7 @@ def Require(e, ignoreLinkFlags=False):
             e.Append(LIBPATH=[distutils.sysconfig.PREFIX+'\\libs'])
             e.Append(LIBS=["python%s" % pyver.replace(".", "")])
         else:
+            pyver = distutils.sysconfig.get_config_var("LDVERSION")
             e.Append(CCFLAGS=" %s" % distutils.sysconfig.get_config_var("CFLAGS"))
             if not ignoreLinkFlags:
                 e.Append(LINKFLAGS=" %s" % distutils.sysconfig.get_config_var("LINKFORSHARED"))
@@ -322,7 +321,7 @@ def ModulePrefix():
     return "lib/python/"
 
 def ModuleExtension():
-    return distutils.sysconfig.get_config_var("SO")
+    return distutils.sysconfig.get_config_var("SO" if sys.version_info.major < 3 else "EXT_SUFFIX")
 
 
 _cython = ""
