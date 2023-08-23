@@ -117,7 +117,9 @@ def Configure(name, topdir=None, opts=None, min_mscver=None, flags=None):
             elif mscver == 14.1:
                 cmd += "-G \"Visual Studio 15 2017 Win64\" "
             elif mscver == 14.2:
-                cmd += "-G \"Visual Studio 16 2019 Win64\" "
+                cmd += "-G \"Visual Studio 16 2019\" -A x64 "
+            elif mscver == 14.3:
+                cmd += "-G \"Visual Studio 17 2022\" -A x64 "
             else:
                 excons.Print("Unsupported visual studio version %s" % mscver, tool="cmake")
                 return False
