@@ -30,6 +30,7 @@ import sys
 import glob
 import shutil
 import subprocess
+import locale
 import excons
 import excons.devtoolset
 import SCons.Script # pylint: disable=import-error
@@ -212,7 +213,7 @@ def Build(name, config=None, target=None):
 
     buf = ""
     while p.poll() is None:
-        r = p.stdout.readline(512).decode() if sys.version_info.major > 2 else p.stdout.readline(512)
+        r = p.stdout.readline(512).decode(locale.getdefaultlocale()[1]) if sys.version_info.major > 2 else p.stdout.readline(512)
         buf += r
         lines = buf.split("\n")
         if len(lines) > 1:
